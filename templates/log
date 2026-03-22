@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>COPAR - Acesso do Produtor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: #2c3e50;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .login-box {
+            background: white;
+            border-radius: 10px;
+            width: 350px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        
+        .login-box h1 {
+            color: #2c3e50;
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        
+        .login-box p {
+            color: #7f8c8d;
+            margin-bottom: 30px;
+        }
+        
+        .login-box input {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .login-box input:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        
+        .login-box button {
+            width: 100%;
+            padding: 12px;
+            background: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .login-box button:hover {
+            background: #229954;
+        }
+        
+        .erro {
+            background: #e74c3c;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        
+        .info {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #95a5a6;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-box">
+        <h1>COPAR</h1>
+        <p>Gestão de Alho</p>
+        
+        {% if erro %}
+        <div class="erro">{{ erro }}</div>
+        {% endif %}
+        
+        <form method="POST">
+            <input type="text" name="matricula" placeholder="Digite sua matrícula" autofocus>
+            <button type="submit">Entrar</button>
+        </form>
+        
+        <div class="info">
+            Digite sua matrícula para consultar seu estoque e vendas.
+        </div>
+    </div>
+</body>
+</html>
