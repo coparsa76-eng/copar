@@ -17,9 +17,8 @@ app.secret_key = 'copar-simples-2024'
 DATABASE_URL = os.environ.get('DATABASE_URL', 'postgresql://neondb_owner:npg_Bp1AmUEoX7ui@ep-summer-haze-a8lxhx5j-pooler.eastus2.azure.neon.tech/neondb?sslmode=require')
 
 def conectar_banco():
-    """Conecta ao banco de dados"""
     try:
-        return psycopg2.connect(DATABASE_URL)
+        return psycopg.connect(DATABASE_URL)
     except Exception as e:
         print(f"Erro de conexão: {e}")
         return None
