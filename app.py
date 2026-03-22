@@ -6,7 +6,7 @@ Apenas login por matrícula e consulta de dados
 """
 
 from flask import Flask, render_template, request, redirect, url_for, session
-import psycopg2
+import psycopg
 import os
 from datetime import datetime
 
