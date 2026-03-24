@@ -495,4 +495,217 @@
             }
         });
         
-        render
+        renderizarTabela();
+        mostrarStatus(`📋 Exemplo carregado para variedade ${variedade}!`, "info");
+    }
+    
+    // Busca de produtores
+    async function buscarProdutores(termo) {
+        if (termo.length < 1) {
+            autocompleteList.style.display = 'none';
+            return [];
+        }
+        
+        try {
+            const response = await fetch(`/api/buscar-produtores?termo=${encodeURIComponent(termo)}`);
+            const produtores = await response.json();
+            return produtores;
+        } catch (error) {
+            console.error('Erro na busca:', error);
+            return [];
+        }
+    }
+    
+    async function buscarProdutorPorMatricula(matricula) {
+        try {
+            const response = await fetch('/api/buscar-produtor', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ matricula: matricula })
+            });
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error('Erro:', error);
+            return { encontrado: false };
+        }
+    }
+    
+    function mostrarAutocomplete(produtores) {
+        if (!produtores.length) {
+            autocompleteList.style.display = 'none';
+            return;
+        }
+        
+        autocompleteList.innerHTML = '';
+        produtores.forEach(prod => {
+            const div = document.createElement('div');
+            div.className = 'autocomplete-item';
+            div.innerHTML = `<strong>${prod.matricula}</strong> - ${prod.nome}`;
+            div.onclick = () => selecionarProdutor(prod);
+            autocompleteList.appendChild(div);
+        });
+        
+        const rect = matriculaInput.getBoundingClientRect();
+        autocompleteList.style.position = 'absolute';
+        autocompleteList.style.top = rect.bottom + 'px';
+        autocompleteList.style.left = rect.left + 'px';
+        autocompleteList.style.width = rect.width + 'px';
+        autocompleteList.style.display = 'block';
+    }
+    
+    function selecionarProdutor(produtor) {
+        matriculaInput.value = produtor.matricula;
+        produtorInput.value = produtor.nome;
+        produtorIdInput.value = produtor.id || '';
+        autocompleteList.style.display = 'none';
+        mostrarStatus(`✅ Produtor encontrado: ${produtor.nome}`, "success");
+    }
+    
+    // Eventos de busca
+    matriculaInput.addEventListener('input', async (e) => {
+        const termo = e.target.value.trim();
+        
+        if (termo.length === 0) {
+            autocompleteList.style.display = 'none';
+            produtorInput.value = '';
+            produtorIdInput.value = '';
+            return;
+        }
+        
+        // Se for matrícula exata, busca direto
+        if (termo.match(/^\d+$/)) {
+            const resultado = await buscarProdutorPorMatricula(termo);
+            if (resultado.encontrado) {
+                produtorInput.value = resultado.nome;
+                produtorIdInput.value = resultado.id;
+                autocompleteList.style.display = 'none';
+                mostrarStatus(`✅ Produtor encontrado: ${resultado.nome}`, "success");
+                return;
+            }
+        }
+        
+        // Busca por autocomplete
+        if (buscaTimeout) clearTimeout(buscaTimeout);
+        buscaTimeout = setTimeout(async () => {
+            const produtores = await buscarProdutores(termo);
+            mostrarAutocomplete(produtores);
+        }, 300);
+    });
+    
+    matriculaInput.addEventListener('blur', () => {
+        setTimeout(() => {
+            if (!autocompleteList.matches(':hover')) {
+                autocompleteList.style.display = 'none';
+            }
+        }, 200);
+    });
+    
+    async function salvarRegistro() {
+        const matricula = matriculaInput.value.trim();
+        const produtorId = produtorIdInput.value;
+        const produtorNome = produtorInput.value.trim();
+        const variedade = variedadeSelect.value;
+        const local = localSelect.value;
+        const dataHora = dataRegistro.value;
+        
+        if (!matricula || !produtorId) {
+            mostrarStatus("❌ Informe uma matrícula válida de produtor!", "error");
+            return;
+        }
+        
+        // Coletar dados de pesagem
+        const detalhes = [];
+        let pesoTotal = 0;
+        
+        dadosTabela.forEach(item => {
+            if (item.peso !== null && item.peso > 0) {
+                detalhes.push({
+                    classe: item.classe,
+                    peso: item.peso
+                });
+                pesoTotal += item.peso;
+            }
+        });
+        
+        if (detalhes.length === 0) {
+            mostrarStatus("⚠️ Nenhum peso foi preenchido!", "error");
+            return;
+        }
+        
+        // Confirmar
+        if (!confirm(`Confirmar entrada:\n\nProdutor: ${produtorNome}\nVariedade: ${variedade}\nLocal: ${local}\nTotal: ${pesoTotal} Kg\n\nDeseja registrar?`)) {
+            return;
+        }
+        
+        // Desabilitar botão e mostrar loading
+        salvarBtn.disabled = true;
+        salvarBtn.innerHTML = '<span class="loading"></span> Salvando...';
+        
+        try {
+            const response = await fetch('/api/salvar-entrada', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    produtor_id: parseInt(produtorId),
+                    produtor_nome: produtorNome,
+                    matricula: matricula,
+                    tipo_alho: variedade,
+                    local: local,
+                    peso_total: pesoTotal,
+                    data_registro: dataHora,
+                    detalhes: detalhes
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.sucesso) {
+                mostrarStatus(`✅ ${result.mensagem}`, "success");
+                limparTodosPesos();
+            } else {
+                mostrarStatus(`❌ ${result.mensagem}`, "error");
+            }
+        } catch (error) {
+            console.error('Erro:', error);
+            mostrarStatus(`❌ Erro ao salvar: ${error.message}`, "error");
+        } finally {
+            salvarBtn.disabled = false;
+            salvarBtn.innerHTML = '💾 Registrar Entrada';
+        }
+    }
+    
+    function mostrarStatus(mensagem, tipo) {
+        statusMsg.textContent = mensagem;
+        statusMsg.className = `status-message show ${tipo}`;
+        setTimeout(() => {
+            statusMsg.classList.remove('show');
+        }, 5000);
+    }
+    
+    function atualizarDataAtual() {
+        const agora = new Date();
+        const dataFormatada = agora.toLocaleString('pt-BR', {
+            day: '2-digit', month: '2-digit', year: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+        });
+        dataRegistro.value = dataFormatada;
+    }
+    
+    // Inicialização
+    function init() {
+        renderizarTabela();
+        atualizarDataAtual();
+        setInterval(atualizarDataAtual, 60000);
+        
+        limparBtn.addEventListener('click', limparTodosPesos);
+        exemploBtn.addEventListener('click', carregarExemplo);
+        salvarBtn.addEventListener('click', salvarRegistro);
+        
+        mostrarStatus("📝 Formulário pronto. Digite a matrícula do produtor e preencha os pesos.", "info");
+    }
+    
+    init();
+</script>
+</body>
+</html>
