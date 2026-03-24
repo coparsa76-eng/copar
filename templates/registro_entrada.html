@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>COPAR - Registro de Entrada de Alho</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background: linear-gradient(135deg, #e8f0e5 0%, #c8d9bf 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            padding: 2rem;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        /* Header */
+        .header {
+            background: #2c5e2a;
+            border-radius: 16px 16px 0 0;
+            padding: 1.5rem 2rem;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header h1 {
+            font-size: 1.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .header h1::before { content: "🧄"; font-size: 2rem; }
+        
+        .header a {
+            background: #e74c3c;
+            color: white;
+            padding: 8px 20px;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+        
+        .header a:hover { background: #c0392b; }
+        
+        /* Conteúdo */
+        .content {
+            background: white;
+            border-radius: 0 0 16px 16px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        /* Área de matrícula */
+        .registry-area {
+            background: #f8fbf4;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+        }
+        
+        .field-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .field-group label {
+            font-weight: 600;
+            color: #2c5e2a;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+        
+        .field-group input, .field-group select {
+            padding: 0.75rem 1rem;
+            border: 2px solid #e2e8d5;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-family: inherit;
+        }
+        
+        .field-group input:focus, .field-group select:focus {
+            outline: none;
+            border-color: #2c5e2a;
+        }
+        
+        .autocomplete-list {
+            position: absolute;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            width: 300px;
+        }
+        
+        .autocomplete-item {
+            padding: 8px 12px;
+            cursor: pointer;
+        }
+        
+        .autocomplete-item:hover {
+            background: #e8f0e5;
+        }
+        
+        /* Seleção de variedade */
+        .variety-section {
+            background: #fff9ef;
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 1.5rem;
+            border-left: 5px solid #e6b422;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .variety-selector {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .variety-selector label {
+            font-weight: 700;
+            color: #b87c2e;
+        }
+        
+        .variety-selector select {
+            padding: 0.6rem 1.5rem;
+            border: 2px solid #e6b422;
+            border-radius: 40px;
+            background: white;
+            font-weight: 600;
+        }
+        
+        /* Tabela */
+        .table-section {
+            margin-bottom: 2rem;
+            overflow-x: auto;
+        }
+        
+        .table-section h3 {
+            color: #2c5e2a;
+            margin-bottom: 1rem;
+        }
+        
+        .weights-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        
+        .weights-table th {
+            background: #eef5e8;
+            padding: 1rem;
+            text-align: center;
+            font-weight: 700;
+            color: #2c5e2a;
+            border-bottom: 2px solid #cde2be;
+        }
+        
+        .weights-table th:first-child { text-align: left; }
+        
+        .weights-table td {
+            padding: 0.8rem 1rem;
+            text-align: center;
+            border-bottom: 1px solid #eef2e8;
+        }
+        
+        .weights-table td:first-child {
+            text-align: left;
+            font-weight: 500;
+        }
+        
+        .weights-table input {
+            width: 140px;
+            padding: 0.6rem;
+            text-align: center;
+            border: 1.5px solid #e2e8d5;
+            border-radius: 8px;
+            font-size: 0.95rem;
+        }
+        
+        .weights-table input:focus {
+            outline: none;
+            border-color: #2c5e2a;
+        }
+        
+        .total-row {
+            background: #f0f7ea;
+            font-weight: 800;
+        }
+        
+        .total-row td {
+            font-weight: 800;
+            background: #eef3e7;
+        }
+        
+        /* Botões */
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 2rem;
+        }
+        
+        .btn {
+            padding: 0.8rem 1.8rem;
+            border: none;
+            border-radius: 40px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: #2c5e2a;
+            color: white;
+        }
+        
+        .btn-primary:hover { background: #1e461c; transform: translateY(-1px); }
+        
+        .btn-secondary {
+            background: #eef2e8;
+            color: #2c5e2a;
+            border: 1px solid #cde2be;
+        }
+        
+        .btn-secondary:hover { background: #e2e9d8; }
+        
+        .btn-warning {
+            background: #fff3e0;
+            color: #b85c1a;
+            border: 1px solid #ffd9a5;
+        }
+        
+        .btn-warning:hover { background: #ffe6cc; }
+        
+        .status-message {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 12px;
+            text-align: center;
+            display: none;
+        }
+        
+        .status-message.show {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
+        
+        .status-message.success { background: #d4edda; color: #155724; }
+        .status-message.error { background: #f8d7da; color: #721c24; }
+        .status-message.info { background: #e2e3e5; color: #383d41; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @media (max-width: 800px) {
+            .registry-area { grid-template-columns: 1fr; }
+            .content { padding: 1rem; }
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #2c5e2a;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>Registro de Entrada - Alho</h1>
+        <a href="/logout">Sair</a>
+    </div>
+    
+    <div class="content">
+        <!-- Área de matrícula e produtor -->
+        <div class="registry-area">
+            <div class="field-group">
+                <label>🔢 MATRÍCULA / REGISTRO</label>
+                <input type="text" id="matriculaInput" placeholder="Digite a matrícula do produtor">
+                <div id="autocompleteList" class="autocomplete-list" style="display: none;"></div>
+            </div>
+            <div class="field-group">
+                <label>👨‍🌾 NOME DO PRODUTOR</label>
+                <input type="text" id="produtorInput" readonly placeholder="Aguardando matrícula">
+            </div>
+            <div class="field-group">
+                <label>📅 DATA DO REGISTRO</label>
+                <input type="text" id="dataRegistro" readonly>
+            </div>
+        </div>
+        
+        <input type="hidden" id="produtorId">
+        
+        <!-- Seleção de Variedade -->
+        <div class="variety-section">
+            <div class="variety-selector">
+                <label>🌾 VARIEDADE DO ALHO:</label>
+                <select id="variedadeSelect">
+                    <option value="São Valentim">🍊 São Valentim</option>
+                    <option value="Ito">🌿 Ito</option>
+                    <option value="Chonan">🧄 Chonan</option>
+                </select>
+            </div>
+            <div class="variety-info">
+                ⚡ Todas as classes pertencem à mesma variedade selecionada
+            </div>
+        </div>
+        
+        <!-- Seleção de Local -->
+        <div class="variety-section" style="background: #eef5e8; border-left-color: #2c5e2a;">
+            <div class="variety-selector">
+                <label>📍 LOCAL DE ARMAZENAMENTO:</label>
+                <select id="localSelect">
+                    <option value="Classificação">🏭 Classificação (Entrada Inicial)</option>
+                    <option value="banca">📦 banca (Classificado)</option>
+                    <option value="toletagem">✅ toletagem (Pronto)</option>
+                </select>
+            </div>
+        </div>
+        
+        <!-- Tabela de Pesagem -->
+        <div class="table-section">
+            <h3>📊 Registro de Pesagem por Classe e Tipo</h3>
+            <table class="weights-table" id="tabelaAlho">
+                <thead>
+                    <tr>
+                        <th style="width: 45%;">CLASSE / TIPO</th>
+                        <th style="width: 55%;">PESO PARCIAL (kg)</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelaCorpo"></tbody>
+            </table>
+        </div>
+        
+        <!-- Botões -->
+        <div class="action-buttons">
+            <button class="btn btn-warning" id="limparBtn">🗑️ Limpar Todos os Pesos</button>
+            <button class="btn btn-secondary" id="exemploBtn">📋 Carregar Exemplo</button>
+            <button class="btn btn-primary" id="salvarBtn">💾 Registrar Entrada</button>
+        </div>
+        
+        <div id="statusMsg" class="status-message"></div>
+    </div>
+</div>
+
+<script>
+    // Classes e tipos
+    const classesTipos = [
+        "INDÚSTRIA", "DEBULHADO", "TIPO 2", "TIPO 3", "TIPO 4", "TIPO 5", "TIPO 6", "TIPO 7"
+    ];
+    
+    let dadosTabela = classesTipos.map(classe => ({ classe: classe, peso: null }));
+    
+    // Elementos DOM
+    const tbody = document.getElementById('tabelaCorpo');
+    const matriculaInput = document.getElementById('matriculaInput');
+    const produtorInput = document.getElementById('produtorInput');
+    const produtorIdInput = document.getElementById('produtorId');
+    const variedadeSelect = document.getElementById('variedadeSelect');
+    const localSelect = document.getElementById('localSelect');
+    const limparBtn = document.getElementById('limparBtn');
+    const exemploBtn = document.getElementById('exemploBtn');
+    const salvarBtn = document.getElementById('salvarBtn');
+    const statusMsg = document.getElementById('statusMsg');
+    const dataRegistro = document.getElementById('dataRegistro');
+    const autocompleteList = document.getElementById('autocompleteList');
+    
+    let buscaTimeout = null;
+    
+    // Renderizar tabela
+    function renderizarTabela() {
+        tbody.innerHTML = '';
+        
+        dadosTabela.forEach((item, index) => {
+            const tr = document.createElement('tr');
+            
+            // Coluna Classe
+            const tdClasse = document.createElement('td');
+            let icone = '';
+            if (item.classe === "INDÚSTRIA") icone = '🏭 ';
+            else if (item.classe === "DEBULHADO") icone = '🌾 ';
+            else icone = '🔢 ';
+            tdClasse.innerHTML = icone + item.classe;
+            tr.appendChild(tdClasse);
+            
+            // Coluna Peso
+            const tdPeso = document.createElement('td');
+            const pesoInput = document.createElement('input');
+            pesoInput.type = 'number';
+            pesoInput.step = '1';
+            pesoInput.value = item.peso !== null ? item.peso : '';
+            pesoInput.placeholder = '0 kg';
+            
+            pesoInput.addEventListener('change', (e) => {
+                let valor = e.target.value;
+                if (valor === '') {
+                    dadosTabela[index].peso = null;
+                } else {
+                    let numero = parseFloat(valor);
+                    if (!isNaN(numero) && numero >= 0) {
+                        dadosTabela[index].peso = Math.round(numero);
+                    } else {
+                        dadosTabela[index].peso = null;
+                        pesoInput.value = '';
+                    }
+                }
+                renderizarTabela();
+            });
+            
+            tdPeso.appendChild(pesoInput);
+            tr.appendChild(tdPeso);
+            tbody.appendChild(tr);
+        });
+        
+        // Linha Total
+        const trTotal = document.createElement('tr');
+        trTotal.classList.add('total-row');
+        
+        const tdTotalLabel = document.createElement('td');
+        tdTotalLabel.innerHTML = '<strong>🔹 TOTAL GERAL</strong>';
+        trTotal.appendChild(tdTotalLabel);
+        
+        const tdTotalValor = document.createElement('td');
+        const totalValor = calcularTotal();
+        const totalInput = document.createElement('input');
+        totalInput.type = 'text';
+        totalInput.value = totalValor > 0 ? totalValor.toLocaleString('pt-BR') + ' kg' : '0 kg';
+        totalInput.disabled = true;
+        totalInput.style.background = '#eef3e7';
+        totalInput.style.fontWeight = 'bold';
+        totalInput.style.textAlign = 'center';
+        totalInput.style.border = 'none';
+        tdTotalValor.appendChild(totalInput);
+        trTotal.appendChild(tdTotalValor);
+        
+        tbody.appendChild(trTotal);
+    }
+    
+    function calcularTotal() {
+        return dadosTabela.reduce((sum, item) => sum + (item.peso || 0), 0);
+    }
+    
+    function limparTodosPesos() {
+        dadosTabela.forEach(item => item.peso = null);
+        renderizarTabela();
+        mostrarStatus("✅ Todos os campos de peso foram limpos.", "success");
+    }
+    
+    function carregarExemplo() {
+        const variedade = variedadeSelect.value;
+        let exemplos = {};
+        
+        if (variedade === 'São Valentim') {
+            exemplos = { "INDÚSTRIA": 850, "DEBULHADO": 1240, "TIPO 2": 512, "TIPO 3": 870, "TIPO 4": 1269, "TIPO 5": 579, "TIPO 6": 199, "TIPO 7": 45 };
+        } else if (variedade === 'Ito') {
+            exemplos = { "INDÚSTRIA": 1200, "DEBULHADO": 1890, "TIPO 2": 780, "TIPO 3": 1250, "TIPO 4": 890, "TIPO 5": 445, "TIPO 6": 267, "TIPO 7": 89 };
+        } else {
+            exemplos = { "INDÚSTRIA": 950, "DEBULHADO": 1560, "TIPO 2": 650, "TIPO 3": 980, "TIPO 4": 1540, "TIPO 5": 720, "TIPO 6": 310, "TIPO 7": 125 };
+        }
+        
+        dadosTabela.forEach(item => {
+            if (exemplos[item.classe] !== undefined) {
+                item.peso = exemplos[item.classe];
+            }
+        });
+        
+        render
