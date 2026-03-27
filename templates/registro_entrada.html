@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>COPAR - Registro de Entrada de Alho</title>
+    <title>COPAR - {{ 'Entrada na Classificação' if role == 'classificacao' else 'Transferência para Banca' if role == 'banca' else 'Transferência para Toletagem' }}</title>
     <style>
+        /* (manter os mesmos estilos do código anterior) */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { background: linear-gradient(135deg, #e8f0e5 0%, #c8d9bf 100%); min-height: 100vh; font-family: 'Segoe UI', system-ui, sans-serif; padding: 2rem; }
         .container { max-width: 1200px; margin: 0 auto; }
@@ -40,7 +41,8 @@
         .extra-fields { background: #eef5e8; border-radius: 12px; padding: 1rem 1.5rem; margin-bottom: 1.5rem; display: flex; gap: 2rem; flex-wrap: wrap; align-items: center; }
         .extra-fields .field { display: flex; align-items: center; gap: 1rem; }
         .extra-fields label { font-weight: 600; color: #2c5e2a; }
-        .extra-fields input { padding: 0.5rem 1rem; border: 2px solid #cde2be; border-radius: 8px; width: 100px; }
+        .extra-fields input, .extra-fields select { padding: 0.5rem 1rem; border: 2px solid #cde2be; border-radius: 8px; }
+        .extra-fields select { background: white; cursor: pointer; }
         .action-buttons { display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem; }
         .btn { padding: 0.8rem 1.8rem; border: none; border-radius: 40px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
         .btn-primary { background: #2c5e2a; color: white; }
@@ -59,13 +61,24 @@
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .produtor-info { background: #e8f0e5; padding: 10px; border-radius: 8px; margin-top: 10px; text-align: center; display: none; }
         .produtor-info.show { display: block; }
+        .saldo-info { font-size: 0.8rem; color: #2c5e2a; margin-left: 10px; }
         @media (max-width: 800px) { .registry-area { grid-template-columns: 1fr; } .content { padding: 1rem; } }
     </style>
 </head>
 <body>
 <div class="container">
     <div class="header">
-        <h1>Registro de Entrada - Alho</h1>
+        <h1>
+            {% if role == 'classificacao' %}
+                🏭 Entrada na Classificação
+            {% elif role == 'banca' %}
+                📦 Transferência para Banca
+            {% elif role == 'toletagem' %}
+                ✅ Transferência para Toletagem
+            {% else %}
+                Registro de Entrada
+            {% endif %}
+        </h1>
         <a href="/logout">Sair</a>
     </div>
     <div class="content">
@@ -101,21 +114,25 @@
             </div>
         </div>
 
-        <div class="variety-section" style="background: #eef5e8; border-left-color: #2c5e2a;">
-            <div class="variety-selector">
-                <label>📍 LOCAL DE ARMAZENAMENTO:</label>
-                <select id="localSelect">
-                    <option value="Classificação">🏭 Classificação (Entrada Inicial)</option>
-                    <option value="banca">📦 Banca (Classificado)</option>
-                    <option value="toletagem">✅ Toletagem (Pronto)</option>
-                </select>
-            </div>
-        </div>
+        <!-- Destino fixo por setor -->
+        <input type="hidden" id="localDestino" value="{% if role == 'classificacao' %}Classificação{% elif role == 'banca' %}banca{% elif role == 'toletagem' %}toletagem{% endif %}">
 
-        <!-- Campos adicionais que aparecem conforme o local -->
+        <!-- Campos extras com seletor de origem -->
         <div id="camposAdicionais" style="display: none;">
             <div class="extra-fields">
                 <div class="field">
+                    <label>📌 Origem do Estoque:</label>
+                    <select id="origemSelect">
+                        {% if role == 'banca' %}
+                            <option value="Classificação">Classificação</option>
+                        {% elif role == 'toletagem' %}
+                            <option value="Classificação">Classificação</option>
+                            <option value="Banca">Banca</option>
+                        {% endif %}
+                    </select>
+                    <span id="saldoOrigem" class="saldo-info"></span>
+                </div>
+                <div class="field" id="campoHoras" style="display: none;">
                     <label>⏱️ Horas de Banca:</label>
                     <input type="number" id="horasBanca" step="0.5" value="0" min="0">
                     <span class="info">(R$ <span id="valorHoraDisplay">{{ valor_hora_banca }}</span>/hora)</span>
@@ -126,18 +143,15 @@
                     <span class="info">(peso perdido na movimentação)</span>
                 </div>
             </div>
-            <div class="extra-fields" style="background: #fff3e0;">
-                <div class="field">
-                    <label>📌 Origem:</label>
-                    <span id="origemInfo">Classificação</span>
-                </div>
-            </div>
         </div>
 
         <div class="table-section">
             <h3>📊 Registro de Pesagem por Classe e Tipo</h3>
             <table class="weights-table" id="tabelaAlho">
-                <thead><tr><th style="width: 45%;">CLASSE / TIPO</th><th style="width: 55%;">PESO (kg)</th></tr></thead>
+                <thead>
+                    <th style="width: 45%;">CLASSE / TIPO</th>
+                    <th style="width: 55%;">PESO (kg)</th>
+                </thead>
                 <tbody id="tabelaCorpo"></tbody>
             </table>
         </div>
@@ -145,22 +159,25 @@
         <div class="action-buttons">
             <button class="btn btn-warning" id="limparBtn">🗑️ Limpar Todos os Pesos</button>
             <button class="btn btn-secondary" id="exemploBtn">📋 Carregar Exemplo</button>
-            <button class="btn btn-primary" id="salvarBtn">💾 Registrar Entrada</button>
+            <button class="btn btn-primary" id="salvarBtn">💾 Registrar</button>
         </div>
         <div id="statusMsg" class="status-message"></div>
     </div>
 </div>
+
 <script>
+    const role = "{{ role }}";
     const classesTipos = ["INDÚSTRIA", "TIPO 2", "TIPO 3", "TIPO 4", "TIPO 5", "TIPO 6", "TIPO 7"];
     let dadosTabela = classesTipos.map(classe => ({ classe: classe, peso: null }));
     let produtorAtual = null;
+    let saldosPorClasse = {};  // Armazena saldos de cada classe para a origem selecionada
+    
     const tbody = document.getElementById('tabelaCorpo');
     const matriculaInput = document.getElementById('matriculaInput');
     const produtorInput = document.getElementById('produtorInput');
     const produtorIdInput = document.getElementById('produtorId');
     const produtorInfo = document.getElementById('produtorInfo');
     const variedadeSelect = document.getElementById('variedadeSelect');
-    const localSelect = document.getElementById('localSelect');
     const limparBtn = document.getElementById('limparBtn');
     const exemploBtn = document.getElementById('exemploBtn');
     const salvarBtn = document.getElementById('salvarBtn');
@@ -168,28 +185,73 @@
     const dataRegistro = document.getElementById('dataRegistro');
     const autocompleteList = document.getElementById('autocompleteList');
     const camposAdicionais = document.getElementById('camposAdicionais');
+    const origemSelect = document.getElementById('origemSelect');
     const horasBancaInput = document.getElementById('horasBanca');
     const quebraInput = document.getElementById('quebra');
-    const origemInfo = document.getElementById('origemInfo');
+    const saldoOrigemSpan = document.getElementById('saldoOrigem');
+    const localDestinoHidden = document.getElementById('localDestino');
     let buscaTimeout = null;
 
-    function atualizarCamposAdicionais() {
-        const local = localSelect.value;
-        if (local === 'Classificação') {
+    function configurarPorRole() {
+        if (role === 'classificacao') {
             camposAdicionais.style.display = 'none';
-        } else {
+        } else if (role === 'banca') {
             camposAdicionais.style.display = 'block';
-            if (local === 'banca') {
-                origemInfo.innerText = 'Classificação';
-                horasBancaInput.disabled = false;
-                document.querySelector('.extra-fields .field:first-child').style.display = 'flex';
-            } else if (local === 'toletagem') {
-                origemInfo.innerText = 'Banca';
-                horasBancaInput.disabled = true;
-                horasBancaInput.value = 0;
-                document.querySelector('.extra-fields .field:first-child').style.display = 'none';
+            document.getElementById('campoHoras').style.display = 'flex';
+            horasBancaInput.disabled = false;
+            origemSelect.addEventListener('change', atualizarSaldosPorClasse);
+        } else if (role === 'toletagem') {
+            camposAdicionais.style.display = 'block';
+            document.getElementById('campoHoras').style.display = 'none';
+            horasBancaInput.disabled = true;
+            horasBancaInput.value = 0;
+            origemSelect.addEventListener('change', atualizarSaldosPorClasse);
+        }
+    }
+
+    async function atualizarSaldosPorClasse() {
+        const produtorId = produtorIdInput.value;
+        const tipoAlho = variedadeSelect.value;
+        const origem = origemSelect.value;
+        
+        if (!produtorId || !origem) return;
+        
+        // Buscar saldo para cada classe
+        for (let i = 0; i < classesTipos.length; i++) {
+            const classe = classesTipos[i];
+            const classeBanco = classe === "INDÚSTRIA" ? "Indústria" : `Classe ${classe.split(' ')[1]}`;
+            
+            try {
+                const response = await fetch('/api/obter-saldo', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        produtor_id: parseInt(produtorId),
+                        tipo_alho: tipoAlho,
+                        classe: classeBanco,
+                        local: origem
+                    })
+                });
+                const data = await response.json();
+                if (data.sucesso) {
+                    saldosPorClasse[classe] = data.saldo;
+                }
+            } catch (e) {
+                console.error('Erro ao buscar saldo:', e);
             }
         }
+        
+        // Atualizar tooltips ou mostrar saldos
+        const saldoTotal = Object.values(saldosPorClasse).reduce((a,b) => a + b, 0);
+        saldoOrigemSpan.innerHTML = `(Saldo disponível: ${saldoTotal.toLocaleString('pt-BR')} kg)`;
+        
+        // Adicionar aviso nos inputs de peso
+        const inputs = document.querySelectorAll('#tabelaCorpo input');
+        inputs.forEach((input, idx) => {
+            const classe = classesTipos[idx];
+            const saldo = saldosPorClasse[classe] || 0;
+            input.placeholder = `0 kg (disp: ${saldo} kg)`;
+        });
     }
 
     function renderizarTabela() {
@@ -211,6 +273,7 @@
                 if (valor === '') dadosTabela[index].peso = null;
                 else { let num = parseFloat(valor); if (!isNaN(num) && num >= 0) dadosTabela[index].peso = Math.round(num); else dadosTabela[index].peso = null; }
                 renderizarTabela();
+                verificarLimitesPorClasse();
             });
             tdPeso.appendChild(pesoInput);
             tr.appendChild(tdPeso);
@@ -234,6 +297,41 @@
         tdTotalValor.appendChild(totalInput);
         trTotal.appendChild(tdTotalValor);
         tbody.appendChild(trTotal);
+        
+        // Atualizar placeholders com saldos
+        if (Object.keys(saldosPorClasse).length > 0) {
+            const inputs = document.querySelectorAll('#tabelaCorpo input');
+            inputs.forEach((input, idx) => {
+                const classe = classesTipos[idx];
+                const saldo = saldosPorClasse[classe] || 0;
+                input.placeholder = `0 kg (disp: ${saldo} kg)`;
+            });
+        }
+    }
+    
+    function verificarLimitesPorClasse() {
+        if (Object.keys(saldosPorClasse).length === 0) return;
+        
+        let temExcesso = false;
+        dadosTabela.forEach((item, idx) => {
+            const classe = item.classe;
+            const peso = item.peso || 0;
+            const saldo = saldosPorClasse[classe] || 0;
+            if (peso > saldo && role !== 'classificacao') {
+                temExcesso = true;
+                const input = document.querySelectorAll('#tabelaCorpo input')[idx];
+                input.style.borderColor = '#e74c3c';
+                input.style.backgroundColor = '#ffe6e6';
+            } else {
+                const input = document.querySelectorAll('#tabelaCorpo input')[idx];
+                input.style.borderColor = '#e2e8d5';
+                input.style.backgroundColor = 'white';
+            }
+        });
+        
+        if (temExcesso && role !== 'classificacao') {
+            mostrarStatus("⚠️ Atenção: Alguns pesos excedem o saldo disponível na origem!", "error");
+        }
     }
 
     function limparTodosPesos() {
@@ -289,6 +387,11 @@
         produtorInfo.classList.add('show');
         mostrarStatus(`✅ Produtor encontrado: ${produtor.nome}`, "success");
         setTimeout(()=>produtorInfo.classList.remove('show'),3000);
+        
+        // Atualizar saldos quando produtor é selecionado
+        if (role !== 'classificacao') {
+            atualizarSaldosPorClasse();
+        }
     }
 
     matriculaInput.addEventListener('input', async (e) => {
@@ -301,13 +404,18 @@
         },300);
     });
     matriculaInput.addEventListener('blur', ()=>{ setTimeout(()=>{ if(!autocompleteList.matches(':hover')) autocompleteList.style.display='none'; },200); });
-    localSelect.addEventListener('change', atualizarCamposAdicionais);
+    variedadeSelect.addEventListener('change', () => {
+        if (role !== 'classificacao' && produtorIdInput.value) {
+            atualizarSaldosPorClasse();
+        }
+    });
 
     async function salvarRegistro() {
         const produtorId = produtorIdInput.value;
         const produtorNome = produtorInput.value.trim();
         const variedade = variedadeSelect.value;
-        const local = localSelect.value;
+        const local = localDestinoHidden.value;
+        const origem = origemSelect ? origemSelect.value : null;
         const horasBanca = parseFloat(horasBancaInput.value) || 0;
         const quebra = parseFloat(quebraInput.value) || 0;
 
@@ -316,27 +424,45 @@
             matriculaInput.focus();
             return;
         }
+        
+        if (role !== 'classificacao' && !origem) {
+            mostrarStatus("❌ Selecione a origem do estoque.", "error");
+            return;
+        }
+        
         const detalhes = [];
         let pesoTotal = 0;
-        dadosTabela.forEach(item=>{
+        let temExcesso = false;
+        
+        dadosTabela.forEach((item, idx) => {
             if(item.peso && item.peso>0){
+                const classe = item.classe;
+                const saldo = saldosPorClasse[classe] || 0;
+                if (item.peso > saldo && role !== 'classificacao') {
+                    temExcesso = true;
+                    mostrarStatus(`⚠️ Peso da classe ${classe} (${item.peso} kg) excede o saldo disponível (${saldo} kg).`, "error");
+                }
                 detalhes.push({classe: item.classe, peso: item.peso});
                 pesoTotal += item.peso;
             }
         });
+        
+        if(temExcesso) return;
+        
         if(detalhes.length===0){
             mostrarStatus("⚠️ Nenhum peso foi preenchido! Preencha pelo menos uma classe.", "error");
             return;
         }
-        // Validação de quebra não pode ser maior que o peso total
+        
         if(quebra > pesoTotal){
             mostrarStatus(`⚠️ Quebra (${quebra} kg) não pode ser maior que o peso total (${pesoTotal} kg).`, "error");
             return;
         }
-        let mensagemConfirmacao = `Confirmar entrada:\n\nProdutor: ${produtorNome}\nVariedade: ${variedade}\nLocal: ${local === 'Classificação' ? 'Classificação' : local === 'banca' ? 'Banca' : 'Toletagem'}\nTotal movido: ${pesoTotal} Kg`;
-        if(local !== 'Classificação'){
-            mensagemConfirmacao += `\nOrigem: ${local === 'banca' ? 'Classificação' : 'Banca'}`;
-            if(local === 'banca') mensagemConfirmacao += `\nHoras de Banca: ${horasBanca}`;
+        
+        let mensagemConfirmacao = `Confirmar ${role === 'classificacao' ? 'entrada' : 'transferência'}:\n\nProdutor: ${produtorNome}\nVariedade: ${variedade}\nDestino: ${local === 'Classificação' ? 'Classificação' : local === 'banca' ? 'Banca' : 'Toletagem'}\nTotal: ${pesoTotal} Kg`;
+        if(role !== 'classificacao'){
+            mensagemConfirmacao += `\nOrigem: ${origem}`;
+            if(role === 'banca') mensagemConfirmacao += `\nHoras de Banca: ${horasBanca}`;
             if(quebra > 0) mensagemConfirmacao += `\n⚠️ Quebra: ${quebra} Kg`;
         }
         mensagemConfirmacao += `\n\nDeseja registrar?`;
@@ -352,6 +478,7 @@
                     produtor_id:parseInt(produtorId),
                     tipo_alho:variedade,
                     local:local,
+                    local_origem:origem,
                     detalhes:detalhes,
                     horas_banca:horasBanca,
                     quebra:quebra
@@ -363,7 +490,7 @@
                 limparTodosPesos();
                 horasBancaInput.value = 0;
                 quebraInput.value = 0;
-                setTimeout(()=>{ if(confirm("Entrada registrada com sucesso! Deseja registrar outra entrada?")){ matriculaInput.focus(); matriculaInput.select(); } },500);
+                setTimeout(()=>{ if(confirm("Registro realizado com sucesso! Deseja registrar outro?")){ matriculaInput.focus(); matriculaInput.select(); } },500);
             } else {
                 mostrarStatus(`❌ ${result.mensagem}`, "error");
             }
@@ -371,7 +498,7 @@
             mostrarStatus(`❌ Erro ao salvar: ${e.message}`, "error");
         } finally {
             salvarBtn.disabled=false;
-            salvarBtn.innerHTML='💾 Registrar Entrada';
+            salvarBtn.innerHTML='💾 Registrar';
         }
     }
 
@@ -380,10 +507,12 @@
         statusMsg.className=`status-message show ${tipo}`;
         setTimeout(()=>statusMsg.classList.remove('show'),5000);
     }
+    
     function atualizarDataAtual(){
         const agora = new Date();
         dataRegistro.value = agora.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
     }
+    
     function init(){
         renderizarTabela();
         atualizarDataAtual();
@@ -391,8 +520,8 @@
         limparBtn.onclick=limparTodosPesos;
         exemploBtn.onclick=carregarExemplo;
         salvarBtn.onclick=salvarRegistro;
-        atualizarCamposAdicionais();
-        mostrarStatus("📝 Formulário pronto. Digite a matrícula do produtor (ex: 283) e selecione da lista.", "info");
+        configurarPorRole();
+        mostrarStatus("📝 Formulário pronto. Digite a matrícula do produtor e selecione da lista.", "info");
     }
     init();
 </script>
