@@ -318,6 +318,279 @@ def api_buscar_produtores():
     return jsonify(produtores)
 
 @app.route('/api/salvar-entrada', methods=['POST'])
+
+# ... (código anterior mantido)
+
+# ========== FUNÇÕES PARA O GERENTE ==========
+
+def obter_estatisticas_gerais():
+    """Retorna estatísticas para o dashboard do gerente"""
+    conn = conectar_banco()
+    if not conn:
+        return {}
+    
+    try:
+        cursor = conn.cursor()
+        
+        # Total de produtores
+        cursor.execute("SELECT COUNT(*) FROM produtores")
+        total_produtores = cursor.fetchone()[0]
+        
+        # Total em estoque (Kg)
+        cursor.execute("SELECT COALESCE(SUM(peso), 0) FROM estoque WHERE peso > 0")
+        total_estoque_kg = float(cursor.fetchone()[0])
+        
+        # Total de vendas hoje (valor)
+        cursor.execute("SELECT COALESCE(SUM(valor_total), 0) FROM vendas WHERE date(data_venda) = CURRENT_DATE")
+        vendas_hoje = float(cursor.fetchone()[0])
+        
+        # Total de pagamentos hoje
+        cursor.execute("SELECT COALESCE(SUM(valor_total), 0) FROM pagamentos WHERE date(data_pagamento) = CURRENT_DATE")
+        pagamentos_hoje = float(cursor.fetchone()[0])
+        
+        # Saldo total a pagar (soma de saldo em creditos_produtor)
+        cursor.execute("SELECT COALESCE(SUM(saldo), 0) FROM creditos_produtor")
+        saldo_total = float(cursor.fetchone()[0])
+        
+        cursor.close()
+        conn.close()
+        
+        return {
+            'total_produtores': total_produtores,
+            'total_estoque_kg': total_estoque_kg,
+            'vendas_hoje': vendas_hoje,
+            'pagamentos_hoje': pagamentos_hoje,
+            'saldo_total': saldo_total
+        }
+    except Exception as e:
+        logger.error(f"Erro ao obter estatísticas: {e}")
+        return {}
+
+def obter_estoque_por_produtor():
+    """Retorna estoque agrupado por produtor, tipo e classe"""
+    conn = conectar_banco()
+    if not conn:
+        return []
+    
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT 
+                p.nome as produtor,
+                e.tipo_alho,
+                e.classe,
+                SUM(e.peso) as total_peso,
+                e.local_estoque
+            FROM estoque e
+            JOIN produtores p ON e.produtor_id = p.id
+            WHERE e.peso > 0
+            GROUP BY p.nome, e.tipo_alho, e.classe, e.local_estoque
+            ORDER BY p.nome, e.tipo_alho, e.classe
+        """)
+        
+        estoque = []
+        for row in cursor.fetchall():
+            estoque.append({
+                'produtor': row[0],
+                'tipo_alho': row[1],
+                'classe': row[2],
+                'peso': float(row[3]),
+                'local': row[4]
+            })
+        cursor.close()
+        conn.close()
+        return estoque
+    except Exception as e:
+        logger.error(f"Erro ao buscar estoque por produtor: {e}")
+        return []
+
+def obter_vendas_recentes(limite=20):
+    """Retorna as últimas vendas registradas"""
+    conn = conectar_banco()
+    if not conn:
+        return []
+    
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT 
+                v.id,
+                p.nome as produtor,
+                v.tipo_alho,
+                v.classe,
+                v.peso,
+                v.valor_total,
+                v.valor_produtor,
+                v.status_pagamento,
+                v.data_venda
+            FROM vendas v
+            JOIN produtores p ON v.produtor_id = p.id
+            ORDER BY v.data_venda DESC
+            LIMIT %s
+        """, (limite,))
+        
+        vendas = []
+        for row in cursor.fetchall():
+            vendas.append({
+                'id': row[0],
+                'produtor': row[1],
+                'tipo_alho': row[2],
+                'classe': row[3],
+                'peso': float(row[4]),
+                'valor_total': float(row[5]),
+                'valor_produtor': float(row[6]),
+                'status': row[7],
+                'data': row[8].strftime("%d/%m/%Y %H:%M") if row[8] else ""
+            })
+        cursor.close()
+        conn.close()
+        return vendas
+    except Exception as e:
+        logger.error(f"Erro ao buscar vendas recentes: {e}")
+        return []
+
+def obter_pagamentos_recentes(limite=20):
+    """Retorna os últimos pagamentos registrados"""
+    conn = conectar_banco()
+    if not conn:
+        return []
+    
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT 
+                pa.id,
+                p.nome as produtor,
+                pa.valor_total,
+                pa.forma_pagamento,
+                pa.data_pagamento
+            FROM pagamentos pa
+            JOIN produtores p ON pa.produtor_id = p.id
+            ORDER BY pa.data_pagamento DESC
+            LIMIT %s
+        """, (limite,))
+        
+        pagamentos = []
+        for row in cursor.fetchall():
+            pagamentos.append({
+                'id': row[0],
+                'produtor': row[1],
+                'valor': float(row[2]),
+                'forma': row[3],
+                'data': row[4].strftime("%d/%m/%Y %H:%M") if row[4] else ""
+            })
+        cursor.close()
+        conn.close()
+        return pagamentos
+    except Exception as e:
+        logger.error(f"Erro ao buscar pagamentos recentes: {e}")
+        return []
+
+def obter_estoque_por_tipo():
+    """Retorna total em estoque agrupado por tipo de alho (para gráfico)"""
+    conn = conectar_banco()
+    if not conn:
+        return []
+    
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT 
+                tipo_alho,
+                COALESCE(SUM(peso), 0) as total_peso
+            FROM estoque
+            WHERE peso > 0
+            GROUP BY tipo_alho
+            ORDER BY total_peso DESC
+        """)
+        
+        estoque = []
+        for row in cursor.fetchall():
+            estoque.append({
+                'tipo': row[0],
+                'peso': float(row[1])
+            })
+        cursor.close()
+        conn.close()
+        return estoque
+    except Exception as e:
+        logger.error(f"Erro ao buscar estoque por tipo: {e}")
+        return []
+
+def obter_vendas_por_mes():
+    """Retorna vendas dos últimos 6 meses (valor total)"""
+    conn = conectar_banco()
+    if not conn:
+        return []
+    
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT 
+                DATE_TRUNC('month', data_venda) as mes,
+                COALESCE(SUM(valor_total), 0) as total_vendas
+            FROM vendas
+            WHERE data_venda >= CURRENT_DATE - INTERVAL '6 months'
+            GROUP BY DATE_TRUNC('month', data_venda)
+            ORDER BY mes
+        """)
+        
+        vendas = []
+        for row in cursor.fetchall():
+            vendas.append({
+                'mes': row[0].strftime("%b/%Y") if row[0] else "",
+                'total': float(row[1])
+            })
+        cursor.close()
+        conn.close()
+        return vendas
+    except Exception as e:
+        logger.error(f"Erro ao buscar vendas por mês: {e}")
+        return []
+
+# ========== NOVAS ROTAS ==========
+
+@app.route('/gerente')
+def gerente():
+    """Dashboard do gerente"""
+    if 'produtor_id' not in session:
+        return redirect(url_for('login'))
+    
+    # Verifica se é o gerente (matrícula GLH)
+    if session.get('produtor_matricula') != 'GLH':
+        flash('Acesso não autorizado.', 'error')
+        return redirect(url_for('produtor'))
+    
+    return render_template('gerente.html')
+
+# APIs para dados do gerente
+@app.route('/api/gerente/estatisticas')
+def api_gerente_estatisticas():
+    return jsonify(obter_estatisticas_gerais())
+
+@app.route('/api/gerente/estoque-produtor')
+def api_gerente_estoque_produtor():
+    return jsonify(obter_estoque_por_produtor())
+
+@app.route('/api/gerente/vendas-recentes')
+def api_gerente_vendas_recentes():
+    limite = request.args.get('limite', 20, type=int)
+    return jsonify(obter_vendas_recentes(limite))
+
+@app.route('/api/gerente/pagamentos-recentes')
+def api_gerente_pagamentos_recentes():
+    limite = request.args.get('limite', 20, type=int)
+    return jsonify(obter_pagamentos_recentes(limite))
+
+@app.route('/api/gerente/estoque-por-tipo')
+def api_gerente_estoque_por_tipo():
+    return jsonify(obter_estoque_por_tipo())
+
+@app.route('/api/gerente/vendas-por-mes')
+def api_gerente_vendas_por_mes():
+    return jsonify(obter_vendas_por_mes())
+
+
 def api_salvar_entrada():
     data = request.get_json()
     if not data:
