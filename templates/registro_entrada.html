@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>COPAR - {{ 'Entrada na Classificação' if role == 'classificacao' else 'Transferência para Banca' if role == 'banca' else 'Transferência para Toletagem' }}</title>
     <style>
-        /* (manter os mesmos estilos do código anterior) */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { background: linear-gradient(135deg, #e8f0e5 0%, #c8d9bf 100%); min-height: 100vh; font-family: 'Segoe UI', system-ui, sans-serif; padding: 2rem; }
         .container { max-width: 1200px; margin: 0 auto; }
@@ -42,7 +41,7 @@
         .extra-fields .field { display: flex; align-items: center; gap: 1rem; }
         .extra-fields label { font-weight: 600; color: #2c5e2a; }
         .extra-fields input, .extra-fields select { padding: 0.5rem 1rem; border: 2px solid #cde2be; border-radius: 8px; }
-        .extra-fields select { background: white; cursor: pointer; }
+        .extra-fields select { background: white; cursor: pointer; min-width: 150px; }
         .action-buttons { display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem; }
         .btn { padding: 0.8rem 1.8rem; border: none; border-radius: 40px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
         .btn-primary { background: #2c5e2a; color: white; }
@@ -125,6 +124,7 @@
                     <select id="origemSelect">
                         {% if role == 'banca' %}
                             <option value="Classificação">Classificação</option>
+                            <option value="Toletagem">Toletagem</option>
                         {% elif role == 'toletagem' %}
                             <option value="Classificação">Classificação</option>
                             <option value="Banca">Banca</option>
@@ -132,7 +132,7 @@
                     </select>
                     <span id="saldoOrigem" class="saldo-info"></span>
                 </div>
-                <div class="field" id="campoHoras" style="display: none;">
+                <div class="field" id="campoHoras">
                     <label>⏱️ Horas de Banca:</label>
                     <input type="number" id="horasBanca" step="0.5" value="0" min="0">
                     <span class="info">(R$ <span id="valorHoraDisplay">{{ valor_hora_banca }}</span>/hora)</span>
@@ -170,7 +170,7 @@
     const classesTipos = ["INDÚSTRIA", "TIPO 2", "TIPO 3", "TIPO 4", "TIPO 5", "TIPO 6", "TIPO 7"];
     let dadosTabela = classesTipos.map(classe => ({ classe: classe, peso: null }));
     let produtorAtual = null;
-    let saldosPorClasse = {};  // Armazena saldos de cada classe para a origem selecionada
+    let saldosPorClasse = {};
     
     const tbody = document.getElementById('tabelaCorpo');
     const matriculaInput = document.getElementById('matriculaInput');
@@ -197,14 +197,15 @@
             camposAdicionais.style.display = 'none';
         } else if (role === 'banca') {
             camposAdicionais.style.display = 'block';
+            // Campo de horas sempre visível para Banca
             document.getElementById('campoHoras').style.display = 'flex';
             horasBancaInput.disabled = false;
             origemSelect.addEventListener('change', atualizarSaldosPorClasse);
         } else if (role === 'toletagem') {
             camposAdicionais.style.display = 'block';
-            document.getElementById('campoHoras').style.display = 'none';
-            horasBancaInput.disabled = true;
-            horasBancaInput.value = 0;
+            // Campo de horas também visível para Toletagem
+            document.getElementById('campoHoras').style.display = 'flex';
+            horasBancaInput.disabled = false;
             origemSelect.addEventListener('change', atualizarSaldosPorClasse);
         }
     }
@@ -215,6 +216,12 @@
         const origem = origemSelect.value;
         
         if (!produtorId || !origem) return;
+        
+        // Mapear origem para o nome correto no banco
+        let origemBanco = origem;
+        if (origem === 'Toletagem') origemBanco = 'Toletagem';
+        if (origem === 'Banca') origemBanco = 'Banca';
+        if (origem === 'Classificação') origemBanco = 'Classificação';
         
         // Buscar saldo para cada classe
         for (let i = 0; i < classesTipos.length; i++) {
@@ -229,7 +236,7 @@
                         produtor_id: parseInt(produtorId),
                         tipo_alho: tipoAlho,
                         classe: classeBanco,
-                        local: origem
+                        local: origemBanco
                     })
                 });
                 const data = await response.json();
@@ -241,11 +248,11 @@
             }
         }
         
-        // Atualizar tooltips ou mostrar saldos
+        // Atualizar saldo total
         const saldoTotal = Object.values(saldosPorClasse).reduce((a,b) => a + b, 0);
-        saldoOrigemSpan.innerHTML = `(Saldo disponível: ${saldoTotal.toLocaleString('pt-BR')} kg)`;
+        saldoOrigemSpan.innerHTML = `(Saldo disponível em ${origem}: ${saldoTotal.toLocaleString('pt-BR')} kg)`;
         
-        // Adicionar aviso nos inputs de peso
+        // Atualizar placeholders nos inputs
         const inputs = document.querySelectorAll('#tabelaCorpo input');
         inputs.forEach((input, idx) => {
             const classe = classesTipos[idx];
@@ -462,7 +469,7 @@
         let mensagemConfirmacao = `Confirmar ${role === 'classificacao' ? 'entrada' : 'transferência'}:\n\nProdutor: ${produtorNome}\nVariedade: ${variedade}\nDestino: ${local === 'Classificação' ? 'Classificação' : local === 'banca' ? 'Banca' : 'Toletagem'}\nTotal: ${pesoTotal} Kg`;
         if(role !== 'classificacao'){
             mensagemConfirmacao += `\nOrigem: ${origem}`;
-            if(role === 'banca') mensagemConfirmacao += `\nHoras de Banca: ${horasBanca}`;
+            if(horasBanca > 0) mensagemConfirmacao += `\n⏱️ Horas de Banca: ${horasBanca} (R$ ${horasBanca * {{ valor_hora_banca }}} de desconto futuro)`;
             if(quebra > 0) mensagemConfirmacao += `\n⚠️ Quebra: ${quebra} Kg`;
         }
         mensagemConfirmacao += `\n\nDeseja registrar?`;
