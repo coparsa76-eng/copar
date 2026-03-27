@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-COPAR Web - Versão com setores e origem selecionável
+COPAR Web - Versão com origem flexível para Banca e Toletagem
 """
 
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
@@ -126,7 +126,7 @@ def buscar_produtor_por_matricula(matricula):
             'especial': True,
             'tipo': 'gerente'
         }
-    # Superadmin (opcional, mantido para compatibilidade)
+    # Superadmin
     if matricula.lower() == 'copar10':
         return {
             'id': 9999,
@@ -220,7 +220,7 @@ def calcular_saldos(vendas):
     total_a_receber = sum(v['saldo'] for v in vendas if v['status'] != 'Pago')
     return total_recebido, total_a_receber
 
-# ========== FUNÇÃO DE MOVIMENTAÇÃO COM ORIGEM SELECIONÁVEL ==========
+# ========== FUNÇÃO DE MOVIMENTAÇÃO ==========
 
 def registrar_movimentacao(produtor_id, tipo_alho, classe, peso_movido, local_destino, horas_banca=0, quebra=0, local_origem=None):
     """
@@ -235,7 +235,6 @@ def registrar_movimentacao(produtor_id, tipo_alho, classe, peso_movido, local_de
 
         # 1. Se há origem, dar baixa
         if local_origem:
-            # Converter nome do local para o valor correto no banco
             local_origem_banco = MAPEAMENTO_LOCAL.get(local_origem, local_origem)
             
             cursor.execute("""
@@ -282,7 +281,8 @@ def registrar_movimentacao(produtor_id, tipo_alho, classe, peso_movido, local_de
         # 2. Inserir no local de destino
         if peso_movido - quebra > 0:
             local_destino_banco = MAPEAMENTO_LOCAL.get(local_destino, local_destino)
-            horas_banca_final = horas_banca if local_destino == 'banca' else 0
+            # Horas de banca podem ser registradas tanto em Banca quanto em Toletagem
+            horas_banca_final = horas_banca
             cursor.execute("""
                 INSERT INTO estoque (produtor_id, tipo_alho, classe, peso, local_estoque, horas_banca)
                 VALUES (%s, %s, %s, %s, %s, %s)
@@ -633,7 +633,6 @@ def api_buscar_produtores():
 
 @app.route('/api/obter-saldo', methods=['POST'])
 def api_obter_saldo():
-    """API para obter o saldo de um produtor para uma classe/tipo/local específico"""
     data = request.get_json()
     produtor_id = data.get('produtor_id')
     tipo_alho = data.get('tipo_alho')
@@ -659,7 +658,7 @@ def api_salvar_entrada():
     produtor_id = data.get('produtor_id')
     tipo_alho = data.get('tipo_alho')
     local_destino = data.get('local')
-    local_origem = data.get('local_origem')  # Agora vem do frontend
+    local_origem = data.get('local_origem')
     detalhes = data.get('detalhes', [])
     horas_banca = data.get('horas_banca', 0)
     quebra = data.get('quebra', 0)
@@ -684,8 +683,9 @@ def api_salvar_entrada():
             return jsonify({'sucesso': False, 'mensagem': 'Setor Banca só pode transferir para Banca.'})
         if not local_origem:
             return jsonify({'sucesso': False, 'mensagem': 'Selecione a origem do estoque.'})
-        if local_origem not in ['Classificação']:
-            return jsonify({'sucesso': False, 'mensagem': 'Para Banca, a origem deve ser Classificação.'})
+        if local_origem not in ['Classificação', 'Toletagem']:
+            return jsonify({'sucesso': False, 'mensagem': 'Para Banca, a origem deve ser Classificação ou Toletagem.'})
+        # Horas são permitidas na Banca
     
     elif role == 'toletagem':
         if local_destino != 'toletagem':
@@ -694,8 +694,7 @@ def api_salvar_entrada():
             return jsonify({'sucesso': False, 'mensagem': 'Selecione a origem do estoque.'})
         if local_origem not in ['Classificação', 'Banca']:
             return jsonify({'sucesso': False, 'mensagem': 'Para Toletagem, a origem deve ser Classificação ou Banca.'})
-        if horas_banca > 0:
-            return jsonify({'sucesso': False, 'mensagem': 'Toletagem não permite registro de horas.'})
+        # Horas são permitidas na Toletagem também
     
     else:  # superadmin
         if not local_origem and local_destino != 'Classificação':
@@ -728,7 +727,7 @@ def api_salvar_entrada():
 
         peso_total_movido += peso
 
-        # Distribuir quebra proporcionalmente se houver quebra global
+        # Distribuir quebra proporcionalmente
         if quebra > 0 and peso_total_movido > 0:
             quebra_proporcional = peso * quebra / peso_total_movido
         else:
@@ -756,7 +755,7 @@ def api_salvar_entrada():
     if quebra > 0:
         msg += f' (Quebra: {quebra:.2f} Kg)'
     if horas_banca > 0:
-        msg += f' | Horas: {horas_banca}'
+        msg += f' | Horas de banca: {horas_banca}'
     if local_origem:
         msg += f' | Origem: {local_origem}'
     return jsonify({'sucesso': True, 'mensagem': msg, 'registros': resultados})
