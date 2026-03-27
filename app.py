@@ -46,6 +46,15 @@ def conectar_banco():
         return None
 
 def buscar_produtor_por_matricula(matricula):
+     if matricula.upper() == 'GLH':
+        return {
+            'id': 8888,
+            'nome': 'Luis Henrique - Gerente',
+            'matricula': 'GLH',
+            'especial': True,
+            'tipo': 'gerente'
+        }
+    
     if matricula.lower() == 'copar10':
         return {
             'id': 9999,
