@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-COPAR Web - Sistema completo com movimentação entre locais, horas e quebra
+COPAR Web - Versão com setores e origem selecionável
 """
 
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
@@ -29,7 +29,6 @@ DATABASE_URL = os.environ.get(
     'postgresql://neondb_owner:npg_Bp1AmUEoX7ui@ep-summer-haze-a8lxhx5j-pooler.eastus2.azure.neon.tech/neondb?sslmode=require'
 )
 
-# Mapeamento dos locais
 MAPEAMENTO_LOCAL = {
     'Classificação': 'Classificação',
     'banca': 'Banca',
@@ -46,7 +45,6 @@ def conectar_banco():
         return None
 
 def criar_tabela_perdas():
-    """Cria a tabela de perdas se não existir"""
     conn = conectar_banco()
     if not conn:
         return
@@ -71,10 +69,9 @@ def criar_tabela_perdas():
         logger.error(f"Erro ao criar tabela perdas: {e}")
 
 def obter_valor_hora_banca():
-    """Lê o valor da hora banca da tabela configuracoes"""
     conn = conectar_banco()
     if not conn:
-        return 16.00  # valor padrão
+        return 16.00
     try:
         cursor = conn.cursor()
         cursor.execute("SELECT valor FROM configuracoes WHERE chave = 'descontos_padrao'")
@@ -90,9 +87,37 @@ def obter_valor_hora_banca():
         logger.error(f"Erro ao ler valor hora banca: {e}")
         return 16.00
 
-# ========== FUNÇÕES DE CONSULTA ==========
+# ========== AUTENTICAÇÃO E PERMISSÕES ==========
 
 def buscar_produtor_por_matricula(matricula):
+    # Setor Classificação
+    if matricula.lower() == 'copar10entrada':
+        return {
+            'id': 9991,
+            'nome': 'Setor Classificação',
+            'matricula': 'copar10entrada',
+            'especial': True,
+            'tipo': 'classificacao'
+        }
+    # Setor Banca
+    if matricula.lower() == 'copar22banca':
+        return {
+            'id': 9992,
+            'nome': 'Setor Banca',
+            'matricula': 'copar22banca',
+            'especial': True,
+            'tipo': 'banca'
+        }
+    # Setor Toletagem
+    if matricula.lower() == 'copar33toletagem':
+        return {
+            'id': 9993,
+            'nome': 'Setor Toletagem',
+            'matricula': 'copar33toletagem',
+            'especial': True,
+            'tipo': 'toletagem'
+        }
+    # Gerente
     if matricula.upper() == 'GLH':
         return {
             'id': 8888,
@@ -101,14 +126,16 @@ def buscar_produtor_por_matricula(matricula):
             'especial': True,
             'tipo': 'gerente'
         }
+    # Superadmin (opcional, mantido para compatibilidade)
     if matricula.lower() == 'copar10':
         return {
             'id': 9999,
-            'nome': 'Administrador - Registro de Entrada',
+            'nome': 'Super Administrador',
             'matricula': 'copar10',
             'especial': True,
-            'tipo': 'entrada'
+            'tipo': 'superadmin'
         }
+    # Produtor comum
     conn = conectar_banco()
     if not conn:
         return None
@@ -123,12 +150,15 @@ def buscar_produtor_por_matricula(matricula):
                 'id': produtor[0],
                 'nome': produtor[1],
                 'matricula': produtor[2],
-                'especial': False
+                'especial': False,
+                'tipo': 'produtor'
             }
         return None
     except Exception as e:
         logger.error(f"Erro ao buscar produtor: {e}")
         return None
+
+# ========== FUNÇÕES DE CONSULTA ==========
 
 def buscar_estoque(produtor_id):
     conn = conectar_banco()
@@ -190,15 +220,11 @@ def calcular_saldos(vendas):
     total_a_receber = sum(v['saldo'] for v in vendas if v['status'] != 'Pago')
     return total_recebido, total_a_receber
 
-# ========== FUNÇÃO DE REGISTRO COM MOVIMENTAÇÃO ==========
+# ========== FUNÇÃO DE MOVIMENTAÇÃO COM ORIGEM SELECIONÁVEL ==========
 
 def registrar_movimentacao(produtor_id, tipo_alho, classe, peso_movido, local_destino, horas_banca=0, quebra=0, local_origem=None):
     """
-    Registra uma movimentação de estoque.
-    - Se local_origem for informado, dá baixa nesse local (respeitando FIFO).
-    - Se quebra > 0, subtrai esse valor do local_origem e registra na tabela perdas.
-    - Se horas_banca > 0, registra no novo lote (apenas se destino for Banca).
-    - Insere o peso líquido (peso_movido - quebra) no local_destino.
+    Registra movimentação com baixa do estoque de origem (se informada) e inserção no destino.
     """
     conn = conectar_banco()
     if not conn:
@@ -209,25 +235,27 @@ def registrar_movimentacao(produtor_id, tipo_alho, classe, peso_movido, local_de
 
         # 1. Se há origem, dar baixa
         if local_origem:
-            # Verificar saldo disponível
+            # Converter nome do local para o valor correto no banco
+            local_origem_banco = MAPEAMENTO_LOCAL.get(local_origem, local_origem)
+            
             cursor.execute("""
                 SELECT COALESCE(SUM(peso), 0)
                 FROM estoque
                 WHERE produtor_id = %s AND tipo_alho = %s AND classe = %s
                 AND local_estoque = %s AND peso > 0
-            """, (produtor_id, tipo_alho, classe, local_origem))
+            """, (produtor_id, tipo_alho, classe, local_origem_banco))
             saldo = float(cursor.fetchone()[0])
             total_retirar = peso_movido + quebra
             if saldo < total_retirar:
-                return False, f"Saldo insuficiente em {local_origem}. Disponível: {saldo:.2f} kg, necessário: {total_retirar:.2f} kg"
+                return False, f"Saldo insuficiente em {local_origem_banco}. Disponível: {saldo:.2f} kg, necessário: {total_retirar:.2f} kg"
 
-            # Dar baixa FIFO (primeiro a entrar, primeiro a sair)
+            # Baixa FIFO
             cursor.execute("""
                 SELECT id, peso FROM estoque
                 WHERE produtor_id = %s AND tipo_alho = %s AND classe = %s
                 AND local_estoque = %s AND peso > 0
                 ORDER BY data_registro
-            """, (produtor_id, tipo_alho, classe, local_origem))
+            """, (produtor_id, tipo_alho, classe, local_origem_banco))
             entradas = cursor.fetchall()
             peso_restante = total_retirar
             for eid, epeso in entradas:
@@ -244,14 +272,14 @@ def registrar_movimentacao(produtor_id, tipo_alho, classe, peso_movido, local_de
             if peso_restante > 0:
                 return False, "Erro interno: não foi possível dar baixa completa"
 
-            # Registrar quebra, se houver
+            # Registrar quebra
             if quebra > 0:
                 cursor.execute("""
                     INSERT INTO perdas (produtor_id, tipo_alho, classe, peso_kg, local_origem, motivo)
                     VALUES (%s, %s, %s, %s, %s, %s)
-                """, (produtor_id, tipo_alho, classe, quebra, local_origem, "Quebra na movimentação"))
+                """, (produtor_id, tipo_alho, classe, quebra, local_origem_banco, "Quebra na movimentação"))
 
-        # 2. Inserir no local de destino (se houver peso líquido)
+        # 2. Inserir no local de destino
         if peso_movido - quebra > 0:
             local_destino_banco = MAPEAMENTO_LOCAL.get(local_destino, local_destino)
             horas_banca_final = horas_banca if local_destino == 'banca' else 0
@@ -297,6 +325,28 @@ def buscar_produtores_por_termo(termo):
     except Exception as e:
         logger.error(f"Erro ao buscar produtores: {e}")
         return []
+
+def obter_saldo_estoque(produtor_id, tipo_alho, classe, local):
+    """Retorna o saldo de um produtor para um tipo/classe/local específico"""
+    conn = conectar_banco()
+    if not conn:
+        return 0
+    try:
+        cursor = conn.cursor()
+        local_banco = MAPEAMENTO_LOCAL.get(local, local)
+        cursor.execute("""
+            SELECT COALESCE(SUM(peso), 0)
+            FROM estoque
+            WHERE produtor_id = %s AND tipo_alho = %s AND classe = %s
+            AND local_estoque = %s AND peso > 0
+        """, (produtor_id, tipo_alho, classe, local_banco))
+        saldo = float(cursor.fetchone()[0])
+        cursor.close()
+        conn.close()
+        return saldo
+    except Exception as e:
+        logger.error(f"Erro ao obter saldo: {e}")
+        return 0
 
 # ========== FUNÇÕES PARA O GERENTE ==========
 
@@ -483,11 +533,13 @@ def obter_perdas_recentes(limite=20):
 @app.route('/')
 def index():
     if 'produtor_id' in session:
-        if session.get('acesso_especial'):
-            if session.get('tipo') == 'gerente':
-                return redirect(url_for('gerente'))
+        tipo = session.get('tipo')
+        if tipo == 'gerente':
+            return redirect(url_for('gerente'))
+        elif tipo in ['classificacao', 'banca', 'toletagem', 'superadmin']:
             return redirect(url_for('registro_entrada'))
-        return redirect(url_for('produtor'))
+        else:
+            return redirect(url_for('produtor'))
     return redirect(url_for('login'))
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -503,11 +555,10 @@ def login():
             session['produtor_matricula'] = produtor['matricula']
             session['acesso_especial'] = produtor.get('especial', False)
             session['tipo'] = produtor.get('tipo', 'produtor')
-            if session['acesso_especial']:
-                if session['tipo'] == 'gerente':
-                    return redirect(url_for('gerente'))
-                else:
-                    return redirect(url_for('registro_entrada'))
+            if session['tipo'] == 'gerente':
+                return redirect(url_for('gerente'))
+            elif session['tipo'] in ['classificacao', 'banca', 'toletagem', 'superadmin']:
+                return redirect(url_for('registro_entrada'))
             else:
                 return redirect(url_for('produtor'))
         else:
@@ -516,7 +567,7 @@ def login():
 
 @app.route('/produtor')
 def produtor():
-    if 'produtor_id' not in session or session.get('acesso_especial'):
+    if 'produtor_id' not in session or session.get('tipo') not in [None, 'produtor']:
         return redirect(url_for('login'))
     produtor_id = session['produtor_id']
     produtor_nome = session['produtor_nome']
@@ -532,13 +583,18 @@ def produtor():
 
 @app.route('/registro-entrada')
 def registro_entrada():
-    if 'produtor_id' not in session or not session.get('acesso_especial') or session.get('tipo') == 'gerente':
+    if 'produtor_id' not in session:
         return redirect(url_for('login'))
-    return render_template('registro_entrada.html', valor_hora_banca=obter_valor_hora_banca())
+    tipo = session.get('tipo')
+    if tipo not in ['classificacao', 'banca', 'toletagem', 'superadmin']:
+        return redirect(url_for('produtor'))
+    return render_template('registro_entrada.html',
+                         role=tipo,
+                         valor_hora_banca=obter_valor_hora_banca())
 
 @app.route('/gerente')
 def gerente():
-    if 'produtor_id' not in session or not session.get('acesso_especial') or session.get('tipo') != 'gerente':
+    if 'produtor_id' not in session or session.get('tipo') != 'gerente':
         return redirect(url_for('login'))
     return render_template('gerente.html')
 
@@ -575,18 +631,38 @@ def api_buscar_produtores():
     produtores = buscar_produtores_por_termo(termo)
     return jsonify(produtores)
 
+@app.route('/api/obter-saldo', methods=['POST'])
+def api_obter_saldo():
+    """API para obter o saldo de um produtor para uma classe/tipo/local específico"""
+    data = request.get_json()
+    produtor_id = data.get('produtor_id')
+    tipo_alho = data.get('tipo_alho')
+    classe = data.get('classe')
+    local = data.get('local')
+    
+    if not all([produtor_id, tipo_alho, classe, local]):
+        return jsonify({'sucesso': False, 'mensagem': 'Parâmetros incompletos'})
+    
+    saldo = obter_saldo_estoque(produtor_id, tipo_alho, classe, local)
+    return jsonify({'sucesso': True, 'saldo': saldo})
+
 @app.route('/api/salvar-entrada', methods=['POST'])
 def api_salvar_entrada():
     data = request.get_json()
     if not data:
         return jsonify({'sucesso': False, 'mensagem': 'Dados inválidos'}), 400
 
+    role = session.get('tipo')
+    if role not in ['classificacao', 'banca', 'toletagem', 'superadmin']:
+        return jsonify({'sucesso': False, 'mensagem': 'Acesso não autorizado'}), 403
+
     produtor_id = data.get('produtor_id')
     tipo_alho = data.get('tipo_alho')
-    local_destino = data.get('local', 'Classificação')
+    local_destino = data.get('local')
+    local_origem = data.get('local_origem')  # Agora vem do frontend
     detalhes = data.get('detalhes', [])
     horas_banca = data.get('horas_banca', 0)
-    quebra_global = data.get('quebra', 0)
+    quebra = data.get('quebra', 0)
 
     if not produtor_id:
         return jsonify({'sucesso': False, 'mensagem': 'Produtor não selecionado'})
@@ -595,7 +671,36 @@ def api_salvar_entrada():
     if not detalhes:
         return jsonify({'sucesso': False, 'mensagem': 'Nenhum peso registrado'})
 
-    # Mapeamento das classes
+    # Validações por setor
+    if role == 'classificacao':
+        if local_destino != 'Classificação':
+            return jsonify({'sucesso': False, 'mensagem': 'Setor Classificação só pode registrar entrada inicial (Classificação).'})
+        local_origem = None
+        if horas_banca > 0 or quebra > 0:
+            return jsonify({'sucesso': False, 'mensagem': 'Classificação não permite horas ou quebra.'})
+    
+    elif role == 'banca':
+        if local_destino != 'banca':
+            return jsonify({'sucesso': False, 'mensagem': 'Setor Banca só pode transferir para Banca.'})
+        if not local_origem:
+            return jsonify({'sucesso': False, 'mensagem': 'Selecione a origem do estoque.'})
+        if local_origem not in ['Classificação']:
+            return jsonify({'sucesso': False, 'mensagem': 'Para Banca, a origem deve ser Classificação.'})
+    
+    elif role == 'toletagem':
+        if local_destino != 'toletagem':
+            return jsonify({'sucesso': False, 'mensagem': 'Setor Toletagem só pode transferir para Toletagem.'})
+        if not local_origem:
+            return jsonify({'sucesso': False, 'mensagem': 'Selecione a origem do estoque.'})
+        if local_origem not in ['Classificação', 'Banca']:
+            return jsonify({'sucesso': False, 'mensagem': 'Para Toletagem, a origem deve ser Classificação ou Banca.'})
+        if horas_banca > 0:
+            return jsonify({'sucesso': False, 'mensagem': 'Toletagem não permite registro de horas.'})
+    
+    else:  # superadmin
+        if not local_origem and local_destino != 'Classificação':
+            return jsonify({'sucesso': False, 'mensagem': 'Selecione a origem do estoque.'})
+
     classes_mapeamento = {
         "INDÚSTRIA": "Indústria",
         "TIPO 2": "Classe 2",
@@ -610,14 +715,6 @@ def api_salvar_entrada():
     erros = []
     peso_total_movido = 0
 
-    # Determinar local de origem, se houver movimentação
-    local_origem = None
-    if local_destino == 'banca':
-        local_origem = 'Classificação'
-    elif local_destino == 'toletagem':
-        local_origem = 'Banca'
-
-    # Para cada classe
     for item in detalhes:
         classe_origem = item.get('classe')
         peso = item.get('peso', 0)
@@ -631,27 +728,16 @@ def api_salvar_entrada():
 
         peso_total_movido += peso
 
-        if local_origem is None:
-            # Entrada inicial (destino = Classificação)
-            sucesso, resultado = registrar_movimentacao(
-                produtor_id, tipo_alho, classe_destino, peso,
-                local_destino, horas_banca=0, quebra=0, local_origem=None
-            )
+        # Distribuir quebra proporcionalmente se houver quebra global
+        if quebra > 0 and peso_total_movido > 0:
+            quebra_proporcional = peso * quebra / peso_total_movido
         else:
-            # Movimentação: peso é o total retirado da origem, que inclui a quebra?
-            # A quebra é global para toda a entrada. Vamos tratar: o usuário informa a quebra total (kg) que deve ser subtraída do total movido.
-            # Distribuir a quebra proporcionalmente ao peso de cada classe? Para simplicidade, aplicamos a quebra total a todas as classes?
-            # Melhor: a quebra é informada por classe? O usuário pode informar um único valor para toda a operação.
-            # Vamos usar a quebra_global como total a ser descontado do somatório de pesos.
-            # Vamos calcular proporcionalmente.
-            if quebra_global > 0 and peso_total_movido > 0:
-                quebra_proporcional = peso * quebra_global / peso_total_movido
-            else:
-                quebra_proporcional = 0
-            sucesso, resultado = registrar_movimentacao(
-                produtor_id, tipo_alho, classe_destino, peso,
-                local_destino, horas_banca=horas_banca, quebra=quebra_proporcional, local_origem=local_origem
-            )
+            quebra_proporcional = 0
+
+        sucesso, resultado = registrar_movimentacao(
+            produtor_id, tipo_alho, classe_destino, peso,
+            local_destino, horas_banca=horas_banca, quebra=quebra_proporcional, local_origem=local_origem
+        )
 
         if sucesso:
             resultados.append({'classe': classe_origem, 'peso': peso, 'entrada_id': resultado})
@@ -666,12 +752,14 @@ def api_salvar_entrada():
             'erros': erros
         }), 207
 
-    return jsonify({
-        'sucesso': True,
-        'mensagem': f'Registro realizado com sucesso! Total movido: {peso_total_movido - quebra_global:.2f} Kg' +
-                    (f' (Quebra: {quebra_global:.2f} Kg)' if quebra_global > 0 else ''),
-        'registros': resultados
-    })
+    msg = f'Registro realizado com sucesso! Total movido: {peso_total_movido - quebra:.2f} Kg'
+    if quebra > 0:
+        msg += f' (Quebra: {quebra:.2f} Kg)'
+    if horas_banca > 0:
+        msg += f' | Horas: {horas_banca}'
+    if local_origem:
+        msg += f' | Origem: {local_origem}'
+    return jsonify({'sucesso': True, 'mensagem': msg, 'registros': resultados})
 
 # APIs para o gerente
 @app.route('/api/gerente/estatisticas')
@@ -711,7 +799,6 @@ def logout():
     return redirect(url_for('login'))
 
 if __name__ == '__main__':
-    # Criar tabela de perdas se necessário
     criar_tabela_perdas()
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=True)
