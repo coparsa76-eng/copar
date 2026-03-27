@@ -37,6 +37,10 @@
         .weights-table input:focus { outline: none; border-color: #2c5e2a; }
         .total-row { background: #f0f7ea; font-weight: 800; }
         .total-row td { font-weight: 800; background: #eef3e7; }
+        .extra-fields { background: #eef5e8; border-radius: 12px; padding: 1rem 1.5rem; margin-bottom: 1.5rem; display: flex; gap: 2rem; flex-wrap: wrap; align-items: center; }
+        .extra-fields .field { display: flex; align-items: center; gap: 1rem; }
+        .extra-fields label { font-weight: 600; color: #2c5e2a; }
+        .extra-fields input { padding: 0.5rem 1rem; border: 2px solid #cde2be; border-radius: 8px; width: 100px; }
         .action-buttons { display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem; }
         .btn { padding: 0.8rem 1.8rem; border: none; border-radius: 40px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
         .btn-primary { background: #2c5e2a; color: white; }
@@ -64,7 +68,6 @@
         <h1>Registro de Entrada - Alho</h1>
         <a href="/logout">Sair</a>
     </div>
-    
     <div class="content">
         <div class="registry-area">
             <div class="field-group">
@@ -81,10 +84,9 @@
                 <input type="text" id="dataRegistro" readonly>
             </div>
         </div>
-        
         <div id="produtorInfo" class="produtor-info"></div>
         <input type="hidden" id="produtorId">
-        
+
         <div class="variety-section">
             <div class="variety-selector">
                 <label>🌾 VARIEDADE DO ALHO:</label>
@@ -98,7 +100,7 @@
                 ⚡ Todas as classes pertencem à mesma variedade selecionada
             </div>
         </div>
-        
+
         <div class="variety-section" style="background: #eef5e8; border-left-color: #2c5e2a;">
             <div class="variety-selector">
                 <label>📍 LOCAL DE ARMAZENAMENTO:</label>
@@ -109,35 +111,49 @@
                 </select>
             </div>
         </div>
-        
+
+        <!-- Campos adicionais que aparecem conforme o local -->
+        <div id="camposAdicionais" style="display: none;">
+            <div class="extra-fields">
+                <div class="field">
+                    <label>⏱️ Horas de Banca:</label>
+                    <input type="number" id="horasBanca" step="0.5" value="0" min="0">
+                    <span class="info">(R$ <span id="valorHoraDisplay">{{ valor_hora_banca }}</span>/hora)</span>
+                </div>
+                <div class="field">
+                    <label>⚠️ Quebra (kg):</label>
+                    <input type="number" id="quebra" step="0.1" value="0" min="0">
+                    <span class="info">(peso perdido na movimentação)</span>
+                </div>
+            </div>
+            <div class="extra-fields" style="background: #fff3e0;">
+                <div class="field">
+                    <label>📌 Origem:</label>
+                    <span id="origemInfo">Classificação</span>
+                </div>
+            </div>
+        </div>
+
         <div class="table-section">
             <h3>📊 Registro de Pesagem por Classe e Tipo</h3>
             <table class="weights-table" id="tabelaAlho">
-                <thead>
-                    <tr>
-                        <th style="width: 45%;">CLASSE / TIPO</th>
-                        <th style="width: 55%;">PESO PARCIAL (kg)</th>
-                    </tr>
-                </thead>
+                <thead><tr><th style="width: 45%;">CLASSE / TIPO</th><th style="width: 55%;">PESO (kg)</th></tr></thead>
                 <tbody id="tabelaCorpo"></tbody>
             </table>
         </div>
-        
+
         <div class="action-buttons">
             <button class="btn btn-warning" id="limparBtn">🗑️ Limpar Todos os Pesos</button>
             <button class="btn btn-secondary" id="exemploBtn">📋 Carregar Exemplo</button>
             <button class="btn btn-primary" id="salvarBtn">💾 Registrar Entrada</button>
         </div>
-        
         <div id="statusMsg" class="status-message"></div>
     </div>
 </div>
-
 <script>
     const classesTipos = ["INDÚSTRIA", "TIPO 2", "TIPO 3", "TIPO 4", "TIPO 5", "TIPO 6", "TIPO 7"];
     let dadosTabela = classesTipos.map(classe => ({ classe: classe, peso: null }));
     let produtorAtual = null;
-    
     const tbody = document.getElementById('tabelaCorpo');
     const matriculaInput = document.getElementById('matriculaInput');
     const produtorInput = document.getElementById('produtorInput');
@@ -151,59 +167,62 @@
     const statusMsg = document.getElementById('statusMsg');
     const dataRegistro = document.getElementById('dataRegistro');
     const autocompleteList = document.getElementById('autocompleteList');
-    
+    const camposAdicionais = document.getElementById('camposAdicionais');
+    const horasBancaInput = document.getElementById('horasBanca');
+    const quebraInput = document.getElementById('quebra');
+    const origemInfo = document.getElementById('origemInfo');
     let buscaTimeout = null;
-    
+
+    function atualizarCamposAdicionais() {
+        const local = localSelect.value;
+        if (local === 'Classificação') {
+            camposAdicionais.style.display = 'none';
+        } else {
+            camposAdicionais.style.display = 'block';
+            if (local === 'banca') {
+                origemInfo.innerText = 'Classificação';
+                horasBancaInput.disabled = false;
+                document.querySelector('.extra-fields .field:first-child').style.display = 'flex';
+            } else if (local === 'toletagem') {
+                origemInfo.innerText = 'Banca';
+                horasBancaInput.disabled = true;
+                horasBancaInput.value = 0;
+                document.querySelector('.extra-fields .field:first-child').style.display = 'none';
+            }
+        }
+    }
+
     function renderizarTabela() {
         tbody.innerHTML = '';
-        
         dadosTabela.forEach((item, index) => {
             const tr = document.createElement('tr');
-            
             const tdClasse = document.createElement('td');
-            let icone = '';
-            if (item.classe === "INDÚSTRIA") icone = '🏭 ';
-            else icone = '🔢 ';
+            let icone = item.classe === "INDÚSTRIA" ? '🏭 ' : '🔢 ';
             tdClasse.innerHTML = icone + item.classe;
             tr.appendChild(tdClasse);
-            
             const tdPeso = document.createElement('td');
             const pesoInput = document.createElement('input');
             pesoInput.type = 'number';
             pesoInput.step = '1';
             pesoInput.value = item.peso !== null ? item.peso : '';
             pesoInput.placeholder = '0 kg';
-            
             pesoInput.addEventListener('change', (e) => {
                 let valor = e.target.value;
-                if (valor === '') {
-                    dadosTabela[index].peso = null;
-                } else {
-                    let numero = parseFloat(valor);
-                    if (!isNaN(numero) && numero >= 0) {
-                        dadosTabela[index].peso = Math.round(numero);
-                    } else {
-                        dadosTabela[index].peso = null;
-                        pesoInput.value = '';
-                    }
-                }
+                if (valor === '') dadosTabela[index].peso = null;
+                else { let num = parseFloat(valor); if (!isNaN(num) && num >= 0) dadosTabela[index].peso = Math.round(num); else dadosTabela[index].peso = null; }
                 renderizarTabela();
             });
-            
             tdPeso.appendChild(pesoInput);
             tr.appendChild(tdPeso);
             tbody.appendChild(tr);
         });
-        
         const trTotal = document.createElement('tr');
         trTotal.classList.add('total-row');
-        
         const tdTotalLabel = document.createElement('td');
         tdTotalLabel.innerHTML = '<strong>🔹 TOTAL GERAL</strong>';
         trTotal.appendChild(tdTotalLabel);
-        
         const tdTotalValor = document.createElement('td');
-        const totalValor = calcularTotal();
+        const totalValor = dadosTabela.reduce((s,i)=>s+(i.peso||0),0);
         const totalInput = document.createElement('input');
         totalInput.type = 'text';
         totalInput.value = totalValor > 0 ? totalValor.toLocaleString('pt-BR') + ' kg' : '0 kg';
@@ -214,235 +233,167 @@
         totalInput.style.border = 'none';
         tdTotalValor.appendChild(totalInput);
         trTotal.appendChild(tdTotalValor);
-        
         tbody.appendChild(trTotal);
     }
-    
-    function calcularTotal() {
-        return dadosTabela.reduce((sum, item) => sum + (item.peso || 0), 0);
-    }
-    
+
     function limparTodosPesos() {
-        dadosTabela.forEach(item => item.peso = null);
+        dadosTabela.forEach(i=>i.peso=null);
         renderizarTabela();
         mostrarStatus("✅ Todos os campos de peso foram limpos.", "success");
     }
-    
+
     function carregarExemplo() {
         const variedade = variedadeSelect.value;
-        let exemplos = {};
-        
-        if (variedade === 'São Valentim') {
-            exemplos = { "INDÚSTRIA": 850, "TIPO 2": 512, "TIPO 3": 870, "TIPO 4": 1269, "TIPO 5": 579, "TIPO 6": 199, "TIPO 7": 45 };
-        } else if (variedade === 'Ito') {
-            exemplos = { "INDÚSTRIA": 1200, "TIPO 2": 780, "TIPO 3": 1250, "TIPO 4": 890, "TIPO 5": 445, "TIPO 6": 267, "TIPO 7": 89 };
-        } else {
-            exemplos = { "INDÚSTRIA": 950, "TIPO 2": 650, "TIPO 3": 980, "TIPO 4": 1540, "TIPO 5": 720, "TIPO 6": 310, "TIPO 7": 125 };
-        }
-        
-        dadosTabela.forEach(item => {
-            if (exemplos[item.classe] !== undefined) {
-                item.peso = exemplos[item.classe];
-            }
-        });
-        
+        let ex = {};
+        if(variedade === 'São Valentim') ex = { "INDÚSTRIA":850, "TIPO 2":512, "TIPO 3":870, "TIPO 4":1269, "TIPO 5":579, "TIPO 6":199, "TIPO 7":45 };
+        else if(variedade === 'Ito') ex = { "INDÚSTRIA":1200, "TIPO 2":780, "TIPO 3":1250, "TIPO 4":890, "TIPO 5":445, "TIPO 6":267, "TIPO 7":89 };
+        else ex = { "INDÚSTRIA":950, "TIPO 2":650, "TIPO 3":980, "TIPO 4":1540, "TIPO 5":720, "TIPO 6":310, "TIPO 7":125 };
+        dadosTabela.forEach(i=>{ if(ex[i.classe]!==undefined) i.peso = ex[i.classe]; });
         renderizarTabela();
         mostrarStatus(`📋 Exemplo carregado para variedade ${variedade}!`, "info");
     }
-    
-    async function buscarProdutorPorMatricula(matricula) {
-        try {
-            mostrarStatus("🔍 Buscando produtor...", "info");
-            const response = await fetch('/api/buscar-produtor', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ matricula: matricula })
-            });
-            const data = await response.json();
-            return data;
-        } catch (error) {
-            console.error('Erro na busca:', error);
-            return { encontrado: false, mensagem: error.message };
-        }
-    }
-    
+
     async function buscarProdutoresPorTermo(termo) {
-        if (termo.length < 1) return [];
-        try {
-            const response = await fetch(`/api/buscar-produtores?termo=${encodeURIComponent(termo)}`);
-            const produtores = await response.json();
-            return produtores;
-        } catch (error) {
-            console.error('Erro:', error);
-            return [];
-        }
+        if(termo.length<1) return [];
+        try{
+            const resp = await fetch(`/api/buscar-produtores?termo=${encodeURIComponent(termo)}`);
+            return await resp.json();
+        } catch(e){ return []; }
     }
-    
+
     function mostrarAutocomplete(produtores) {
-        if (!produtores.length) {
-            autocompleteList.style.display = 'none';
-            return;
-        }
-        
-        autocompleteList.innerHTML = '';
-        produtores.forEach(prod => {
+        if(!produtores.length){ autocompleteList.style.display='none'; return; }
+        autocompleteList.innerHTML='';
+        produtores.forEach(p=>{
             const div = document.createElement('div');
-            div.className = 'autocomplete-item';
-            div.innerHTML = `<strong>${prod.matricula}</strong> - ${prod.nome}`;
-            div.onclick = () => selecionarProdutor(prod);
+            div.className='autocomplete-item';
+            div.innerHTML=`<strong>${p.matricula}</strong> - ${p.nome}`;
+            div.onclick=()=>selecionarProdutor(p);
             autocompleteList.appendChild(div);
         });
-        
         const rect = matriculaInput.getBoundingClientRect();
-        autocompleteList.style.position = 'absolute';
-        autocompleteList.style.top = rect.bottom + 'px';
-        autocompleteList.style.left = rect.left + 'px';
-        autocompleteList.style.width = rect.width + 'px';
-        autocompleteList.style.display = 'block';
+        autocompleteList.style.position='absolute';
+        autocompleteList.style.top=rect.bottom+'px';
+        autocompleteList.style.left=rect.left+'px';
+        autocompleteList.style.width=rect.width+'px';
+        autocompleteList.style.display='block';
     }
-    
+
     function selecionarProdutor(produtor) {
         matriculaInput.value = produtor.matricula;
         produtorInput.value = produtor.nome;
         produtorIdInput.value = produtor.id;
         produtorAtual = produtor;
-        autocompleteList.style.display = 'none';
-        
+        autocompleteList.style.display='none';
         produtorInfo.innerHTML = `✅ Produtor selecionado: <strong>${produtor.nome}</strong> (Matrícula: ${produtor.matricula})`;
         produtorInfo.classList.add('show');
         mostrarStatus(`✅ Produtor encontrado: ${produtor.nome}`, "success");
-        
-        setTimeout(() => {
-            produtorInfo.classList.remove('show');
-        }, 3000);
+        setTimeout(()=>produtorInfo.classList.remove('show'),3000);
     }
-    
+
     matriculaInput.addEventListener('input', async (e) => {
         const termo = e.target.value.trim();
-        
-        if (termo.length === 0) {
-            autocompleteList.style.display = 'none';
-            produtorInput.value = '';
-            produtorIdInput.value = '';
-            produtorAtual = null;
-            produtorInfo.classList.remove('show');
-            return;
-        }
-        
-        if (buscaTimeout) clearTimeout(buscaTimeout);
-        buscaTimeout = setTimeout(async () => {
+        if(termo.length===0){ autocompleteList.style.display='none'; produtorInput.value=''; produtorIdInput.value=''; produtorAtual=null; produtorInfo.classList.remove('show'); return; }
+        if(buscaTimeout) clearTimeout(buscaTimeout);
+        buscaTimeout = setTimeout(async ()=>{
             const produtores = await buscarProdutoresPorTermo(termo);
             mostrarAutocomplete(produtores);
-        }, 300);
+        },300);
     });
-    
-    matriculaInput.addEventListener('blur', () => {
-        setTimeout(() => {
-            if (!autocompleteList.matches(':hover')) {
-                autocompleteList.style.display = 'none';
-            }
-        }, 200);
-    });
-    
+    matriculaInput.addEventListener('blur', ()=>{ setTimeout(()=>{ if(!autocompleteList.matches(':hover')) autocompleteList.style.display='none'; },200); });
+    localSelect.addEventListener('change', atualizarCamposAdicionais);
+
     async function salvarRegistro() {
         const produtorId = produtorIdInput.value;
         const produtorNome = produtorInput.value.trim();
         const variedade = variedadeSelect.value;
         const local = localSelect.value;
-        
-        if (!produtorId || !produtorNome) {
+        const horasBanca = parseFloat(horasBancaInput.value) || 0;
+        const quebra = parseFloat(quebraInput.value) || 0;
+
+        if(!produtorId || !produtorNome){
             mostrarStatus("❌ Informe uma matrícula válida de produtor! Digite a matrícula e selecione um produtor da lista.", "error");
             matriculaInput.focus();
             return;
         }
-        
         const detalhes = [];
         let pesoTotal = 0;
-        
-        dadosTabela.forEach(item => {
-            if (item.peso !== null && item.peso > 0) {
-                detalhes.push({ classe: item.classe, peso: item.peso });
+        dadosTabela.forEach(item=>{
+            if(item.peso && item.peso>0){
+                detalhes.push({classe: item.classe, peso: item.peso});
                 pesoTotal += item.peso;
             }
         });
-        
-        if (detalhes.length === 0) {
+        if(detalhes.length===0){
             mostrarStatus("⚠️ Nenhum peso foi preenchido! Preencha pelo menos uma classe.", "error");
             return;
         }
-        
-        if (!confirm(`Confirmar entrada:\n\nProdutor: ${produtorNome}\nVariedade: ${variedade}\nLocal: ${local === 'Classificação' ? 'Classificação' : local === 'banca' ? 'Banca' : 'Toletagem'}\nTotal: ${pesoTotal} Kg\n\nDeseja registrar?`)) {
+        // Validação de quebra não pode ser maior que o peso total
+        if(quebra > pesoTotal){
+            mostrarStatus(`⚠️ Quebra (${quebra} kg) não pode ser maior que o peso total (${pesoTotal} kg).`, "error");
             return;
         }
-        
-        salvarBtn.disabled = true;
-        salvarBtn.innerHTML = '<span class="loading"></span> Salvando...';
-        
-        try {
-            const response = await fetch('/api/salvar-entrada', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    produtor_id: parseInt(produtorId),
-                    tipo_alho: variedade,
-                    local: local,
-                    detalhes: detalhes
+        let mensagemConfirmacao = `Confirmar entrada:\n\nProdutor: ${produtorNome}\nVariedade: ${variedade}\nLocal: ${local === 'Classificação' ? 'Classificação' : local === 'banca' ? 'Banca' : 'Toletagem'}\nTotal movido: ${pesoTotal} Kg`;
+        if(local !== 'Classificação'){
+            mensagemConfirmacao += `\nOrigem: ${local === 'banca' ? 'Classificação' : 'Banca'}`;
+            if(local === 'banca') mensagemConfirmacao += `\nHoras de Banca: ${horasBanca}`;
+            if(quebra > 0) mensagemConfirmacao += `\n⚠️ Quebra: ${quebra} Kg`;
+        }
+        mensagemConfirmacao += `\n\nDeseja registrar?`;
+        if(!confirm(mensagemConfirmacao)) return;
+
+        salvarBtn.disabled=true;
+        salvarBtn.innerHTML='<span class="loading"></span> Salvando...';
+        try{
+            const resp = await fetch('/api/salvar-entrada',{
+                method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({
+                    produtor_id:parseInt(produtorId),
+                    tipo_alho:variedade,
+                    local:local,
+                    detalhes:detalhes,
+                    horas_banca:horasBanca,
+                    quebra:quebra
                 })
             });
-            
-            const result = await response.json();
-            
-            if (result.sucesso) {
+            const result = await resp.json();
+            if(result.sucesso){
                 mostrarStatus(`✅ ${result.mensagem}`, "success");
                 limparTodosPesos();
-                
-                setTimeout(() => {
-                    if (confirm("Entrada registrada com sucesso! Deseja registrar outra entrada?")) {
-                        matriculaInput.focus();
-                        matriculaInput.select();
-                    }
-                }, 500);
+                horasBancaInput.value = 0;
+                quebraInput.value = 0;
+                setTimeout(()=>{ if(confirm("Entrada registrada com sucesso! Deseja registrar outra entrada?")){ matriculaInput.focus(); matriculaInput.select(); } },500);
             } else {
                 mostrarStatus(`❌ ${result.mensagem}`, "error");
             }
-        } catch (error) {
-            console.error('Erro:', error);
-            mostrarStatus(`❌ Erro ao salvar: ${error.message}`, "error");
+        } catch(e){
+            mostrarStatus(`❌ Erro ao salvar: ${e.message}`, "error");
         } finally {
-            salvarBtn.disabled = false;
-            salvarBtn.innerHTML = '💾 Registrar Entrada';
+            salvarBtn.disabled=false;
+            salvarBtn.innerHTML='💾 Registrar Entrada';
         }
     }
-    
-    function mostrarStatus(mensagem, tipo) {
-        statusMsg.textContent = mensagem;
-        statusMsg.className = `status-message show ${tipo}`;
-        setTimeout(() => {
-            statusMsg.classList.remove('show');
-        }, 5000);
+
+    function mostrarStatus(msg, tipo){
+        statusMsg.textContent=msg;
+        statusMsg.className=`status-message show ${tipo}`;
+        setTimeout(()=>statusMsg.classList.remove('show'),5000);
     }
-    
-    function atualizarDataAtual() {
+    function atualizarDataAtual(){
         const agora = new Date();
-        const dataFormatada = agora.toLocaleString('pt-BR', {
-            day: '2-digit', month: '2-digit', year: 'numeric',
-            hour: '2-digit', minute: '2-digit'
-        });
-        dataRegistro.value = dataFormatada;
+        dataRegistro.value = agora.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
     }
-    
-    function init() {
+    function init(){
         renderizarTabela();
         atualizarDataAtual();
-        setInterval(atualizarDataAtual, 60000);
-        
-        limparBtn.addEventListener('click', limparTodosPesos);
-        exemploBtn.addEventListener('click', carregarExemplo);
-        salvarBtn.addEventListener('click', salvarRegistro);
-        
+        setInterval(atualizarDataAtual,60000);
+        limparBtn.onclick=limparTodosPesos;
+        exemploBtn.onclick=carregarExemplo;
+        salvarBtn.onclick=salvarRegistro;
+        atualizarCamposAdicionais();
         mostrarStatus("📝 Formulário pronto. Digite a matrícula do produtor (ex: 283) e selecione da lista.", "info");
     }
-    
     init();
 </script>
 </body>
