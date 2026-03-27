@@ -1,49 +1,51 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-COPAR Web - Versão Completa Corrigida
+COPAR Web - Versão Corrigida com estrutura correta do banco
 """
 
-from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 import psycopg
 import os
 import logging
 from datetime import datetime, timedelta
-from decimal import Decimal
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
-# Configurações
 app.secret_key = os.environ.get('SECRET_KEY', 'copar-secret-key-2024')
 
 app.config.update(
-    SESSION_COOKIE_SECURE=False,  # True em produção com HTTPS
+    SESSION_COOKIE_SECURE=False,
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE='Lax',
     PERMANENT_SESSION_LIFETIME=timedelta(hours=1)
 )
 
-# String de conexão do banco
-DATABASE_URL = os.environ.get('DATABASE_URL', 'postgresql://neondb_owner:npg_Bp1AmUEoX7ui@ep-summer-haze-a8lxhx5j-pooler.eastus2.azure.neon.tech/neondb?sslmode=require')
+DATABASE_URL = os.environ.get(
+    'DATABASE_URL',
+    'postgresql://neondb_owner:npg_Bp1AmUEoX7ui@ep-summer-haze-a8lxhx5j-pooler.eastus2.azure.neon.tech/neondb?sslmode=require'
+)
+
+# Mapeamento dos locais do frontend para o banco
+MAPEAMENTO_LOCAL = {
+    'Classificação': 'Classificação',
+    'banca': 'Banca',
+    'toletagem': 'Toletagem'
+}
 
 # ========== FUNÇÕES DO BANCO ==========
 
 def conectar_banco():
-    """Conecta ao banco de dados PostgreSQL"""
     try:
-        conn = psycopg.connect(DATABASE_URL)
-        return conn
+        return psycopg.connect(DATABASE_URL)
     except Exception as e:
-        logger.error(f"Erro de conexão com banco: {e}")
+        logger.error(f"Erro de conexão: {e}")
         return None
 
 def buscar_produtor_por_matricula(matricula):
-    """Busca o produtor pela matrícula"""
-    
-    # ACESSO ESPECIAL: Se for copar10, retorna acesso ao formulário de entrada
     if matricula.lower() == 'copar10':
         return {
             'id': 9999,
@@ -51,68 +53,144 @@ def buscar_produtor_por_matricula(matricula):
             'matricula': 'copar10',
             'especial': True
         }
-    
     conn = conectar_banco()
     if not conn:
-        logger.error("Não foi possível conectar ao banco")
         return None
-    
     try:
         cursor = conn.cursor()
-        # Buscar por matrícula exata
-        cursor.execute("""
-            SELECT id, nome, matricula 
-            FROM produtores 
-            WHERE matricula = %s
-        """, (matricula,))
+        cursor.execute("SELECT id, nome, matricula FROM produtores WHERE matricula = %s", (matricula,))
         produtor = cursor.fetchone()
         cursor.close()
         conn.close()
-        
         if produtor:
-            logger.info(f"Produtor encontrado: ID={produtor[0]}, Nome={produtor[1]}, Matrícula={produtor[2]}")
-            return {
-                'id': produtor[0],
-                'nome': produtor[1],
-                'matricula': produtor[2],
-                'especial': False
-            }
-        else:
-            logger.warning(f"Produtor com matrícula {matricula} não encontrado")
-            return None
+            return {'id': produtor[0], 'nome': produtor[1], 'matricula': produtor[2], 'especial': False}
+        return None
     except Exception as e:
         logger.error(f"Erro ao buscar produtor: {e}")
         return None
 
-def buscar_produtor_por_id(produtor_id):
-    """Busca produtor pelo ID"""
+def buscar_estoque(produtor_id):
+    """Busca estoque atual do produtor"""
     conn = conectar_banco()
     if not conn:
-        return None
+        return []
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT 
+                tipo_alho,
+                classe,
+                SUM(peso) as total_peso
+            FROM estoque 
+            WHERE produtor_id = %s AND peso > 0
+            GROUP BY tipo_alho, classe
+            ORDER BY tipo_alho, classe
+        """, (produtor_id,))
+        
+        estoque = []
+        for row in cursor.fetchall():
+            estoque.append({
+                'tipo': row[0],
+                'classe': row[1],
+                'peso': float(row[2])
+            })
+        cursor.close()
+        conn.close()
+        return estoque
+    except Exception as e:
+        logger.error(f"Erro ao buscar estoque: {e}")
+        return []
+
+def buscar_vendas(produtor_id):
+    """Busca histórico de vendas do produtor"""
+    conn = conectar_banco()
+    if not conn:
+        return []
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT 
+                v.id,
+                v.data_venda,
+                v.tipo_alho,
+                v.classe,
+                v.peso,
+                v.valor_total,
+                v.valor_produtor,
+                v.status_pagamento,
+                cp.saldo
+            FROM vendas v
+            JOIN creditos_produtor cp ON v.id = cp.venda_id
+            WHERE v.produtor_id = %s
+            ORDER BY v.data_venda DESC
+        """, (produtor_id,))
+        
+        vendas = []
+        for row in cursor.fetchall():
+            vendas.append({
+                'id': row[0],
+                'data': row[1].strftime("%d/%m/%Y") if row[1] else "",
+                'tipo': row[2],
+                'classe': row[3],
+                'peso': float(row[4]),
+                'valor_total': float(row[5]),
+                'valor_produtor': float(row[6]),
+                'status': row[7],
+                'saldo': float(row[8]) if row[8] else 0
+            })
+        cursor.close()
+        conn.close()
+        return vendas
+    except Exception as e:
+        logger.error(f"Erro ao buscar vendas: {e}")
+        return []
+
+def calcular_saldos(vendas):
+    total_recebido = 0
+    total_a_receber = 0
+    for venda in vendas:
+        if venda['status'] == 'Pago':
+            total_recebido += venda['valor_produtor']
+        else:
+            total_a_receber += venda['saldo']
+    return total_recebido, total_a_receber
+
+def registrar_entrada_estoque(produtor_id, tipo_alho, classe, peso, local_estoque, horas_banca=0):
+    """Registra entrada no estoque usando a estrutura correta do banco"""
+    conn = conectar_banco()
+    if not conn:
+        return False, "Erro de conexão com o banco"
     
     try:
         cursor = conn.cursor()
-        cursor.execute("SELECT id, nome, matricula FROM produtores WHERE id = %s", (produtor_id,))
-        produtor = cursor.fetchone()
+        
+        # Mapear o local para o valor correto no banco
+        local_banco = MAPEAMENTO_LOCAL.get(local_estoque, local_estoque)
+        
+        cursor.execute("""
+            INSERT INTO estoque (produtor_id, tipo_alho, classe, peso, local_estoque, horas_banca)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            RETURNING id
+        """, (produtor_id, tipo_alho, classe, peso, local_banco, horas_banca))
+        
+        entrada_id = cursor.fetchone()[0]
+        conn.commit()
         cursor.close()
         conn.close()
         
-        if produtor:
-            return {
-                'id': produtor[0],
-                'nome': produtor[1],
-                'matricula': produtor[2]
-            }
-        return None
+        logger.info(f"Entrada registrada: ID {entrada_id}, Produtor {produtor_id}, {peso}Kg de {tipo_alho} {classe} em {local_banco}")
+        return True, entrada_id
+        
     except Exception as e:
-        logger.error(f"Erro ao buscar produtor por ID: {e}")
-        return None
+        logger.error(f"Erro ao registrar entrada: {e}")
+        if conn:
+            conn.rollback()
+        return False, str(e)
 
 def buscar_produtores_por_termo(termo):
     """Busca produtores por nome ou matrícula"""
     conn = conectar_banco()
     if not conn:
-        logger.error("Não foi possível conectar ao banco para busca")
         return []
     
     try:
@@ -132,51 +210,17 @@ def buscar_produtores_por_termo(termo):
                 'nome': row[1],
                 'id': row[2]
             })
-        
         cursor.close()
         conn.close()
-        logger.info(f"Busca por '{termo}' retornou {len(produtores)} resultados")
         return produtores
     except Exception as e:
         logger.error(f"Erro ao buscar produtores: {e}")
         return []
 
-def registrar_entrada_estoque(produtor_id, tipo_alho, classe, peso, local_armazenamento, horas_banca=0):
-    """Registra entrada no estoque"""
-    conn = conectar_banco()
-    if not conn:
-        return False, "Erro de conexão com o banco"
-    
-    try:
-        cursor = conn.cursor()
-        
-        # Registrar entrada
-        cursor.execute("""
-            INSERT INTO estoque (produtor_id, tipo_alho, classe, peso, local_armazenamento, horas_banca)
-            VALUES (%s, %s, %s, %s, %s, %s)
-            RETURNING id
-        """, (produtor_id, tipo_alho, classe, peso, local_armazenamento, horas_banca))
-        
-        entrada_id = cursor.fetchone()[0]
-        
-        conn.commit()
-        cursor.close()
-        conn.close()
-        
-        logger.info(f"Entrada registrada: ID {entrada_id}, Produtor {produtor_id}, {peso}Kg de {tipo_alho} {classe}")
-        return True, entrada_id
-        
-    except Exception as e:
-        logger.error(f"Erro ao registrar entrada: {e}")
-        if conn:
-            conn.rollback()
-        return False, str(e)
-
 # ========== ROTAS ==========
 
 @app.route('/')
 def index():
-    """Página inicial"""
     if 'produtor_id' in session:
         if session.get('acesso_especial'):
             return redirect(url_for('registro_entrada'))
@@ -185,15 +229,12 @@ def index():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    """Tela de login"""
     if request.method == 'POST':
         matricula = request.form.get('matricula', '').strip()
-        
         if not matricula:
             return render_template('login.html', erro='Digite sua matrícula')
         
         produtor = buscar_produtor_por_matricula(matricula)
-        
         if produtor:
             session['produtor_id'] = produtor['id']
             session['produtor_nome'] = produtor['nome']
@@ -211,35 +252,42 @@ def login():
 
 @app.route('/produtor')
 def produtor():
-    """Tela normal do produtor"""
     if 'produtor_id' not in session:
         return redirect(url_for('login'))
     
-    # Importar funções da tela do produtor (você precisa criar essas funções)
-    return render_template('produtor.html', nome=session.get('produtor_nome', ''))
+    if session.get('acesso_especial'):
+        return redirect(url_for('registro_entrada'))
+    
+    produtor_id = session['produtor_id']
+    produtor_nome = session['produtor_nome']
+    
+    estoque = buscar_estoque(produtor_id)
+    vendas = buscar_vendas(produtor_id)
+    total_recebido, total_a_receber = calcular_saldos(vendas)
+    
+    return render_template('produtor.html',
+                         nome=produtor_nome,
+                         estoque=estoque,
+                         vendas=vendas,
+                         total_recebido=total_recebido,
+                         total_a_receber=total_a_receber)
 
 @app.route('/registro-entrada')
 def registro_entrada():
-    """Tela de registro de entrada de alho"""
     if 'produtor_id' not in session:
         return redirect(url_for('login'))
-    
     return render_template('registro_entrada.html')
 
 @app.route('/api/buscar-produtor', methods=['POST'])
 def api_buscar_produtor():
-    """API para buscar produtor por matrícula"""
     data = request.get_json()
     matricula = data.get('matricula', '').strip()
-    
     if not matricula:
         return jsonify({'encontrado': False, 'mensagem': 'Matrícula não informada'})
     
-    logger.info(f"Buscando produtor com matrícula: {matricula}")
-    
     conn = conectar_banco()
     if not conn:
-        return jsonify({'encontrado': False, 'mensagem': 'Erro de conexão com o banco'})
+        return jsonify({'encontrado': False, 'mensagem': 'Erro de conexão'})
     
     try:
         cursor = conn.cursor()
@@ -249,7 +297,6 @@ def api_buscar_produtor():
         conn.close()
         
         if produtor:
-            logger.info(f"Produtor encontrado: ID={produtor[0]}, Nome={produtor[1]}")
             return jsonify({
                 'encontrado': True,
                 'id': produtor[0],
@@ -257,30 +304,22 @@ def api_buscar_produtor():
                 'nome': produtor[1]
             })
         else:
-            logger.warning(f"Produtor não encontrado com matrícula: {matricula}")
             return jsonify({'encontrado': False, 'mensagem': 'Produtor não encontrado'})
-            
     except Exception as e:
         logger.error(f"Erro na API de busca: {e}")
         return jsonify({'encontrado': False, 'mensagem': str(e)})
 
 @app.route('/api/buscar-produtores', methods=['GET'])
 def api_buscar_produtores():
-    """API para autocomplete de produtores"""
     termo = request.args.get('termo', '').strip()
-    
     if len(termo) < 1:
         return jsonify([])
-    
-    logger.info(f"Buscando produtores por termo: {termo}")
     produtores = buscar_produtores_por_termo(termo)
     return jsonify(produtores)
 
 @app.route('/api/salvar-entrada', methods=['POST'])
 def api_salvar_entrada():
-    """API para salvar registro de entrada de alho"""
     data = request.get_json()
-    
     if not data:
         return jsonify({'sucesso': False, 'mensagem': 'Dados inválidos'}), 400
     
@@ -289,21 +328,16 @@ def api_salvar_entrada():
     local = data.get('local', 'Classificação')
     detalhes = data.get('detalhes', [])
     
-    logger.info(f"Recebendo entrada: produtor_id={produtor_id}, tipo={tipo_alho}, local={local}")
-    
     if not produtor_id:
         return jsonify({'sucesso': False, 'mensagem': 'Produtor não selecionado'})
-    
     if not tipo_alho:
         return jsonify({'sucesso': False, 'mensagem': 'Tipo de alho não selecionado'})
-    
     if not detalhes:
         return jsonify({'sucesso': False, 'mensagem': 'Nenhum peso registrado'})
     
-    # Mapeamento das classes
+    # Mapeamento das classes para os valores do banco
     classes_mapeamento = {
         "INDÚSTRIA": "Indústria",
-        "DEBULHADO": "Debulhado",
         "TIPO 2": "Classe 2",
         "TIPO 3": "Classe 3",
         "TIPO 4": "Classe 4",
@@ -321,15 +355,22 @@ def api_salvar_entrada():
         peso = item.get('peso', 0)
         
         if peso > 0:
-            classe_destino = classes_mapeamento.get(classe_origem, classe_origem)
-            peso_total += peso
+            classe_destino = classes_mapeamento.get(classe_origem)
+            if not classe_destino:
+                erros.append({
+                    'classe': classe_origem,
+                    'peso': peso,
+                    'erro': f'Classe {classe_origem} não reconhecida'
+                })
+                continue
             
+            peso_total += peso
             sucesso, resultado = registrar_entrada_estoque(
                 produtor_id=produtor_id,
                 tipo_alho=tipo_alho,
                 classe=classe_destino,
                 peso=peso,
-                local_armazenamento=local,
+                local_estoque=local,
                 horas_banca=0
             )
             
@@ -362,7 +403,6 @@ def api_salvar_entrada():
 
 @app.route('/logout')
 def logout():
-    """Sair do sistema"""
     session.clear()
     return redirect(url_for('login'))
 
