@@ -20,6 +20,7 @@
         .btn-filter.active { background-color: #2c5e2a; color: white; }
         .chart-container { background: white; border-radius: 15px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 20px; }
         footer { text-align: center; padding: 20px; color: #6c757d; font-size: 0.8rem; }
+        .month-badge { background: #2c5e2a; color: white; padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; display: inline-block; margin-bottom: 15px; }
     </style>
 </head>
 <body>
@@ -28,13 +29,15 @@
             <span class="navbar-brand mb-0 h1">🌾 COPAR - Painel do Gerente</span>
             <div>
                 <span class="text-white me-3">Olá, <strong>Luis Henrique</strong></span>
+                <a href="/configuracoes" class="btn btn-outline-light btn-sm me-2">⚙️ Configurações</a>
                 <a href="/logout" class="btn btn-outline-light btn-sm">Sair</a>
             </div>
         </div>
     </nav>
 
     <div class="container mt-4">
-        <div class="row mb-4" id="statsCards">
+        <!-- Cards de Estatísticas -->
+        <div class="row mb-4">
             <div class="col-md-3 col-sm-6 mb-3">
                 <div class="card card-stats bg-white">
                     <div class="card-body">
@@ -54,29 +57,24 @@
             <div class="col-md-3 col-sm-6 mb-3">
                 <div class="card card-stats bg-white">
                     <div class="card-body">
-                        <div class="card-title text-muted">💰 Vendas Hoje (R$)</div>
-                        <div class="card-value" id="vendasHoje">-</div>
+                        <div class="card-title text-muted">💰 Vendas no Mês (R$)</div>
+                        <div class="card-value" id="vendasMes">-</div>
+                        <small class="text-muted" id="mesAtual"></small>
                     </div>
                 </div>
             </div>
             <div class="col-md-3 col-sm-6 mb-3">
                 <div class="card card-stats bg-white">
                     <div class="card-body">
-                        <div class="card-title text-muted">💸 Pagamentos Hoje (R$)</div>
-                        <div class="card-value" id="pagamentosHoje">-</div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3 col-sm-6 mb-3">
-                <div class="card card-stats bg-white">
-                    <div class="card-body">
-                        <div class="card-title text-muted">⚠️ Perdas Hoje (kg)</div>
-                        <div class="card-value" id="perdasHoje">-</div>
+                        <div class="card-title text-muted">💸 Pagamentos no Mês (R$)</div>
+                        <div class="card-value" id="pagamentosMes">-</div>
+                        <small class="text-muted" id="mesPagamentos"></small>
                     </div>
                 </div>
             </div>
         </div>
 
+        <!-- Gráficos -->
         <div class="row mb-4">
             <div class="col-md-6">
                 <div class="chart-container">
@@ -92,6 +90,7 @@
             </div>
         </div>
 
+        <!-- Filtros para estoque -->
         <div class="d-flex flex-wrap align-items-center justify-content-between mb-3">
             <h4>📋 Estoques por Produtor</h4>
             <div>
@@ -104,7 +103,7 @@
         </div>
         <div class="table-responsive mb-5">
             <table class="table table-striped table-hover" id="tabelaEstoque">
-                <thead class="table-light">*
+                <thead class="table-light">
                     <th>Produtor</th><th>Tipo</th><th>Classe</th><th>Peso (Kg)</th><th>Local</th>
                 </thead>
                 <tbody id="estoqueTbody">
@@ -115,7 +114,7 @@
 
         <div class="row">
             <div class="col-md-6">
-                <h4>🔄 Últimas Vendas</h4>
+                <h4>🔄 Vendas do Mês</h4>
                 <div class="table-responsive mb-4">
                     <table class="table table-sm table-hover">
                         <thead>
@@ -128,7 +127,7 @@
                 </div>
             </div>
             <div class="col-md-6">
-                <h4>💳 Últimos Pagamentos</h4>
+                <h4>💳 Pagamentos do Mês</h4>
                 <div class="table-responsive mb-4">
                     <table class="table table-sm table-hover">
                         <thead>
@@ -144,7 +143,7 @@
 
         <div class="row mt-4">
             <div class="col-12">
-                <h4>⚠️ Perdas Registradas (quebra)</h4>
+                <h4>⚠️ Perdas Registradas no Mês</h4>
                 <div class="table-responsive mb-4">
                     <table class="table table-sm table-hover">
                         <thead>
@@ -158,11 +157,12 @@
             </div>
         </div>
     </div>
-    <footer>Sistema COPAR - Painel Gerencial | Dados em tempo real</footer>
+    <footer>Sistema COPAR - Painel Gerencial | Dados do mês atual</footer>
 
     <script>
         let estoqueOriginal = [];
         let graficoEstoque, graficoVendas;
+        const mesAtual = new Date().toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
 
         function formatarMoeda(valor) {
             return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
@@ -174,10 +174,15 @@
                 const data = await res.json();
                 document.getElementById('totalProdutores').innerText = data.total_produtores || 0;
                 document.getElementById('totalEstoqueKg').innerText = (data.total_estoque_kg || 0).toLocaleString('pt-BR') + ' kg';
-                document.getElementById('vendasHoje').innerText = formatarMoeda(data.vendas_hoje || 0);
-                document.getElementById('pagamentosHoje').innerText = formatarMoeda(data.pagamentos_hoje || 0);
-                document.getElementById('perdasHoje').innerText = (data.perdas_hoje || 0).toLocaleString('pt-BR') + ' kg';
-            } catch (err) { console.error(err); }
+                document.getElementById('vendasMes').innerText = formatarMoeda(data.vendas_mes || 0);
+                document.getElementById('pagamentosMes').innerText = formatarMoeda(data.pagamentos_mes || 0);
+                document.getElementById('mesAtual').innerText = mesAtual.charAt(0).toUpperCase() + mesAtual.slice(1);
+                document.getElementById('mesPagamentos').innerText = mesAtual.charAt(0).toUpperCase() + mesAtual.slice(1);
+            } catch (err) { 
+                console.error('Erro ao carregar estatísticas:', err);
+                document.getElementById('vendasMes').innerText = 'R$ 0,00';
+                document.getElementById('pagamentosMes').innerText = 'R$ 0,00';
+            }
         }
 
         async function carregarEstoqueProdutor() {
@@ -186,15 +191,18 @@
                 const data = await res.json();
                 estoqueOriginal = data;
                 aplicarFiltroEstoque();
-            } catch (err) { console.error(err); }
+            } catch (err) { 
+                console.error('Erro ao carregar estoque:', err);
+                document.getElementById('estoqueTbody').innerHTML = '<tr><td colspan="5" class="text-center">Erro ao carregar estoque</td></tr>';
+            }
         }
 
         function aplicarFiltroEstoque() {
-            const filtro = document.querySelector('.btn-filter.active').getAttribute('data-filter');
+            const filtro = document.querySelector('.btn-filter.active')?.getAttribute('data-filter') || 'all';
             let dados = (filtro === 'all') ? estoqueOriginal : estoqueOriginal.filter(i => i.local === filtro);
             const tbody = document.getElementById('estoqueTbody');
             tbody.innerHTML = '';
-            if (dados.length === 0) {
+            if (!dados || dados.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="5" class="text-center">Nenhum registro encontrado</td></tr>';
                 return;
             }
@@ -210,11 +218,14 @@
 
         async function carregarVendasRecentes() {
             try {
-                const res = await fetch('/api/gerente/vendas-recentes?limite=15');
+                const res = await fetch('/api/gerente/vendas-recentes?limite=50');
                 const vendas = await res.json();
                 const tbody = document.getElementById('vendasTbody');
                 tbody.innerHTML = '';
-                if (!vendas.length) { tbody.innerHTML = '<tr><td colspan="6" class="text-center">Nenhuma venda registrada</td></tr>'; return; }
+                if (!vendas || vendas.length === 0) { 
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center">Nenhuma venda neste mês</td></tr>'; 
+                    return; 
+                }
                 vendas.forEach(v => {
                     const row = tbody.insertRow();
                     row.insertCell(0).innerText = v.data;
@@ -225,16 +236,22 @@
                     const statusBadge = v.status === 'Pago' ? '<span class="badge bg-success">Pago</span>' : '<span class="badge bg-warning text-dark">Pendente</span>';
                     row.insertCell(5).innerHTML = statusBadge;
                 });
-            } catch (err) { console.error(err); }
+            } catch (err) { 
+                console.error('Erro ao carregar vendas:', err);
+                document.getElementById('vendasTbody').innerHTML = '<tr><td colspan="6" class="text-center">Erro ao carregar vendas</td></tr>';
+            }
         }
 
         async function carregarPagamentosRecentes() {
             try {
-                const res = await fetch('/api/gerente/pagamentos-recentes?limite=15');
+                const res = await fetch('/api/gerente/pagamentos-recentes?limite=50');
                 const pagamentos = await res.json();
                 const tbody = document.getElementById('pagamentosTbody');
                 tbody.innerHTML = '';
-                if (!pagamentos.length) { tbody.innerHTML = '<tr><td colspan="4" class="text-center">Nenhum pagamento registrado</td></tr>'; return; }
+                if (!pagamentos || pagamentos.length === 0) { 
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-center">Nenhum pagamento neste mês</td></tr>'; 
+                    return; 
+                }
                 pagamentos.forEach(p => {
                     const row = tbody.insertRow();
                     row.insertCell(0).innerText = p.data;
@@ -242,16 +259,22 @@
                     row.insertCell(2).innerText = formatarMoeda(p.valor);
                     row.insertCell(3).innerText = p.forma;
                 });
-            } catch (err) { console.error(err); }
+            } catch (err) { 
+                console.error('Erro ao carregar pagamentos:', err);
+                document.getElementById('pagamentosTbody').innerHTML = '<tr><td colspan="4" class="text-center">Erro ao carregar pagamentos</td></tr>';
+            }
         }
 
         async function carregarPerdasRecentes() {
             try {
-                const res = await fetch('/api/gerente/perdas-recentes?limite=15');
+                const res = await fetch('/api/gerente/perdas-recentes?limite=50');
                 const perdas = await res.json();
                 const tbody = document.getElementById('perdasTbody');
                 tbody.innerHTML = '';
-                if (!perdas.length) { tbody.innerHTML = '<tr><td colspan="7" class="text-center">Nenhuma perda registrada</td></tr>'; return; }
+                if (!perdas || perdas.length === 0) { 
+                    tbody.innerHTML = '<tr><td colspan="7" class="text-center">Nenhuma perda registrada neste mês</td></tr>'; 
+                    return; 
+                }
                 perdas.forEach(p => {
                     const row = tbody.insertRow();
                     row.insertCell(0).innerText = p.data;
@@ -262,7 +285,10 @@
                     row.insertCell(5).innerText = p.local_origem;
                     row.insertCell(6).innerText = p.motivo;
                 });
-            } catch (err) { console.error(err); }
+            } catch (err) { 
+                console.error('Erro ao carregar perdas:', err);
+                document.getElementById('perdasTbody').innerHTML = '<tr><td colspan="7" class="text-center">Erro ao carregar perdas</td></tr>';
+            }
         }
 
         async function carregarGraficos() {
@@ -273,10 +299,18 @@
                 if (graficoEstoque) graficoEstoque.destroy();
                 graficoEstoque = new Chart(ctx1, {
                     type: 'bar',
-                    data: { labels: dadosTipo.map(d => d.tipo), datasets: [{ label: 'Peso (Kg)', data: dadosTipo.map(d => d.peso), backgroundColor: '#2c5e2a', borderRadius: 8 }] },
+                    data: { 
+                        labels: dadosTipo.map(d => d.tipo), 
+                        datasets: [{ 
+                            label: 'Peso (Kg)', 
+                            data: dadosTipo.map(d => d.peso), 
+                            backgroundColor: '#2c5e2a', 
+                            borderRadius: 8 
+                        }] 
+                    },
                     options: { responsive: true, maintainAspectRatio: true }
                 });
-            } catch (err) { console.error(err); }
+            } catch (err) { console.error('Erro no gráfico de estoque:', err); }
 
             try {
                 const resVendas = await fetch('/api/gerente/vendas-por-mes');
@@ -285,21 +319,39 @@
                 if (graficoVendas) graficoVendas.destroy();
                 graficoVendas = new Chart(ctx2, {
                     type: 'line',
-                    data: { labels: dadosVendas.map(d => d.mes), datasets: [{ label: 'Valor Total (R$)', data: dadosVendas.map(d => d.total), borderColor: '#e67e22', backgroundColor: 'rgba(230,126,34,0.1)', fill: true, tension: 0.2 }] },
-                    options: { responsive: true, maintainAspectRatio: true, plugins: { tooltip: { callbacks: { label: (ctx) => formatarMoeda(ctx.raw) } } } }
+                    data: { 
+                        labels: dadosVendas.map(d => d.mes), 
+                        datasets: [{ 
+                            label: 'Valor Total (R$)', 
+                            data: dadosVendas.map(d => d.total), 
+                            borderColor: '#e67e22', 
+                            backgroundColor: 'rgba(230,126,34,0.1)', 
+                            fill: true, 
+                            tension: 0.2 
+                        }] 
+                    },
+                    options: { 
+                        responsive: true, 
+                        maintainAspectRatio: true, 
+                        plugins: { 
+                            tooltip: { callbacks: { label: (ctx) => formatarMoeda(ctx.raw) } } 
+                        } 
+                    }
                 });
-            } catch (err) { console.error(err); }
+            } catch (err) { console.error('Erro no gráfico de vendas:', err); }
         }
 
         function configurarFiltros() {
-            document.querySelectorAll('.btn-filter').forEach(btn => {
+            const botoes = document.querySelectorAll('.btn-filter');
+            botoes.forEach(btn => {
                 btn.addEventListener('click', () => {
-                    document.querySelectorAll('.btn-filter').forEach(b => b.classList.remove('active'));
+                    botoes.forEach(b => b.classList.remove('active'));
                     btn.classList.add('active');
                     aplicarFiltroEstoque();
                 });
             });
-            document.getElementById('refreshEstoqueBtn').addEventListener('click', carregarEstoqueProdutor);
+            const refreshBtn = document.getElementById('refreshEstoqueBtn');
+            if (refreshBtn) refreshBtn.addEventListener('click', carregarEstoqueProdutor);
         }
 
         async function init() {
@@ -316,4 +368,4 @@
         init();
     </script>
 </body>
-</html>
+            </html>
