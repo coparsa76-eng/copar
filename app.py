@@ -349,6 +349,7 @@ def obter_saldo_estoque(produtor_id, tipo_alho, classe, local):
         return 0
 
 # ========== FUNÇÕES PARA O GERENTE ==========
+ 
 def obter_estatisticas_gerais():
     """Retorna estatísticas para o dashboard do gerente"""
     conn = conectar_banco()
@@ -410,7 +411,6 @@ def obter_estatisticas_gerais():
     except Exception as e:
         logger.error(f"Erro ao obter estatísticas: {e}")
         return {}
-
 
 def obter_estoque_por_produtor():
     conn = conectar_banco()
