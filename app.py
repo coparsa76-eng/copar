@@ -349,38 +349,68 @@ def obter_saldo_estoque(produtor_id, tipo_alho, classe, local):
         return 0
 
 # ========== FUNÇÕES PARA O GERENTE ==========
-
 def obter_estatisticas_gerais():
+    """Retorna estatísticas para o dashboard do gerente"""
     conn = conectar_banco()
     if not conn:
         return {}
     try:
         cursor = conn.cursor()
+        
+        # Total de produtores
         cursor.execute("SELECT COUNT(*) FROM produtores")
         total_produtores = cursor.fetchone()[0]
+        
+        # Total em estoque (Kg)
         cursor.execute("SELECT COALESCE(SUM(peso), 0) FROM estoque WHERE peso > 0")
         total_estoque_kg = float(cursor.fetchone()[0])
-        cursor.execute("SELECT COALESCE(SUM(valor_total), 0) FROM vendas WHERE date(data_venda) = CURRENT_DATE")
-        vendas_hoje = float(cursor.fetchone()[0])
-        cursor.execute("SELECT COALESCE(SUM(valor_total), 0) FROM pagamentos WHERE date(data_pagamento) = CURRENT_DATE")
-        pagamentos_hoje = float(cursor.fetchone()[0])
+        
+        # Vendas do MÊS ATUAL
+        cursor.execute("""
+            SELECT COALESCE(SUM(valor_total), 0) 
+            FROM vendas 
+            WHERE EXTRACT(YEAR FROM data_venda) = EXTRACT(YEAR FROM CURRENT_DATE)
+            AND EXTRACT(MONTH FROM data_venda) = EXTRACT(MONTH FROM CURRENT_DATE)
+        """)
+        vendas_mes = float(cursor.fetchone()[0])
+        
+        # Pagamentos do MÊS ATUAL
+        cursor.execute("""
+            SELECT COALESCE(SUM(valor_total), 0) 
+            FROM pagamentos 
+            WHERE EXTRACT(YEAR FROM data_pagamento) = EXTRACT(YEAR FROM CURRENT_DATE)
+            AND EXTRACT(MONTH FROM data_pagamento) = EXTRACT(MONTH FROM CURRENT_DATE)
+        """)
+        pagamentos_mes = float(cursor.fetchone()[0])
+        
+        # Saldo total a pagar
         cursor.execute("SELECT COALESCE(SUM(saldo), 0) FROM creditos_produtor")
         saldo_total = float(cursor.fetchone()[0])
-        cursor.execute("SELECT COALESCE(SUM(peso_kg), 0) FROM perdas WHERE date(data_perda) = CURRENT_DATE")
-        perdas_hoje = float(cursor.fetchone()[0])
+        
+        # Perdas do mês
+        cursor.execute("""
+            SELECT COALESCE(SUM(peso_kg), 0) 
+            FROM perdas 
+            WHERE EXTRACT(YEAR FROM data_perda) = EXTRACT(YEAR FROM CURRENT_DATE)
+            AND EXTRACT(MONTH FROM data_perda) = EXTRACT(MONTH FROM CURRENT_DATE)
+        """)
+        perdas_mes = float(cursor.fetchone()[0])
+        
         cursor.close()
         conn.close()
+        
         return {
             'total_produtores': total_produtores,
             'total_estoque_kg': total_estoque_kg,
-            'vendas_hoje': vendas_hoje,
-            'pagamentos_hoje': pagamentos_hoje,
+            'vendas_mes': vendas_mes,
+            'pagamentos_mes': pagamentos_mes,
             'saldo_total': saldo_total,
-            'perdas_hoje': perdas_hoje
+            'perdas_mes': perdas_mes
         }
     except Exception as e:
         logger.error(f"Erro ao obter estatísticas: {e}")
         return {}
+
 
 def obter_estoque_por_produtor():
     conn = conectar_banco()
