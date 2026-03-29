@@ -1,237 +1,262 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>COPAR - Meus Dados</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>COPAR – Meus Dados</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --verde:       #2a5c28;
+            --verde-mid:   #3d7a3a;
+            --verde-light: #e8f2e7;
+            --verde-pale:  #f4f9f3;
+            --dourado:     #c8a94a;
+            --azul:        #2471a3;
+            --bg:          #f2f5f0;
+            --text:        #1a2e19;
+            --muted:       #6b7c6a;
+            --border:      #dde8db;
+            --white:       #ffffff;
+            --pago:        #1e8449;
+            --pendente:    #c0392b;
+            --radius:      14px;
+            --shadow:      0 4px 20px rgba(42,92,40,.1);
         }
-        
+
         body {
-            font-family: Arial, Helvetica, sans-serif;
-            background: #ecf0f1;
-            padding: 20px;
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100dvh;
+            padding-bottom: 2rem;
         }
-        
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-        }
-        
-        /* Cabeçalho */
-        .header {
-            background: #2c3e50;
-            color: white;
-            padding: 20px;
-            border-radius: 10px 10px 0 0;
+
+        /* NAV */
+        nav {
+            background: var(--verde);
+            padding: .9rem 1.25rem;
             display: flex;
-            justify-content: space-between;
             align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
-        
-        .header h1 {
-            font-size: 24px;
-        }
-        
-        .header a {
-            background: #e74c3c;
-            color: white;
-            padding: 8px 15px;
-            text-decoration: none;
-            border-radius: 5px;
-            font-size: 14px;
-        }
-        
-        /* Cards de valores */
-        .cards {
+        .nav-brand {
+            font-family: 'DM Serif Display', serif;
+            color: var(--white);
+            font-size: 1.35rem;
             display: flex;
-            gap: 20px;
-            margin: 20px 0;
+            align-items: center;
+            gap: .5rem;
         }
-        
-        .card {
-            background: white;
-            flex: 1;
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: .75rem;
         }
-        
-        .card .label {
-            color: #7f8c8d;
-            font-size: 14px;
-            margin-bottom: 10px;
-        }
-        
-        .card .valor {
-            font-size: 28px;
-            font-weight: bold;
-            color: #2c3e50;
-        }
-        
-        .card.receber .valor {
-            color: #27ae60;
-        }
-        
-        .card.recebido .valor {
-            color: #3498db;
-        }
-        
-        /* Seções */
-        .secao {
-            background: white;
-            border-radius: 10px;
-            margin-bottom: 20px;
+        .nav-name {
+            color: rgba(255,255,255,.8);
+            font-size: .82rem;
+            max-width: 120px;
             overflow: hidden;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
-        
-        .secao h2 {
-            background: #3498db;
-            color: white;
-            padding: 12px 20px;
-            font-size: 18px;
+        .btn-sair {
+            background: rgba(255,255,255,.15);
+            border: 1px solid rgba(255,255,255,.3);
+            color: var(--white);
+            padding: .4rem .85rem;
+            border-radius: 8px;
+            font-size: .82rem;
+            text-decoration: none;
+            font-family: 'DM Sans', sans-serif;
+            white-space: nowrap;
         }
-        
-        /* Listas */
-        .lista {
-            padding: 15px;
+
+        main { max-width: 700px; margin: 0 auto; padding: 1.25rem; }
+
+        /* CARDS FINANCEIROS */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: .85rem;
+            margin-bottom: 1.5rem;
         }
-        
+        .fin-card {
+            background: var(--white);
+            border-radius: var(--radius);
+            padding: 1.1rem;
+            box-shadow: var(--shadow);
+            border-top: 3px solid transparent;
+        }
+        .fin-card.receber { border-top-color: var(--pago); }
+        .fin-card.recebido { border-top-color: var(--azul); }
+        .fin-label {
+            font-size: .72rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            color: var(--muted);
+            margin-bottom: .35rem;
+        }
+        .fin-valor {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .fin-card.receber .fin-valor { color: var(--pago); }
+        .fin-card.recebido .fin-valor { color: var(--azul); }
+
+        /* SEÇÕES */
+        .secao {
+            background: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 1.25rem;
+            overflow: hidden;
+        }
+        .secao-header {
+            background: var(--verde);
+            padding: .8rem 1.1rem;
+            color: var(--white);
+            font-weight: 600;
+            font-size: .95rem;
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+        }
+        .secao-body { padding: .5rem 0; }
+
+        /* ITENS */
         .item {
-            padding: 12px;
-            border-bottom: 1px solid #eee;
+            padding: .85rem 1.1rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: .75rem;
         }
-        
-        .item:last-child {
-            border-bottom: none;
+        .item:last-child { border-bottom: none; }
+
+        .item-left { flex: 1; min-width: 0; }
+        .item-titulo {
+            font-weight: 600;
+            font-size: .95rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
-        
-        .item-estoque {
-            font-size: 16px;
+        .item-sub {
+            font-size: .78rem;
+            color: var(--muted);
+            margin-top: .15rem;
         }
-        
-        .item-estoque strong {
-            color: #2c3e50;
+
+        .item-right { text-align: right; flex-shrink: 0; }
+        .item-peso {
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: var(--verde);
         }
-        
-        .item-venda {
-            font-size: 14px;
-            color: #555;
-        }
-        
-        .item-venda .data {
-            color: #7f8c8d;
-            font-size: 12px;
-        }
-        
-        .vazio {
-            padding: 30px;
-            text-align: center;
-            color: #95a5a6;
-        }
-        
+
         .badge {
             display: inline-block;
-            padding: 2px 8px;
-            border-radius: 3px;
-            font-size: 11px;
-            margin-left: 10px;
+            padding: .2rem .6rem;
+            border-radius: 20px;
+            font-size: .72rem;
+            font-weight: 600;
         }
-        
-        .badge.pago {
-            background: #27ae60;
-            color: white;
-        }
-        
-        .badge.pendente {
-            background: #e74c3c;
-            color: white;
-        }
-        
-        .footer {
+        .badge.pago   { background: #d5f0de; color: var(--pago); }
+        .badge.pend   { background: #fde8e6; color: var(--pendente); }
+
+        .vazio {
+            padding: 2rem;
             text-align: center;
-            padding: 20px;
-            color: #7f8c8d;
-            font-size: 12px;
+            color: var(--muted);
+            font-size: .88rem;
         }
-        
-        @media (max-width: 600px) {
-            .cards {
-                flex-direction: column;
-            }
-        }
+        .vazio span { font-size: 2rem; display: block; margin-bottom: .5rem; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Cabeçalho -->
-        <div class="header">
-            <h1>🌾 COPAR</h1>
-            <div>
-                Olá, <strong>{{ nome }}</strong>
-                <a href="/logout">Sair</a>
-            </div>
+<nav>
+    <div class="nav-brand">🌾 COPAR</div>
+    <div class="nav-right">
+        <span class="nav-name">{{ nome }}</span>
+        <a href="/logout" class="btn-sair">Sair</a>
+    </div>
+</nav>
+
+<main>
+    <!-- Cards Financeiros -->
+    <div class="cards-grid">
+        <div class="fin-card receber">
+            <div class="fin-label">💰 A Receber</div>
+            <div class="fin-valor">R$&nbsp;{{ "%.2f"|format(total_a_receber) }}</div>
         </div>
-        
-        <!-- Cards de valores -->
-        <div class="cards">
-            <div class="card receber">
-                <div class="label">💰 A RECEBER</div>
-                <div class="valor">R$ {{ "%.2f"|format(total_a_receber) }}</div>
-            </div>
-            <div class="card recebido">
-                <div class="label">✅ JÁ RECEBIDO</div>
-                <div class="valor">R$ {{ "%.2f"|format(total_recebido) }}</div>
-            </div>
-        </div>
-        
-        <!-- Estoque Atual -->
-        <div class="secao">
-            <h2>📦 SEU ESTOQUE ATUAL</h2>
-            <div class="lista">
-                {% if estoque %}
-                    {% for item in estoque %}
-                    <div class="item item-estoque">
-                        <strong>{{ item.peso|round(1) }} kg</strong> de {{ item.tipo }} {{ item.classe }}
-                    </div>
-                    {% endfor %}
-                {% else %}
-                    <div class="vazio">Você não tem produtos em estoque no momento.</div>
-                {% endif %}
-            </div>
-        </div>
-        
-        <!-- Histórico de Vendas -->
-        <div class="secao">
-            <h2>📋 VENDAS REALIZADAS</h2>
-            <div class="lista">
-                {% if vendas %}
-                    {% for venda in vendas %}
-                    <div class="item item-venda">
-                        <strong>{{ venda.peso|round(1) }} kg</strong> de {{ venda.tipo }} {{ venda.classe }}
-                        <span class="data">- {{ venda.data }}</span>
-                        {% if venda.status == 'Pago' %}
-                            <span class="badge pago">Pago</span>
-                        {% else %}
-                            <span class="badge pendente">R$ {{ "%.2f"|format(venda.saldo) }} a receber</span>
-                        {% endif %}
-                    </div>
-                    {% endfor %}
-                {% else %}
-                    <div class="vazio">Nenhuma venda registrada ainda.</div>
-                {% endif %}
-            </div>
-        </div>
-        
-        <div class="footer">
-            Sistema COPAR - Gestão de Alho
+        <div class="fin-card recebido">
+            <div class="fin-label">✅ Recebido</div>
+            <div class="fin-valor">R$&nbsp;{{ "%.2f"|format(total_recebido) }}</div>
         </div>
     </div>
+
+    <!-- Estoque -->
+    <div class="secao">
+        <div class="secao-header">📦 Estoque Atual</div>
+        <div class="secao-body">
+            {% if estoque %}
+                {% for item in estoque %}
+                <div class="item">
+                    <div class="item-left">
+                        <div class="item-titulo">{{ item.tipo }}</div>
+                        <div class="item-sub">{{ item.classe }}</div>
+                    </div>
+                    <div class="item-right">
+                        <div class="item-peso">{{ "%.1f"|format(item.peso) }} kg</div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="vazio"><span>📭</span>Sem estoque no momento</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Vendas -->
+    <div class="secao">
+        <div class="secao-header">📋 Vendas Realizadas</div>
+        <div class="secao-body">
+            {% if vendas %}
+                {% for v in vendas %}
+                <div class="item">
+                    <div class="item-left">
+                        <div class="item-titulo">{{ v.tipo }} – {{ v.classe }}</div>
+                        <div class="item-sub">{{ v.data }}</div>
+                    </div>
+                    <div class="item-right">
+                        <div class="item-peso">{{ "%.1f"|format(v.peso) }} kg</div>
+                        {% if v.status == 'Pago' %}
+                            <span class="badge pago">Pago</span>
+                        {% else %}
+                            <span class="badge pend">R$ {{ "%.2f"|format(v.saldo) }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="vazio"><span>🛒</span>Nenhuma venda registrada</div>
+            {% endif %}
+        </div>
+    </div>
+</main>
 </body>
 </html>
