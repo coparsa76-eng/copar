@@ -1,109 +1,207 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>COPAR - Acesso do Produtor</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>COPAR – Acesso</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --verde:       #2a5c28;
+            --verde-mid:   #3d7a3a;
+            --verde-light: #e8f2e7;
+            --dourado:     #c8a94a;
+            --bg:          #f2f5f0;
+            --text:        #1a2e19;
+            --muted:       #6b7c6a;
+            --white:       #ffffff;
+            --danger:      #c0392b;
+            --radius:      14px;
+            --shadow:      0 8px 32px rgba(42,92,40,.14);
         }
-        
+
         body {
-            font-family: Arial, Helvetica, sans-serif;
-            background: #2c3e50;
-            min-height: 100vh;
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            min-height: 100dvh;
             display: flex;
             align-items: center;
             justify-content: center;
+            padding: 1.5rem;
+            background-image:
+                radial-gradient(ellipse 80% 60% at 20% 0%, rgba(42,92,40,.12) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 40% at 80% 100%, rgba(200,169,74,.10) 0%, transparent 55%);
         }
-        
-        .login-box {
-            background: white;
+
+        .card {
+            background: var(--white);
+            border-radius: 24px;
+            box-shadow: var(--shadow);
+            width: 100%;
+            max-width: 420px;
+            overflow: hidden;
+        }
+
+        .card-top {
+            background: var(--verde);
+            padding: 2.5rem 2rem 2rem;
+            text-align: center;
+            position: relative;
+        }
+        .card-top::after {
+            content: '';
+            display: block;
+            width: 60px;
+            height: 3px;
+            background: var(--dourado);
+            margin: 1rem auto 0;
+            border-radius: 2px;
+        }
+
+        .logo-icon { font-size: 3rem; display: block; margin-bottom: .5rem; }
+
+        .card-top h1 {
+            font-family: 'DM Serif Display', serif;
+            font-size: 2rem;
+            color: var(--white);
+            letter-spacing: .02em;
+        }
+
+        .card-top p {
+            color: rgba(255,255,255,.7);
+            font-size: .85rem;
+            margin-top: .35rem;
+        }
+
+        .card-body { padding: 2rem; }
+
+        .erro-box {
+            background: #fdecea;
+            border: 1px solid #f5c6c2;
             border-radius: 10px;
-            width: 350px;
-            padding: 40px;
-            text-align: center;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            color: var(--danger);
+            font-size: .88rem;
+            padding: .75rem 1rem;
+            margin-bottom: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: .5rem;
         }
-        
-        .login-box h1 {
-            color: #2c3e50;
-            font-size: 32px;
-            margin-bottom: 10px;
+
+        label {
+            display: block;
+            font-size: .82rem;
+            font-weight: 600;
+            color: var(--verde);
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            margin-bottom: .45rem;
         }
-        
-        .login-box p {
-            color: #7f8c8d;
-            margin-bottom: 30px;
-        }
-        
-        .login-box input {
+
+        .input-wrap { position: relative; margin-bottom: 1.5rem; }
+
+        .input-wrap input {
             width: 100%;
-            padding: 12px;
-            font-size: 16px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            text-align: center;
+            padding: .9rem 1rem .9rem 3rem;
+            border: 2px solid #dde8db;
+            border-radius: var(--radius);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 1rem;
+            color: var(--text);
+            background: var(--verde-light);
+            transition: border .2s, box-shadow .2s;
+            -webkit-appearance: none;
         }
-        
-        .login-box input:focus {
+        .input-wrap input:focus {
             outline: none;
-            border-color: #3498db;
+            border-color: var(--verde);
+            box-shadow: 0 0 0 4px rgba(42,92,40,.1);
         }
-        
-        .login-box button {
+        .input-wrap .icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.1rem;
+            pointer-events: none;
+        }
+
+        .btn-entrar {
             width: 100%;
-            padding: 12px;
-            background: #27ae60;
-            color: white;
+            padding: 1rem;
+            background: var(--verde);
+            color: var(--white);
             border: none;
-            border-radius: 5px;
-            font-size: 16px;
-            font-weight: bold;
+            border-radius: var(--radius);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
             cursor: pointer;
+            transition: background .2s, transform .1s;
+            -webkit-tap-highlight-color: transparent;
+            letter-spacing: .03em;
         }
-        
-        .login-box button:hover {
-            background: #229954;
+        .btn-entrar:active { transform: scale(.98); background: #1e4620; }
+        .btn-entrar:hover  { background: var(--verde-mid); }
+
+        .hint {
+            text-align: center;
+            font-size: .78rem;
+            color: var(--muted);
+            margin-top: 1.25rem;
         }
-        
-        .erro {
-            background: #e74c3c;
-            color: white;
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            font-size: 14px;
-        }
-        
-        .info {
-            margin-top: 20px;
-            font-size: 12px;
-            color: #95a5a6;
+
+        .toggle-pass {
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            padding: 0;
+            color: var(--muted);
         }
     </style>
 </head>
 <body>
-    <div class="login-box">
+<div class="card">
+    <div class="card-top">
+        <span class="logo-icon">🌾</span>
         <h1>COPAR</h1>
-        <p>Gestão de Alho</p>
-        
-        {% if erro %}
-        <div class="erro">{{ erro }}</div>
-        {% endif %}
-        
-        <form method="POST">
-            <input type="text" name="matricula" placeholder="Digite sua matrícula" autofocus>
-            <button type="submit">Entrar</button>
-        </form>
-        
-        <div class="info">
-            Digite sua matrícula para consultar seu estoque e vendas.
-        </div>
+        <p>Sistema de Gestão de Alho</p>
     </div>
+    <div class="card-body">
+        {% if erro %}
+        <div class="erro-box">⚠️ {{ erro }}</div>
+        {% endif %}
+
+        <form method="POST" action="/login" autocomplete="off">
+            <label for="matricula">Matrícula / Acesso</label>
+            <div class="input-wrap">
+                <span class="icon">🪪</span>
+                <input
+                    type="text"
+                    id="matricula"
+                    name="matricula"
+                    placeholder="Digite sua matrícula"
+                    autocomplete="off"
+                    autocorrect="off"
+                    autocapitalize="none"
+                    spellcheck="false"
+                    autofocus
+                    required
+                >
+            </div>
+            <button type="submit" class="btn-entrar">Entrar →</button>
+        </form>
+
+        <p class="hint">Produtores: use sua matrícula numérica</p>
+    </div>
+</div>
 </body>
 </html>
