@@ -2,411 +2,559 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>COPAR - Painel do Gerente</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>COPAR – Painel Gerencial</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
-        body { background: #f4f6f9; font-family: 'Segoe UI', system-ui, sans-serif; }
-        .navbar-custom { background-color: #2c5e2a; color: white; }
-        .navbar-custom .navbar-brand { color: white; font-weight: bold; }
-        .card-stats { border: none; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); transition: transform 0.2s; }
-        .card-stats:hover { transform: translateY(-5px); }
-        .card-stats .card-title { font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; }
-        .card-stats .card-value { font-size: 2rem; font-weight: bold; }
-        .table-responsive { border-radius: 12px; overflow: hidden; }
-        .btn-filter { background-color: #e9ecef; border: none; border-radius: 20px; padding: 5px 15px; margin-right: 8px; margin-bottom: 8px; }
-        .btn-filter.active { background-color: #2c5e2a; color: white; }
-        .chart-container { background: white; border-radius: 15px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        .tree-view { font-family: monospace; font-size: 13px; }
-        .tree-item { cursor: pointer; padding: 3px 0; }
-        .tree-item:hover { background-color: #f0f0f0; }
-        .tree-indent { margin-left: 20px; }
-        .tree-icon { margin-right: 5px; }
-        .badge-local { background-color: #2c5e2a; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; }
-        .badge-tipo { background-color: #e6b422; color: #2c5e2a; padding: 2px 8px; border-radius: 12px; font-size: 11px; }
-        footer { text-align: center; padding: 20px; color: #6c757d; font-size: 0.8rem; }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --verde:       #2a5c28;
+            --verde-mid:   #3d7a3a;
+            --verde-light: #e8f2e7;
+            --verde-pale:  #f4f9f3;
+            --dourado:     #c8a94a;
+            --azul:        #2471a3;
+            --laranja:     #ca6f1e;
+            --bg:          #f2f5f0;
+            --text:        #1a2e19;
+            --muted:       #6b7c6a;
+            --border:      #dde8db;
+            --white:       #ffffff;
+            --pago:        #1e8449;
+            --pendente:    #c0392b;
+            --radius:      14px;
+            --shadow:      0 4px 20px rgba(42,92,40,.1);
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100dvh;
+            padding-bottom: 2rem;
+        }
+
+        /* ── NAV ── */
+        nav {
+            background: var(--verde);
+            padding: .85rem 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky; top: 0; z-index: 200;
+        }
+        .nav-brand {
+            font-family: 'DM Serif Display', serif;
+            color: var(--white); font-size: 1.35rem;
+            display: flex; align-items: center; gap: .5rem;
+        }
+        .nav-right { display: flex; align-items: center; gap: .75rem; }
+        .nav-name { color: rgba(255,255,255,.8); font-size: .8rem; }
+        .btn-sair {
+            background: rgba(255,255,255,.15);
+            border: 1px solid rgba(255,255,255,.3);
+            color: var(--white); padding: .4rem .85rem;
+            border-radius: 8px; font-size: .82rem; text-decoration: none;
+        }
+
+        main { max-width: 900px; margin: 0 auto; padding: 1.25rem; }
+
+        /* ── STAT CARDS ── */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: .85rem;
+            margin-bottom: 1.5rem;
+        }
+        @media (min-width: 600px) { .stat-grid { grid-template-columns: repeat(4, 1fr); } }
+
+        .stat-card {
+            background: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 1rem 1.1rem;
+            border-top: 3px solid var(--verde);
+        }
+        .stat-card:nth-child(2) { border-top-color: var(--azul); }
+        .stat-card:nth-child(3) { border-top-color: var(--dourado); }
+        .stat-card:nth-child(4) { border-top-color: var(--laranja); }
+
+        .stat-label {
+            font-size: .7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            color: var(--muted);
+            margin-bottom: .3rem;
+        }
+        .stat-val {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: var(--text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* ── GRÁFICOS ── */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        @media (min-width: 640px) { .charts-grid { grid-template-columns: 1fr 1fr; } }
+
+        .chart-card {
+            background: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 1.1rem;
+        }
+        .chart-card h3 {
+            font-size: .9rem;
+            font-weight: 700;
+            color: var(--verde);
+            margin-bottom: .75rem;
+        }
+
+        /* ── SEÇÕES ── */
+        .secao {
+            background: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 1.25rem;
+            overflow: hidden;
+        }
+        .secao-header {
+            padding: .8rem 1.1rem;
+            background: var(--verde);
+            color: var(--white);
+            font-weight: 700;
+            font-size: .9rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: .5rem;
+        }
+        .secao-header-left { display: flex; align-items: center; gap: .5rem; }
+
+        /* FILTER PILLS */
+        .filter-pills { display: flex; gap: .4rem; flex-wrap: wrap; padding: .75rem 1.1rem; border-bottom: 1px solid var(--border); }
+        .fpill {
+            padding: .3rem .85rem;
+            border-radius: 20px;
+            border: 1.5px solid var(--border);
+            background: var(--white);
+            font-size: .78rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all .15s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .fpill.active { background: var(--verde); border-color: var(--verde); color: var(--white); }
+        .btn-refresh {
+            background: none; border: 1.5px solid rgba(255,255,255,.4);
+            color: var(--white); border-radius: 8px;
+            padding: .25rem .7rem; font-size: .78rem; cursor: pointer;
+        }
+
+        /* ÁRVORE */
+        .tree { padding: .75rem 1rem; font-size: .88rem; }
+        .tree-node { margin: .15rem 0; }
+        .tree-toggle {
+            cursor: pointer;
+            padding: .5rem .6rem;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+            transition: background .15s;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+        .tree-toggle:hover, .tree-toggle:active { background: var(--verde-light); }
+        .tree-toggle .lbl { flex: 1; font-weight: 600; }
+        .badge {
+            padding: .15rem .55rem;
+            border-radius: 20px;
+            font-size: .72rem;
+            font-weight: 700;
+        }
+        .b-kg   { background: #e3f2fd; color: #1565c0; }
+        .b-tipo { background: #e8f2e7; color: var(--verde); }
+        .b-cls  { background: #fff3e0; color: #e65100; }
+        .b-prod { background: #f3e5f5; color: #6a1b9a; }
+        .b-hrs  { background: #fef9e7; color: #9c6d00; }
+
+        .tree-children { padding-left: 1.25rem; border-left: 2px solid var(--border); margin-left: .75rem; }
+        .tree-leaf {
+            padding: .4rem .6rem;
+            display: flex; align-items: center; gap: .5rem;
+            font-size: .84rem; color: var(--muted);
+        }
+        .tree-vazio { padding: 1.5rem; text-align: center; color: var(--muted); font-size: .85rem; }
+
+        /* TABELAS */
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: .84rem; }
+        th {
+            background: var(--verde-pale);
+            color: var(--verde);
+            padding: .65rem .85rem;
+            text-align: left;
+            font-weight: 700;
+            font-size: .75rem;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            white-space: nowrap;
+        }
+        td {
+            padding: .65rem .85rem;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: var(--verde-pale); }
+
+        .badge-pago    { background: #d5f0de; color: var(--pago); padding: .15rem .55rem; border-radius: 20px; font-size: .72rem; font-weight: 700; }
+        .badge-pend    { background: #fdecea; color: var(--pendente); padding: .15rem .55rem; border-radius: 20px; font-size: .72rem; font-weight: 700; }
+
+        .td-vazio { padding: 1.5rem; text-align: center; color: var(--muted); }
+
+        /* LOADING */
+        .skeleton { animation: pulse 1.5s ease-in-out infinite; background: linear-gradient(90deg, #e0e7de 25%, #f0f5ee 50%, #e0e7de 75%); background-size: 200% 100%; border-radius: 6px; height: 1.2rem; width: 60%; }
+        @keyframes pulse { 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-custom px-3">
-        <div class="container-fluid">
-            <span class="navbar-brand mb-0 h1">🌾 COPAR - Painel do Gerente</span>
-            <div>
-                <span class="text-white me-3">Olá, <strong>Luis Henrique</strong></span>
-                <a href="/logout" class="btn btn-outline-light btn-sm">Sair</a>
-            </div>
-        </div>
-    </nav>
+<nav>
+    <div class="nav-brand">🌾 COPAR</div>
+    <div class="nav-right">
+        <span class="nav-name">Luis Henrique</span>
+        <a href="/logout" class="btn-sair">Sair</a>
+    </div>
+</nav>
 
-    <div class="container mt-4">
-        <!-- Cards de Estatísticas -->
-        <div class="row mb-4">
-            <div class="col-md-3 col-sm-6 mb-3">
-                <div class="card card-stats bg-white">
-                    <div class="card-body">
-                        <div class="card-title text-muted">👥 Produtores</div>
-                        <div class="card-value" id="totalProdutores">-</div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3 col-sm-6 mb-3">
-                <div class="card card-stats bg-white">
-                    <div class="card-body">
-                        <div class="card-title text-muted">📦 Estoque Total (Kg)</div>
-                        <div class="card-value" id="totalEstoqueKg">-</div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3 col-sm-6 mb-3">
-                <div class="card card-stats bg-white">
-                    <div class="card-body">
-                        <div class="card-title text-muted">💰 Vendas no Mês (R$)</div>
-                        <div class="card-value" id="vendasMes">-</div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3 col-sm-6 mb-3">
-                <div class="card card-stats bg-white">
-                    <div class="card-body">
-                        <div class="card-title text-muted">💸 Pagamentos no Mês (R$)</div>
-                        <div class="card-value" id="pagamentosMes">-</div>
-                    </div>
-                </div>
-            </div>
+<main>
+    <!-- STATS -->
+    <div class="stat-grid">
+        <div class="stat-card">
+            <div class="stat-label">👥 Produtores</div>
+            <div class="stat-val" id="statProdutores"><div class="skeleton"></div></div>
         </div>
+        <div class="stat-card">
+            <div class="stat-label">📦 Estoque (kg)</div>
+            <div class="stat-val" id="statEstoque"><div class="skeleton"></div></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">💰 Vendas / Mês</div>
+            <div class="stat-val" id="statVendas"><div class="skeleton"></div></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">💸 Pagamentos / Mês</div>
+            <div class="stat-val" id="statPagamentos"><div class="skeleton"></div></div>
+        </div>
+    </div>
 
-        <!-- Gráficos -->
-        <div class="row mb-4">
-            <div class="col-md-6">
-                <div class="chart-container">
-                    <h5>📊 Estoque por Tipo de Alho</h5>
-                    <canvas id="estoqueTipoChart" height="200"></canvas>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="chart-container">
-                    <h5>📈 Vendas Mensais (últimos 6 meses)</h5>
-                    <canvas id="vendasMensaisChart" height="200"></canvas>
-                </div>
-            </div>
+    <!-- GRÁFICOS -->
+    <div class="charts-grid">
+        <div class="chart-card">
+            <h3>📊 Estoque por Variedade</h3>
+            <canvas id="chartTipo" height="180"></canvas>
         </div>
+        <div class="chart-card">
+            <h3>📈 Vendas – últimos 6 meses</h3>
+            <canvas id="chartVendas" height="180"></canvas>
+        </div>
+    </div>
 
-        <!-- Filtros -->
-        <div class="d-flex flex-wrap align-items-center justify-content-between mb-3">
-            <h4>📋 Estoques por Produtor (Hierárquico)</h4>
-            <div>
-                <button class="btn-filter active" data-filter="all">Todos</button>
-                <button class="btn-filter" data-filter="Classificação">Classificação</button>
-                <button class="btn-filter" data-filter="Banca">Banca</button>
-                <button class="btn-filter" data-filter="Toletagem">Toletagem</button>
-                <button class="btn btn-sm btn-outline-secondary ms-2" id="refreshEstoqueBtn">🔄 Atualizar</button>
-            </div>
+    <!-- ESTOQUE HIERÁRQUICO -->
+    <div class="secao">
+        <div class="secao-header">
+            <div class="secao-header-left">📦 Estoque por Produtor</div>
+            <button class="btn-refresh" id="btnRefresh">🔄 Atualizar</button>
         </div>
-        
-        <!-- Tabela de Estoque Hierárquica -->
-        <div class="card mb-5">
-            <div class="card-body tree-view" id="treeEstoque">
-                <div class="text-center">Carregando estoque...</div>
-            </div>
+        <div class="filter-pills">
+            <button class="fpill active" data-filter="all">Todos</button>
+            <button class="fpill" data-filter="Classificação">🏭 Classificação</button>
+            <button class="fpill" data-filter="Banca">📦 Banca</button>
+            <button class="fpill" data-filter="Toletagem">✅ Toletagem</button>
         </div>
+        <div id="treeEstoque" class="tree"><div class="tree-vazio">Carregando…</div></div>
+    </div>
 
-        <div class="row">
-            <div class="col-md-6">
-                <h4>🔄 Vendas do Mês</h4>
-                <div class="table-responsive mb-4">
-                    <table class="table table-sm table-hover">
-                        <thead>
-                            <th>Data</th><th>Produtor</th><th>Produto</th><th>Peso</th><th>Valor Total</th><th>Status</th>
-                        </thead>
-                        <tbody id="vendasTbody">
-                            <tr><td colspan="6" class="text-center">Carregando...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <h4>💳 Pagamentos do Mês</h4>
-                <div class="table-responsive mb-4">
-                    <table class="table table-sm table-hover">
-                        <thead>
-                            <th>Data</th><th>Produtor</th><th>Valor</th><th>Forma</th>
-                        </thead>
-                        <tbody id="pagamentosTbody">
-                            <tr><td colspan="4" class="text-center">Carregando...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
+    <!-- VENDAS + PAGAMENTOS -->
+    <div style="display:grid;grid-template-columns:1fr;gap:1.25rem;margin-bottom:1.25rem;">
+        <div class="secao">
+            <div class="secao-header"><div class="secao-header-left">🔄 Vendas do Mês</div></div>
+            <div class="table-wrap">
+                <table>
+                    <thead><tr>
+                        <th>Data</th><th>Produtor</th><th>Produto</th><th>Peso</th><th>Valor</th><th>Status</th>
+                    </tr></thead>
+                    <tbody id="vendasTbody"><tr><td colspan="6" class="td-vazio">Carregando…</td></tr></tbody>
+                </table>
             </div>
         </div>
-
-        <div class="row mt-4">
-            <div class="col-12">
-                <h4>⚠️ Perdas Registradas no Mês</h4>
-                <div class="table-responsive mb-4">
-                    <table class="table table-sm table-hover">
-                        <thead>
-                            <th>Data</th><th>Produtor</th><th>Tipo</th><th>Classe</th><th>Peso (kg)</th><th>Origem</th><th>Motivo</th>
-                        </thead>
-                        <tbody id="perdasTbody">
-                            <tr><td colspan="7" class="text-center">Carregando...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
+        <div class="secao">
+            <div class="secao-header"><div class="secao-header-left">💳 Pagamentos do Mês</div></div>
+            <div class="table-wrap">
+                <table>
+                    <thead><tr>
+                        <th>Data</th><th>Produtor</th><th>Valor</th><th>Forma</th>
+                    </tr></thead>
+                    <tbody id="pagamentosTbody"><tr><td colspan="4" class="td-vazio">Carregando…</td></tr></tbody>
+                </table>
             </div>
         </div>
     </div>
-    <footer>Sistema COPAR - Painel Gerencial | Dados do mês atual</footer>
 
-    <script>
-        let estoqueHierarquico = [];
-        let graficoEstoque, graficoVendas;
+    <!-- PERDAS -->
+    <div class="secao">
+        <div class="secao-header"><div class="secao-header-left">⚠️ Perdas Registradas</div></div>
+        <div class="table-wrap">
+            <table>
+                <thead><tr>
+                    <th>Data</th><th>Produtor</th><th>Tipo</th><th>Classe</th><th>Peso</th><th>Origem</th><th>Motivo</th>
+                </tr></thead>
+                <tbody id="perdasTbody"><tr><td colspan="7" class="td-vazio">Carregando…</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+</main>
 
-        function formatarMoeda(valor) {
-            return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
-        }
+<script>
+const fmt = v => new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v);
+const fmtN = v => Number(v).toLocaleString('pt-BR');
 
-        async function carregarEstatisticas() {
-            try {
-                const res = await fetch('/api/gerente/estatisticas');
-                const data = await res.json();
-                document.getElementById('totalProdutores').innerText = data.total_produtores || 0;
-                document.getElementById('totalEstoqueKg').innerText = (data.total_estoque_kg || 0).toLocaleString('pt-BR') + ' kg';
-                document.getElementById('vendasMes').innerText = formatarMoeda(data.vendas_mes || 0);
-                document.getElementById('pagamentosMes').innerText = formatarMoeda(data.pagamentos_mes || 0);
-            } catch (err) { 
-                console.error('Erro:', err);
+let estoqueData = [];
+let filtroAtivo = 'all';
+let chartTipo, chartVendas;
+
+// ── FETCH ──────────────────────────────────────────────
+async function api(url) {
+    try { const r = await fetch(url); return await r.json(); }
+    catch(e) { console.error(url, e); return null; }
+}
+
+// ── ESTATÍSTICAS ──────────────────────────────────────
+async function carregarStats() {
+    const d = await api('/api/gerente/estatisticas');
+    if (!d) return;
+    document.getElementById('statProdutores').textContent  = d.total_produtores ?? 0;
+    document.getElementById('statEstoque').textContent     = fmtN(d.total_estoque_kg ?? 0) + ' kg';
+    document.getElementById('statVendas').textContent      = fmt(d.vendas_mes ?? 0);
+    document.getElementById('statPagamentos').textContent  = fmt(d.pagamentos_mes ?? 0);
+}
+
+// ── GRÁFICOS ──────────────────────────────────────────
+async function carregarGraficos() {
+    const tipo = await api('/api/gerente/estoque-por-tipo');
+    if (tipo) {
+        if (chartTipo) chartTipo.destroy();
+        chartTipo = new Chart(document.getElementById('chartTipo'), {
+            type: 'bar',
+            data: {
+                labels: tipo.map(d => d.tipo),
+                datasets: [{
+                    label: 'kg', data: tipo.map(d => d.peso),
+                    backgroundColor: ['#2a5c28','#3d7a3a','#c8a94a'],
+                    borderRadius: 8, borderSkipped: false
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: true,
+                plugins: { legend: { display: false } },
+                scales: { y: { ticks: { callback: v => fmtN(v) + ' kg' } } }
             }
-        }
+        });
+    }
 
-        async function carregarEstoqueHierarquico() {
-            try {
-                const res = await fetch('/api/gerente/estoque-hierarquico');
-                const data = await res.json();
-                estoqueHierarquico = data;
-                renderizarArvoreEstoque();
-            } catch (err) { 
-                console.error('Erro:', err);
-                document.getElementById('treeEstoque').innerHTML = '<div class="text-center text-danger">Erro ao carregar estoque</div>';
+    const vend = await api('/api/gerente/vendas-por-mes');
+    if (vend) {
+        if (chartVendas) chartVendas.destroy();
+        chartVendas = new Chart(document.getElementById('chartVendas'), {
+            type: 'line',
+            data: {
+                labels: vend.map(d => d.mes),
+                datasets: [{
+                    label: 'R$', data: vend.map(d => d.total),
+                    borderColor: '#ca6f1e', backgroundColor: 'rgba(202,111,30,.12)',
+                    fill: true, tension: .3, pointBackgroundColor: '#ca6f1e', pointRadius: 4
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: true,
+                plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => fmt(ctx.raw) } } },
+                scales: { y: { ticks: { callback: v => fmt(v) } } }
             }
-        }
+        });
+    }
+}
 
-        function renderizarArvoreEstoque() {
-            const container = document.getElementById('treeEstoque');
-            const filtro = document.querySelector('.btn-filter.active')?.getAttribute('data-filter') || 'all';
-            
-            let dadosFiltrados = estoqueHierarquico;
-            if (filtro !== 'all') {
-                dadosFiltrados = estoqueHierarquico.filter(item => item.local === filtro);
-            }
-            
-            if (!dadosFiltrados || dadosFiltrados.length === 0) {
-                container.innerHTML = '<div class="text-center text-muted">Nenhum estoque encontrado</div>';
-                return;
-            }
-            
-            let html = '';
-            
-            dadosFiltrados.forEach(local => {
-                const localIcon = local.local === 'Classificação' ? '🏭' : (local.local === 'Banca' ? '📦' : '✅');
-                let totalLocal = 0;
-                local.tipos.forEach(tipo => {
-                    tipo.classes.forEach(classe => {
-                        totalLocal += classe.total_peso;
-                    });
-                });
-                
-                html += `<div>
-                            <div class="tree-item" onclick="toggleTree(this)">
-                                <span class="tree-icon">📁</span> <strong>${localIcon} ${local.local}</strong>
-                                <span class="badge bg-secondary ms-2">${totalLocal.toLocaleString('pt-BR')} kg</span>
-                            </div>
-                            <div class="tree-indent" style="display: block;">`;
-                
-                local.tipos.forEach(tipo => {
-                    const tipoIcon = tipo.tipo === 'São Valentim' ? '🍊' : (tipo.tipo === 'Ito' ? '🌿' : '🧄');
-                    let totalTipo = 0;
-                    tipo.classes.forEach(classe => {
-                        totalTipo += classe.total_peso;
-                    });
-                    
-                    html += `<div>
-                                <div class="tree-item" onclick="toggleTree(this)">
-                                    <span class="tree-icon">📂</span> ${tipoIcon} ${tipo.tipo}
-                                    <span class="badge bg-info ms-2">${totalTipo.toLocaleString('pt-BR')} kg</span>
-                                </div>
-                                <div class="tree-indent" style="display: block;">`;
-                    
-                    tipo.classes.forEach(classeItem => {
-                        html += `<div>
-                                    <div class="tree-item" onclick="toggleTree(this)">
-                                        <span class="tree-icon">📄</span> ${classeItem.classe}
-                                        <span class="badge bg-primary ms-2">${classeItem.total_peso.toLocaleString('pt-BR')} kg</span>
-                                        ${classeItem.total_horas > 0 ? `<span class="badge bg-warning ms-2">${classeItem.total_horas}h</span>` : ''}
-                                    </div>
-                                    <div class="tree-indent" style="display: none;">`;
-                        
-                        classeItem.produtores.forEach(prod => {
-                            html += `<div class="tree-item">
-                                        <span class="tree-icon">👤</span> ${prod.produtor}
-                                        <span class="badge bg-success ms-2">${prod.peso.toLocaleString('pt-BR')} kg</span>
-                                        ${prod.horas > 0 ? `<span class="badge bg-warning ms-2">${prod.horas}h</span>` : ''}
-                                    </div>`;
-                        });
-                        html += `</div></div>`;
-                    });
-                    html += `</div></div>`;
+// ── ÁRVORE ESTOQUE ────────────────────────────────────
+async function carregarEstoque() {
+    const container = document.getElementById('treeEstoque');
+    container.innerHTML = '<div class="tree-vazio">Carregando…</div>';
+    estoqueData = await api('/api/gerente/estoque-hierarquico') || [];
+    renderArvore();
+}
+
+function renderArvore() {
+    const container = document.getElementById('treeEstoque');
+    let dados = filtroAtivo === 'all' ? estoqueData : estoqueData.filter(l => l.local === filtroAtivo);
+
+    if (!dados.length) {
+        container.innerHTML = '<div class="tree-vazio">Nenhum estoque encontrado</div>';
+        return;
+    }
+
+    function badge(txt, cls) { return `<span class="badge ${cls}">${txt}</span>`; }
+    const iconLocal = { 'Classificação': '🏭', 'Banca': '📦', 'Toletagem': '✅' };
+    const iconTipo  = { 'São Valentim': '🍊', 'Ito': '🌿', 'Chonan': '🧄' };
+
+    let html = '';
+    dados.forEach((local, li) => {
+        const totalLocal = local.tipos.reduce((s, t) =>
+            s + t.classes.reduce((ss, c) => ss + c.total_peso, 0), 0);
+        const ic = iconLocal[local.local] || '📁';
+        html += `
+        <div class="tree-node">
+            <div class="tree-toggle" onclick="toggle(this)">
+                <span>▶</span>
+                <span class="lbl">${ic} ${local.local}</span>
+                ${badge(fmtN(totalLocal) + ' kg', 'b-kg')}
+            </div>
+            <div class="tree-children" style="display:none">`;
+
+        local.tipos.forEach(tipo => {
+            const totalTipo = tipo.classes.reduce((s, c) => s + c.total_peso, 0);
+            const it = iconTipo[tipo.tipo] || '🧄';
+            html += `
+            <div class="tree-node">
+                <div class="tree-toggle" onclick="toggle(this)">
+                    <span>▶</span>
+                    <span class="lbl">${it} ${tipo.tipo}</span>
+                    ${badge(fmtN(totalTipo) + ' kg', 'b-tipo')}
+                </div>
+                <div class="tree-children" style="display:none">`;
+
+            tipo.classes.forEach(cls => {
+                html += `
+                <div class="tree-node">
+                    <div class="tree-toggle" onclick="toggle(this)">
+                        <span>▶</span>
+                        <span class="lbl">${cls.classe}</span>
+                        ${badge(fmtN(cls.total_peso) + ' kg', 'b-cls')}
+                        ${cls.total_horas > 0 ? badge(cls.total_horas + 'h', 'b-hrs') : ''}
+                    </div>
+                    <div class="tree-children" style="display:none">`;
+
+                cls.produtores.forEach(prod => {
+                    html += `
+                    <div class="tree-leaf">
+                        👤 ${prod.produtor}
+                        ${badge(fmtN(prod.peso) + ' kg', 'b-prod')}
+                        ${prod.horas > 0 ? badge(prod.horas + 'h', 'b-hrs') : ''}
+                    </div>`;
                 });
                 html += `</div></div>`;
             });
-            container.innerHTML = html;
-        }
+            html += `</div></div>`;
+        });
+        html += `</div></div>`;
+    });
 
-        function toggleTree(element) {
-            const nextDiv = element.nextElementSibling;
-            if (nextDiv && nextDiv.classList.contains('tree-indent')) {
-                const isVisible = nextDiv.style.display !== 'none';
-                nextDiv.style.display = isVisible ? 'none' : 'block';
-                const icon = element.querySelector('.tree-icon');
-                if (icon) {
-                    icon.textContent = isVisible ? '📁' : '📂';
-                }
-            }
-        }
+    container.innerHTML = html;
+}
 
-        async function carregarVendasRecentes() {
-            try {
-                const res = await fetch('/api/gerente/vendas-recentes?limite=50');
-                const vendas = await res.json();
-                const tbody = document.getElementById('vendasTbody');
-                tbody.innerHTML = '';
-                if (!vendas || vendas.length === 0) { 
-                    tbody.innerHTML = '<tr><td colspan="6" class="text-center">Nenhuma venda neste mês</td></tr>'; 
-                    return; 
-                }
-                vendas.forEach(v => {
-                    const row = tbody.insertRow();
-                    row.insertCell(0).innerText = v.data;
-                    row.insertCell(1).innerText = v.produtor;
-                    row.insertCell(2).innerText = `${v.tipo_alho} ${v.classe}`;
-                    row.insertCell(3).innerText = v.peso.toLocaleString('pt-BR') + ' kg';
-                    row.insertCell(4).innerText = formatarMoeda(v.valor_total);
-                    const badge = v.status === 'Pago' ? '<span class="badge bg-success">Pago</span>' : '<span class="badge bg-warning text-dark">Pendente</span>';
-                    row.insertCell(5).innerHTML = badge;
-                });
-            } catch (err) { 
-                console.error('Erro:', err);
-            }
-        }
+function toggle(el) {
+    const ch = el.nextElementSibling;
+    if (!ch) return;
+    const open = ch.style.display !== 'none';
+    ch.style.display = open ? 'none' : 'block';
+    el.querySelector('span:first-child').textContent = open ? '▶' : '▼';
+}
 
-        async function carregarPagamentosRecentes() {
-            try {
-                const res = await fetch('/api/gerente/pagamentos-recentes?limite=50');
-                const pagamentos = await res.json();
-                const tbody = document.getElementById('pagamentosTbody');
-                tbody.innerHTML = '';
-                if (!pagamentos || pagamentos.length === 0) { 
-                    tbody.innerHTML = '<tr><td colspan="4" class="text-center">Nenhum pagamento neste mês</td></tr>'; 
-                    return; 
-                }
-                pagamentos.forEach(p => {
-                    const row = tbody.insertRow();
-                    row.insertCell(0).innerText = p.data;
-                    row.insertCell(1).innerText = p.produtor;
-                    row.insertCell(2).innerText = formatarMoeda(p.valor);
-                    row.insertCell(3).innerText = p.forma;
-                });
-            } catch (err) { 
-                console.error('Erro:', err);
-            }
-        }
+// ── FILTROS ───────────────────────────────────────────
+document.querySelectorAll('.fpill').forEach(b => {
+    b.addEventListener('click', () => {
+        document.querySelectorAll('.fpill').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        filtroAtivo = b.dataset.filter;
+        renderArvore();
+    });
+});
+document.getElementById('btnRefresh').addEventListener('click', carregarEstoque);
 
-        async function carregarPerdasRecentes() {
-            try {
-                const res = await fetch('/api/gerente/perdas-recentes?limite=50');
-                const perdas = await res.json();
-                const tbody = document.getElementById('perdasTbody');
-                tbody.innerHTML = '';
-                if (!perdas || perdas.length === 0) { 
-                    tbody.innerHTML = '<tr><td colspan="7" class="text-center">Nenhuma perda registrada neste mês</td></tr>'; 
-                    return; 
-                }
-                perdas.forEach(p => {
-                    const row = tbody.insertRow();
-                    row.insertCell(0).innerText = p.data;
-                    row.insertCell(1).innerText = p.produtor;
-                    row.insertCell(2).innerText = p.tipo_alho;
-                    row.insertCell(3).innerText = p.classe;
-                    row.insertCell(4).innerText = p.peso.toLocaleString('pt-BR') + ' kg';
-                    row.insertCell(5).innerText = p.local_origem;
-                    row.insertCell(6).innerText = p.motivo;
-                });
-            } catch (err) { 
-                console.error('Erro:', err);
-            }
-        }
+// ── VENDAS ────────────────────────────────────────────
+async function carregarVendas() {
+    const vendas = await api('/api/gerente/vendas-recentes?limite=50');
+    const tbody = document.getElementById('vendasTbody');
+    if (!vendas?.length) {
+        tbody.innerHTML = '<tr><td colspan="6" class="td-vazio">Nenhuma venda este mês</td></tr>'; return;
+    }
+    tbody.innerHTML = vendas.map(v => `
+        <tr>
+            <td>${v.data}</td>
+            <td>${v.produtor}</td>
+            <td>${v.tipo_alho} ${v.classe}</td>
+            <td>${fmtN(v.peso)} kg</td>
+            <td>${fmt(v.valor_total)}</td>
+            <td>${v.status === 'Pago'
+                ? '<span class="badge-pago">Pago</span>'
+                : '<span class="badge-pend">Pendente</span>'}</td>
+        </tr>`).join('');
+}
 
-        async function carregarGraficos() {
-            try {
-                const resTipo = await fetch('/api/gerente/estoque-por-tipo');
-                const dadosTipo = await resTipo.json();
-                const ctx1 = document.getElementById('estoqueTipoChart').getContext('2d');
-                if (graficoEstoque) graficoEstoque.destroy();
-                graficoEstoque = new Chart(ctx1, {
-                    type: 'bar',
-                    data: { 
-                        labels: dadosTipo.map(d => d.tipo), 
-                        datasets: [{ label: 'Peso (Kg)', data: dadosTipo.map(d => d.peso), backgroundColor: '#2c5e2a', borderRadius: 8 }] 
-                    },
-                    options: { responsive: true, maintainAspectRatio: true }
-                });
-            } catch (err) { console.error('Erro:', err); }
+// ── PAGAMENTOS ────────────────────────────────────────
+async function carregarPagamentos() {
+    const pags = await api('/api/gerente/pagamentos-recentes?limite=50');
+    const tbody = document.getElementById('pagamentosTbody');
+    if (!pags?.length) {
+        tbody.innerHTML = '<tr><td colspan="4" class="td-vazio">Nenhum pagamento este mês</td></tr>'; return;
+    }
+    tbody.innerHTML = pags.map(p => `
+        <tr>
+            <td>${p.data}</td>
+            <td>${p.produtor}</td>
+            <td>${fmt(p.valor)}</td>
+            <td>${p.forma}</td>
+        </tr>`).join('');
+}
 
-            try {
-                const resVendas = await fetch('/api/gerente/vendas-por-mes');
-                const dadosVendas = await resVendas.json();
-                const ctx2 = document.getElementById('vendasMensaisChart').getContext('2d');
-                if (graficoVendas) graficoVendas.destroy();
-                graficoVendas = new Chart(ctx2, {
-                    type: 'line',
-                    data: { 
-                        labels: dadosVendas.map(d => d.mes), 
-                        datasets: [{ label: 'Valor Total (R$)', data: dadosVendas.map(d => d.total), borderColor: '#e67e22', backgroundColor: 'rgba(230,126,34,0.1)', fill: true, tension: 0.2 }] 
-                    },
-                    options: { 
-                        responsive: true, 
-                        maintainAspectRatio: true, 
-                        plugins: { tooltip: { callbacks: { label: (ctx) => formatarMoeda(ctx.raw) } } } 
-                    }
-                });
-            } catch (err) { console.error('Erro:', err); }
-        }
+// ── PERDAS ────────────────────────────────────────────
+async function carregarPerdas() {
+    const perdas = await api('/api/gerente/perdas-recentes?limite=50');
+    const tbody = document.getElementById('perdasTbody');
+    if (!perdas?.length) {
+        tbody.innerHTML = '<tr><td colspan="7" class="td-vazio">Nenhuma perda registrada este mês</td></tr>'; return;
+    }
+    tbody.innerHTML = perdas.map(p => `
+        <tr>
+            <td>${p.data}</td>
+            <td>${p.produtor}</td>
+            <td>${p.tipo_alho}</td>
+            <td>${p.classe}</td>
+            <td>${fmtN(p.peso)} kg</td>
+            <td>${p.local_origem}</td>
+            <td>${p.motivo}</td>
+        </tr>`).join('');
+}
 
-        function configurarFiltros() {
-            document.querySelectorAll('.btn-filter').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    document.querySelectorAll('.btn-filter').forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                    renderizarArvoreEstoque();
-                });
-            });
-            document.getElementById('refreshEstoqueBtn').addEventListener('click', () => {
-                carregarEstoqueHierarquico();
-            });
-        }
-
-        async function init() {
-            await Promise.all([
-                carregarEstatisticas(),
-                carregarEstoqueHierarquico(),
-                carregarVendasRecentes(),
-                carregarPagamentosRecentes(),
-                carregarPerdasRecentes(),
-                carregarGraficos()
-            ]);
-            configurarFiltros();
-        }
-        init();
-    </script>
+// ── INIT ──────────────────────────────────────────────
+Promise.all([
+    carregarStats(),
+    carregarGraficos(),
+    carregarEstoque(),
+    carregarVendas(),
+    carregarPagamentos(),
+    carregarPerdas()
+]);
+</script>
 </body>
 </html>
