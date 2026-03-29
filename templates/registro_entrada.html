@@ -1205,7 +1205,7 @@ async function saveEntry() {
         for (const classe of CLASSES_CLASSIFICACAO) {
             const peso = parseFloat(state.pesos[classe]) || 0;
             if (peso > 0) {
-                details.push({ classe: classe, peso: peso, type: 'class' });
+                details.push({ classe: classe, peso: peso, tipo: 'classe' });
                 totalWeightLeavingOrigin += peso;
                 hasClassesWeight = true;
             }
@@ -1220,7 +1220,7 @@ async function saveEntry() {
                     showStatus(`❌ ${CLASSE_DISPLAY_MAP[classe]}: peso (${peso.toLocaleString('pt-BR')} kg) excede saldo disponível (${(state.saldos[classe] || 0).toLocaleString('pt-BR')} kg).`, 'error');
                     return;
                 }
-                details.push({ classe: classe, peso: peso, type: 'class' });
+                details.push({ classe: classe, peso: peso, tipo: 'classe' });
                 totalWeightLeavingOrigin += peso;
                 hasClassesWeight = true;
             }
@@ -1233,14 +1233,14 @@ async function saveEntry() {
                 showStatus(`❌ Indústria: peso (${industriaWeight.toLocaleString('pt-BR')} kg) excede saldo disponível (${(state.saldos['INDÚSTRIA'] || 0).toLocaleString('pt-BR')} kg).`, 'error');
                 return;
             }
-            details.push({ classe: 'INDÚSTRIA', peso: industriaWeight, type: 'industry' });
+            details.push({ classe: 'INDÚSTRIA', peso: industriaWeight, tipo: 'industria' });
             totalWeightLeavingOrigin += industriaWeight;
             hasClassesWeight = true;
         }
         // Quebra/Sujeira
         const quebraWeight = parseFloat(state.pesoQuebra) || 0;
         if (quebraWeight > 0) {
-            details.push({ classe: '__QUEBRA__', peso: quebraWeight, type: 'loss' });
+            details.push({ classe: '__QUEBRA__', peso: quebraWeight, tipo: 'quebra' });
             totalWeightLeavingOrigin += quebraWeight; // Quebra também sai da origem
         }
     }
@@ -1277,14 +1277,14 @@ async function saveEntry() {
     saveButton.disabled = true;
     saveButton.innerHTML = '<span class="spinner"></span>Salvando…';
 
-    const response = await fetchJSON('/api/salvar-entrada', 'POST', {
-        produtor_id: parseInt(producerId),
-        tipo_alho: state.variedade,
-        destination_local: destination,
-        origin_local: origin,
-        details: details,
-        bank_hours: bankHours,
-    });
+    await fetchJSON('/api/salvar-entrada', 'POST', {
+    produtor_id: parseInt(producerId),
+    tipo_alho: state.variedade,
+    local: destination,
+    local_origem: origin,
+    detalhes: details,
+    horas_banca: bankHours,
+});
 
     saveButton.disabled = false;
     saveButton.innerHTML = '💾 Registrar';
