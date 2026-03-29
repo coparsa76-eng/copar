@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -11,14 +10,26 @@
         body { background: #f4f6f9; font-family: 'Segoe UI', system-ui, sans-serif; }
         .navbar-custom { background-color: #2c5e2a; color: white; }
         .navbar-custom .navbar-brand { color: white; font-weight: bold; }
-        .card-stats { border: none; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); transition: transform 0.2s; }
-        .card-stats:hover { transform: translateY(-5px); }
+        .card-stats { border: none; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); transition: transform 0.2s; cursor: pointer; }
+        .card-stats:hover { transform: translateY(-5px); background-color: #f8f9fa; }
         .card-stats .card-title { font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; }
         .card-stats .card-value { font-size: 2rem; font-weight: bold; }
+        .tree-view { font-family: monospace; font-size: 14px; }
+        .tree-item { cursor: pointer; user-select: none; padding: 5px 0; }
+        .tree-item:hover { background-color: #f0f0f0; }
+        .tree-indent { margin-left: 20px; }
+        .tree-icon { margin-right: 8px; font-size: 14px; }
+        .estoque-local { background-color: #2c5e2a; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; }
+        .estoque-tipo { background-color: #e6b422; color: #2c5e2a; padding: 2px 8px; border-radius: 12px; font-size: 12px; }
+        .estoque-classe { background-color: #3498db; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; }
+        .table-responsive { border-radius: 12px; overflow: hidden; }
         .btn-filter { background-color: #e9ecef; border: none; border-radius: 20px; padding: 5px 15px; margin-right: 8px; margin-bottom: 8px; }
         .btn-filter.active { background-color: #2c5e2a; color: white; }
         .chart-container { background: white; border-radius: 15px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .detail-panel { background: white; border-radius: 15px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-top: 20px; display: none; }
+        .detail-panel.show { display: block; }
         footer { text-align: center; padding: 20px; color: #6c757d; font-size: 0.8rem; }
+        .sub-card { background: #f8f9fa; border-radius: 10px; padding: 10px; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -33,9 +44,10 @@
     </nav>
 
     <div class="container mt-4">
+        <!-- Cards de Estatísticas -->
         <div class="row mb-4">
             <div class="col-md-3 col-sm-6 mb-3">
-                <div class="card card-stats bg-white">
+                <div class="card card-stats bg-white" onclick="mostrarDetalhe('produtores')">
                     <div class="card-body">
                         <div class="card-title text-muted">👥 Produtores</div>
                         <div class="card-value" id="totalProdutores">-</div>
@@ -43,15 +55,16 @@
                 </div>
             </div>
             <div class="col-md-3 col-sm-6 mb-3">
-                <div class="card card-stats bg-white">
+                <div class="card card-stats bg-white" onclick="mostrarDetalhe('estoque')">
                     <div class="card-body">
                         <div class="card-title text-muted">📦 Estoque Total (Kg)</div>
                         <div class="card-value" id="totalEstoqueKg">-</div>
+                        <small class="text-muted">Clique para detalhar</small>
                     </div>
                 </div>
             </div>
             <div class="col-md-3 col-sm-6 mb-3">
-                <div class="card card-stats bg-white">
+                <div class="card card-stats bg-white" onclick="mostrarDetalhe('vendas')">
                     <div class="card-body">
                         <div class="card-title text-muted">💰 Vendas no Mês (R$)</div>
                         <div class="card-value" id="vendasMes">-</div>
@@ -59,7 +72,7 @@
                 </div>
             </div>
             <div class="col-md-3 col-sm-6 mb-3">
-                <div class="card card-stats bg-white">
+                <div class="card card-stats bg-white" onclick="mostrarDetalhe('pagamentos')">
                     <div class="card-body">
                         <div class="card-title text-muted">💸 Pagamentos no Mês (R$)</div>
                         <div class="card-value" id="pagamentosMes">-</div>
@@ -68,6 +81,7 @@
             </div>
         </div>
 
+        <!-- Gráficos -->
         <div class="row mb-4">
             <div class="col-md-6">
                 <div class="chart-container">
@@ -83,8 +97,9 @@
             </div>
         </div>
 
+        <!-- Título e filtros -->
         <div class="d-flex flex-wrap align-items-center justify-content-between mb-3">
-            <h4>📋 Estoques por Produtor</h4>
+            <h4>📋 Estoque Hierárquico</h4>
             <div>
                 <button class="btn-filter active" data-filter="all">Todos</button>
                 <button class="btn-filter" data-filter="Classificação">Classificação</button>
@@ -93,15 +108,21 @@
                 <button class="btn btn-sm btn-outline-secondary ms-2" id="refreshEstoqueBtn">🔄 Atualizar</button>
             </div>
         </div>
-        <div class="table-responsive mb-5">
-            <table class="table table-striped table-hover">
-                <thead class="table-light">
-                    <th>Produtor</th><th>Tipo</th><th>Classe</th><th>Peso (Kg)</th><th>Local</th>
-                </thead>
-                <tbody id="estoqueTbody">
-                    <tr><td colspan="5" class="text-center">Carregando...</td></tr>
-                </tbody>
-            </table>
+
+        <!-- Árvore de Estoque Hierárquica -->
+        <div class="card mb-4">
+            <div class="card-body tree-view" id="treeEstoque">
+                <div class="text-center">Carregando estoque...</div>
+            </div>
+        </div>
+
+        <!-- Painel de Detalhes -->
+        <div id="detailPanel" class="detail-panel">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 id="detailTitle">Detalhes</h4>
+                <button class="btn btn-sm btn-secondary" onclick="fecharDetalhe()">Fechar</button>
+            </div>
+            <div id="detailContent"></div>
         </div>
 
         <div class="row">
@@ -149,10 +170,10 @@
             </div>
         </div>
     </div>
-    <footer>Sistema COPAR - Painel Gerencial | Dados do mês atual</footer>
+    <footer>Sistema COPAR - Painel Gerencial | Clique nos cards para mais detalhes</footer>
 
     <script>
-        let estoqueOriginal = [];
+        let estoqueHierarquico = [];
         let graficoEstoque, graficoVendas;
 
         function formatarMoeda(valor) {
@@ -168,38 +189,218 @@
                 document.getElementById('vendasMes').innerText = formatarMoeda(data.vendas_mes || 0);
                 document.getElementById('pagamentosMes').innerText = formatarMoeda(data.pagamentos_mes || 0);
             } catch (err) { 
-                console.error('Erro:', err);
+                console.error('Erro ao carregar estatísticas:', err);
             }
         }
 
-        async function carregarEstoqueProdutor() {
+        async function carregarEstoqueHierarquico() {
             try {
-                const res = await fetch('/api/gerente/estoque-produtor');
+                const res = await fetch('/api/gerente/estoque-hierarquico');
                 const data = await res.json();
-                estoqueOriginal = data;
-                aplicarFiltroEstoque();
+                estoqueHierarquico = data;
+                renderizarArvoreEstoque();
             } catch (err) { 
-                console.error('Erro:', err);
+                console.error('Erro ao carregar estoque hierárquico:', err);
+                document.getElementById('treeEstoque').innerHTML = '<div class="text-center text-danger">Erro ao carregar estoque</div>';
             }
         }
 
-        function aplicarFiltroEstoque() {
+        function renderizarArvoreEstoque() {
+            const container = document.getElementById('treeEstoque');
             const filtro = document.querySelector('.btn-filter.active')?.getAttribute('data-filter') || 'all';
-            let dados = (filtro === 'all') ? estoqueOriginal : estoqueOriginal.filter(i => i.local === filtro);
-            const tbody = document.getElementById('estoqueTbody');
-            tbody.innerHTML = '';
-            if (!dados || dados.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="text-center">Nenhum registro encontrado</td></tr>';
+            
+            let dadosFiltrados = estoqueHierarquico;
+            if (filtro !== 'all') {
+                dadosFiltrados = estoqueHierarquico.filter(item => item.local === filtro);
+            }
+            
+            if (!dadosFiltrados || dadosFiltrados.length === 0) {
+                container.innerHTML = '<div class="text-center text-muted">Nenhum estoque encontrado</div>';
                 return;
             }
-            dados.forEach(i => {
-                const row = tbody.insertRow();
-                row.insertCell(0).innerText = i.produtor;
-                row.insertCell(1).innerText = i.tipo_alho;
-                row.insertCell(2).innerText = i.classe;
-                row.insertCell(3).innerText = i.peso.toLocaleString('pt-BR') + ' kg';
-                row.insertCell(4).innerText = i.local;
+            
+            let html = '<div class="tree-view">';
+            
+            dadosFiltrados.forEach(local => {
+                const localIcon = local.local === 'Classificação' ? '🏭' : (local.local === 'Banca' ? '📦' : '✅');
+                html += `<div class="tree-item" onclick="toggleTree(this)">
+                            <span class="tree-icon">📁</span> <strong>${localIcon} ${local.local}</strong>
+                            <span class="badge bg-secondary ms-2">${calcularTotalLocal(local)} kg</span>
+                         </div>`;
+                html += `<div class="tree-indent" style="display: block;">`;
+                
+                local.tipos.forEach(tipo => {
+                    const tipoIcon = tipo.tipo === 'São Valentim' ? '🍊' : (tipo.tipo === 'Ito' ? '🌿' : '🧄');
+                    html += `<div class="tree-item" onclick="toggleTree(this)">
+                                <span class="tree-icon">📂</span> ${tipoIcon} ${tipo.tipo}
+                                <span class="badge bg-info ms-2">${calcularTotalTipo(tipo)} kg</span>
+                            </div>`;
+                    html += `<div class="tree-indent" style="display: block;">`;
+                    
+                    tipo.classes.forEach(classeItem => {
+                        html += `<div class="tree-item" onclick="toggleTree(this)">
+                                    <span class="tree-icon">📄</span> ${classeItem.classe}
+                                    <span class="badge bg-primary ms-2">${classeItem.total_peso.toLocaleString('pt-BR')} kg</span>
+                                    ${classeItem.total_horas > 0 ? `<span class="badge bg-warning ms-2">${classeItem.total_horas}h</span>` : ''}
+                                </div>`;
+                        html += `<div class="tree-indent" style="display: none;">`;
+                        
+                        classeItem.produtores.forEach(prod => {
+                            html += `<div class="tree-item">
+                                        <span class="tree-icon">👤</span> ${prod.produtor}
+                                        <span class="badge bg-success ms-2">${prod.peso.toLocaleString('pt-BR')} kg</span>
+                                        ${prod.horas > 0 ? `<span class="badge bg-warning ms-2">${prod.horas}h</span>` : ''}
+                                    </div>`;
+                        });
+                        html += `</div>`;
+                    });
+                    html += `</div>`;
+                });
+                html += `</div>`;
             });
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function calcularTotalLocal(local) {
+            let total = 0;
+            local.tipos.forEach(tipo => {
+                tipo.classes.forEach(classe => {
+                    total += classe.total_peso;
+                });
+            });
+            return total.toLocaleString('pt-BR');
+        }
+
+        function calcularTotalTipo(tipo) {
+            let total = 0;
+            tipo.classes.forEach(classe => {
+                total += classe.total_peso;
+            });
+            return total.toLocaleString('pt-BR');
+        }
+
+        function toggleTree(element) {
+            const nextDiv = element.nextElementSibling;
+            if (nextDiv && nextDiv.classList.contains('tree-indent')) {
+                const isVisible = nextDiv.style.display !== 'none';
+                nextDiv.style.display = isVisible ? 'none' : 'block';
+                const icon = element.querySelector('.tree-icon');
+                if (icon) {
+                    icon.textContent = isVisible ? '📁' : '📂';
+                }
+            }
+        }
+
+        function mostrarDetalhe(tipo) {
+            const panel = document.getElementById('detailPanel');
+            const title = document.getElementById('detailTitle');
+            const content = document.getElementById('detailContent');
+            
+            panel.classList.add('show');
+            
+            if (tipo === 'estoque') {
+                title.innerHTML = '📦 Detalhamento do Estoque';
+                content.innerHTML = `
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="sub-card">
+                                <h6>🏭 Classificação</h6>
+                                <p class="mb-0" id="detailClassificacao">Carregando...</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="sub-card">
+                                <h6>📦 Banca</h6>
+                                <p class="mb-0" id="detailBanca">Carregando...</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="sub-card">
+                                <h6>✅ Toletagem</h6>
+                                <p class="mb-0" id="detailToletagem">Carregando...</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <h6>📊 Distribuição por Tipo:</h6>
+                        <div id="detailPorTipo"></div>
+                    </div>
+                `;
+                
+                // Buscar dados detalhados
+                fetch('/api/gerente/estatisticas')
+                    .then(res => res.json())
+                    .then(data => {
+                        document.getElementById('detailClassificacao').innerHTML = `<strong>${data.estoque_classificacao?.toLocaleString('pt-BR') || 0} kg</strong>`;
+                        document.getElementById('detailBanca').innerHTML = `<strong>${data.estoque_banca?.toLocaleString('pt-BR') || 0} kg</strong>`;
+                        document.getElementById('detailToletagem').innerHTML = `<strong>${data.estoque_toletagem?.toLocaleString('pt-BR') || 0} kg</strong>`;
+                    });
+                
+                fetch('/api/gerente/estoque-por-tipo')
+                    .then(res => res.json())
+                    .then(data => {
+                        let html = '<ul class="list-group">';
+                        data.forEach(item => {
+                            html += `<li class="list-group-item d-flex justify-content-between align-items-center">
+                                        ${item.tipo} <span class="badge bg-primary rounded-pill">${item.peso.toLocaleString('pt-BR')} kg</span>
+                                    </li>`;
+                        });
+                        html += '</ul>';
+                        document.getElementById('detailPorTipo').innerHTML = html;
+                    });
+            } else if (tipo === 'produtores') {
+                title.innerHTML = '👥 Lista de Produtores';
+                fetch('/api/gerente/estoque-produtor')
+                    .then(res => res.json())
+                    .then(data => {
+                        let produtoresUnicos = [...new Set(data.map(p => p.produtor))];
+                        let html = '<div class="row">';
+                        produtoresUnicos.forEach(prod => {
+                            let total = data.filter(p => p.produtor === prod).reduce((sum, p) => sum + p.peso, 0);
+                            html += `<div class="col-md-4 mb-2">
+                                        <div class="sub-card">
+                                            <strong>👤 ${prod}</strong><br>
+                                            <small>Estoque total: ${total.toLocaleString('pt-BR')} kg</small>
+                                        </div>
+                                    </div>`;
+                        });
+                        html += '</div>';
+                        content.innerHTML = html;
+                    });
+            } else if (tipo === 'vendas') {
+                title.innerHTML = '💰 Detalhamento de Vendas do Mês';
+                fetch('/api/gerente/vendas-recentes?limite=100')
+                    .then(res => res.json())
+                    .then(data => {
+                        let total = data.reduce((sum, v) => sum + v.valor_total, 0);
+                        let html = `<p><strong>Total de vendas no mês: ${formatarMoeda(total)}</strong></p>`;
+                        html += '<div class="table-responsive"><table class="table table-sm"><thead><th>Data</th><th>Produtor</th><th>Valor</th></thead><tbody>';
+                        data.forEach(v => {
+                            html += `<tr><td>${v.data}</td><td>${v.produtor}</td><td>${formatarMoeda(v.valor_total)}</td></tr>`;
+                        });
+                        html += '</tbody></table></div>';
+                        content.innerHTML = html;
+                    });
+            } else if (tipo === 'pagamentos') {
+                title.innerHTML = '💳 Detalhamento de Pagamentos do Mês';
+                fetch('/api/gerente/pagamentos-recentes?limite=100')
+                    .then(res => res.json())
+                    .then(data => {
+                        let total = data.reduce((sum, p) => sum + p.valor, 0);
+                        let html = `<p><strong>Total de pagamentos no mês: ${formatarMoeda(total)}</strong></p>`;
+                        html += '<div class="table-responsive"><table class="table table-sm"><thead><th>Data</th><th>Produtor</th><th>Valor</th><th>Forma</th></thead><tbody>';
+                        data.forEach(p => {
+                            html += `<tr><td>${p.data}</td><td>${p.produtor}</td><td>${formatarMoeda(p.valor)}</td><td>${p.forma}</td></tr>`;
+                        });
+                        html += '</tbody></table></div>';
+                        content.innerHTML = html;
+                    });
+            }
+        }
+
+        function fecharDetalhe() {
+            document.getElementById('detailPanel').classList.remove('show');
         }
 
         async function carregarVendasRecentes() {
@@ -315,16 +516,18 @@
                 btn.addEventListener('click', () => {
                     document.querySelectorAll('.btn-filter').forEach(b => b.classList.remove('active'));
                     btn.classList.add('active');
-                    aplicarFiltroEstoque();
+                    renderizarArvoreEstoque();
                 });
             });
-            document.getElementById('refreshEstoqueBtn').addEventListener('click', carregarEstoqueProdutor);
+            document.getElementById('refreshEstoqueBtn').addEventListener('click', () => {
+                carregarEstoqueHierarquico();
+            });
         }
 
         async function init() {
             await Promise.all([
                 carregarEstatisticas(),
-                carregarEstoqueProdutor(),
+                carregarEstoqueHierarquico(),
                 carregarVendasRecentes(),
                 carregarPagamentosRecentes(),
                 carregarPerdasRecentes(),
