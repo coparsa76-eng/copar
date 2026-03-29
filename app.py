@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-COPAR Web - Sistema completo com painel do gerente corrigido
+COPAR Web - Versão Corrigida
 """
 
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
@@ -9,7 +9,6 @@ import psycopg
 import os
 import logging
 from datetime import datetime, timedelta
-from decimal import Decimal
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -35,8 +34,6 @@ MAPEAMENTO_LOCAL = {
     'banca': 'Banca',
     'toletagem': 'Toletagem'
 }
-
-# ========== FUNÇÕES DE BANCO ==========
 
 def conectar_banco():
     try:
@@ -76,45 +73,16 @@ def obter_valor_hora_banca():
 
 def buscar_produtor_por_matricula(matricula):
     if matricula.lower() == 'copar10entrada':
-        return {
-            'id': 9991,
-            'nome': 'Setor Classificação',
-            'matricula': 'copar10entrada',
-            'especial': True,
-            'tipo': 'classificacao'
-        }
+        return {'id': 9991, 'nome': 'Setor Classificação', 'matricula': 'copar10entrada', 'especial': True, 'tipo': 'classificacao'}
     if matricula.lower() == 'copar22banca':
-        return {
-            'id': 9992,
-            'nome': 'Setor Banca',
-            'matricula': 'copar22banca',
-            'especial': True,
-            'tipo': 'banca'
-        }
+        return {'id': 9992, 'nome': 'Setor Banca', 'matricula': 'copar22banca', 'especial': True, 'tipo': 'banca'}
     if matricula.lower() == 'copar33toletagem':
-        return {
-            'id': 9993,
-            'nome': 'Setor Toletagem',
-            'matricula': 'copar33toletagem',
-            'especial': True,
-            'tipo': 'toletagem'
-        }
+        return {'id': 9993, 'nome': 'Setor Toletagem', 'matricula': 'copar33toletagem', 'especial': True, 'tipo': 'toletagem'}
     if matricula.upper() == 'GLH':
-        return {
-            'id': 8888,
-            'nome': 'Luis Henrique - Gerente',
-            'matricula': 'GLH',
-            'especial': True,
-            'tipo': 'gerente'
-        }
+        return {'id': 8888, 'nome': 'Luis Henrique - Gerente', 'matricula': 'GLH', 'especial': True, 'tipo': 'gerente'}
     if matricula.lower() == 'copar10':
-        return {
-            'id': 9999,
-            'nome': 'Super Administrador',
-            'matricula': 'copar10',
-            'especial': True,
-            'tipo': 'superadmin'
-        }
+        return {'id': 9999, 'nome': 'Super Administrador', 'matricula': 'copar10', 'especial': True, 'tipo': 'superadmin'}
+    
     conn = conectar_banco()
     if not conn:
         return None
@@ -125,13 +93,7 @@ def buscar_produtor_por_matricula(matricula):
         cursor.close()
         conn.close()
         if produtor:
-            return {
-                'id': produtor[0],
-                'nome': produtor[1],
-                'matricula': produtor[2],
-                'especial': False,
-                'tipo': 'produtor'
-            }
+            return {'id': produtor[0], 'nome': produtor[1], 'matricula': produtor[2], 'especial': False, 'tipo': 'produtor'}
         return None
     except Exception as e:
         logger.error(f"Erro ao buscar produtor: {e}")
@@ -198,8 +160,6 @@ def calcular_saldos(vendas):
     total_recebido = sum(v['valor_produtor'] for v in vendas if v['status'] == 'Pago')
     total_a_receber = sum(v['saldo'] for v in vendas if v['status'] != 'Pago')
     return total_recebido, total_a_receber
-
-# ========== FUNÇÃO DE MOVIMENTAÇÃO ==========
 
 def registrar_movimentacao(produtor_id, tipo_alho, classe, peso_movido, local_destino, horas_banca=0, quebra=0, local_origem=None):
     conn = conectar_banco()
@@ -305,102 +265,41 @@ def obter_saldo_estoque(produtor_id, tipo_alho, classe, local):
         logger.error(f"Erro ao obter saldo: {e}")
         return 0
 
-# ========== FUNÇÕES PARA O GERENTE (CORRIGIDAS) ==========
+# ========== FUNÇÕES PARA O GERENTE ==========
 
 def obter_estatisticas_gerais():
-    """Retorna estatísticas para o dashboard do gerente"""
     conn = conectar_banco()
     if not conn:
-        return {
-            'total_produtores': 0,
-            'total_estoque_kg': 0,
-            'estoque_classificacao': 0,
-            'estoque_banca': 0,
-            'estoque_toletagem': 0,
-            'vendas_mes': 0,
-            'pagamentos_mes': 0,
-            'saldo_total': 0,
-            'perdas_mes': 0
-        }
+        return {'total_produtores': 0, 'total_estoque_kg': 0, 'vendas_mes': 0, 'pagamentos_mes': 0}
     try:
         cursor = conn.cursor()
-        
-        # Total de produtores
         cursor.execute("SELECT COUNT(*) FROM produtores")
         total_produtores = cursor.fetchone()[0]
-        
-        # Total em estoque (Kg)
         cursor.execute("SELECT COALESCE(SUM(peso), 0) FROM estoque WHERE peso > 0")
         total_estoque_kg = float(cursor.fetchone()[0])
-        
-        # Estoque por local
-        cursor.execute("SELECT COALESCE(SUM(peso), 0) FROM estoque WHERE local_estoque = 'Classificação' AND peso > 0")
-        estoque_classificacao = float(cursor.fetchone()[0])
-        
-        cursor.execute("SELECT COALESCE(SUM(peso), 0) FROM estoque WHERE local_estoque = 'Banca' AND peso > 0")
-        estoque_banca = float(cursor.fetchone()[0])
-        
-        cursor.execute("SELECT COALESCE(SUM(peso), 0) FROM estoque WHERE local_estoque = 'Toletagem' AND peso > 0")
-        estoque_toletagem = float(cursor.fetchone()[0])
-        
-        # Vendas do MÊS ATUAL
         cursor.execute("""
-            SELECT COALESCE(SUM(valor_total), 0) 
-            FROM vendas 
+            SELECT COALESCE(SUM(valor_total), 0) FROM vendas 
             WHERE EXTRACT(YEAR FROM data_venda) = EXTRACT(YEAR FROM CURRENT_DATE)
             AND EXTRACT(MONTH FROM data_venda) = EXTRACT(MONTH FROM CURRENT_DATE)
         """)
         vendas_mes = float(cursor.fetchone()[0])
-        
-        # Pagamentos do MÊS ATUAL
         cursor.execute("""
-            SELECT COALESCE(SUM(valor_total), 0) 
-            FROM pagamentos 
+            SELECT COALESCE(SUM(valor_total), 0) FROM pagamentos 
             WHERE EXTRACT(YEAR FROM data_pagamento) = EXTRACT(YEAR FROM CURRENT_DATE)
             AND EXTRACT(MONTH FROM data_pagamento) = EXTRACT(MONTH FROM CURRENT_DATE)
         """)
         pagamentos_mes = float(cursor.fetchone()[0])
-        
-        # Saldo total a pagar
-        cursor.execute("SELECT COALESCE(SUM(saldo), 0) FROM creditos_produtor")
-        saldo_total = float(cursor.fetchone()[0])
-        
-        # Perdas do mês
-        cursor.execute("""
-            SELECT COALESCE(SUM(peso_kg), 0) 
-            FROM perdas 
-            WHERE EXTRACT(YEAR FROM data_perda) = EXTRACT(YEAR FROM CURRENT_DATE)
-            AND EXTRACT(MONTH FROM data_perda) = EXTRACT(MONTH FROM CURRENT_DATE)
-        """)
-        perdas_mes = float(cursor.fetchone()[0])
-        
         cursor.close()
         conn.close()
-        
         return {
             'total_produtores': total_produtores,
             'total_estoque_kg': total_estoque_kg,
-            'estoque_classificacao': estoque_classificacao,
-            'estoque_banca': estoque_banca,
-            'estoque_toletagem': estoque_toletagem,
             'vendas_mes': vendas_mes,
-            'pagamentos_mes': pagamentos_mes,
-            'saldo_total': saldo_total,
-            'perdas_mes': perdas_mes
+            'pagamentos_mes': pagamentos_mes
         }
     except Exception as e:
         logger.error(f"Erro ao obter estatísticas: {e}")
-        return {
-            'total_produtores': 0,
-            'total_estoque_kg': 0,
-            'estoque_classificacao': 0,
-            'estoque_banca': 0,
-            'estoque_toletagem': 0,
-            'vendas_mes': 0,
-            'pagamentos_mes': 0,
-            'saldo_total': 0,
-            'perdas_mes': 0
-        }
+        return {'total_produtores': 0, 'total_estoque_kg': 0, 'vendas_mes': 0, 'pagamentos_mes': 0}
 
 def obter_estoque_hierarquico():
     """Retorna estoque hierárquico: Local -> Tipo -> Classe -> Produtor"""
@@ -424,7 +323,6 @@ def obter_estoque_hierarquico():
             ORDER BY e.local_estoque, e.tipo_alho, e.classe, p.nome
         """)
         
-        # Organizar em estrutura hierárquica
         hierarquia = {}
         for row in cursor.fetchall():
             local = row[0]
@@ -450,7 +348,6 @@ def obter_estoque_hierarquico():
         cursor.close()
         conn.close()
         
-        # Converter para formato serializável
         resultado = []
         for local, tipos in hierarquia.items():
             local_item = {'local': local, 'tipos': []}
@@ -843,10 +740,6 @@ def api_gerente_vendas_por_mes():
 def api_gerente_perdas_recentes():
     limite = request.args.get('limite', 50, type=int)
     return jsonify(obter_perdas_recentes(limite))
-
-@app.route('/api/salvar-configuracoes', methods=['POST'])
-def api_salvar_configuracoes():
-    return jsonify({'sucesso': True, 'mensagem': 'Configuração salva'})
 
 @app.route('/logout')
 def logout():
