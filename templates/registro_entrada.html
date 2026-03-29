@@ -2,17 +2,23 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>COPAR –
         {% if role == 'classificacao' %}Entrada na Classificação
         {% elif role == 'banca' %}Transferência para Banca
         {% else %}Transferência para Toletagem{% endif %}
     </title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
     <style>
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        /* Reset e Box-sizing Global */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
 
+        /* Variáveis CSS para temas e cores */
         :root {
             --verde:       #2a5c28;
             --verde-mid:   #3d7a3a;
@@ -28,16 +34,21 @@
             --danger-border:#f5c6c2;
             --radius:      12px;
             --shadow:      0 4px 20px rgba(42,92,40,.1);
+            --transition-fast: .2s;
+            --transition-medium: .3s;
         }
 
+        /* Estilos Gerais do Corpo */
         body {
             font-family: 'DM Sans', sans-serif;
             background: var(--bg);
             color: var(--text);
             min-height: 100dvh;
-            padding-bottom: 5.5rem;
+            padding-bottom: 5.5rem; /* Espaço para botões fixos */
+            line-height: 1.5;
         }
 
+        /* Navegação */
         nav {
             background: var(--verde);
             padding: .85rem 1.25rem;
@@ -47,73 +58,126 @@
             position: sticky;
             top: 0;
             z-index: 200;
+            box-shadow: 0 2px 10px rgba(0,0,0,.1); /* Sombra sutil na navegação */
         }
-        .nav-brand { font-family: 'DM Serif Display', serif; color: var(--white); font-size: 1.2rem; }
-        .nav-title  { color: rgba(255,255,255,.8); font-size: .78rem; margin-top: .1rem; }
+        .nav-brand {
+            font-family: 'DM Serif Display', serif;
+            font-size: 1.3rem; /* Aumentado ligeiramente */
+            color: var(--white);
+        }
+        .nav-title  {
+            color: rgba(255,255,255,.85); /* Opacidade ligeiramente maior */
+            font-size: .8rem; /* Ajustado */
+            margin-top: .15rem; /* Ajustado */
+        }
         .btn-sair {
             background: rgba(255,255,255,.15);
             border: 1px solid rgba(255,255,255,.3);
             color: var(--white);
-            padding: .4rem .85rem;
+            padding: .5rem .9rem; /* Ajustado */
             border-radius: 8px;
-            font-size: .82rem;
+            font-size: .85rem; /* Ajustado */
             text-decoration: none;
+            transition: background var(--transition-fast);
+        }
+        .btn-sair:hover {
+            background: rgba(255,255,255,.25);
         }
 
-        main { max-width: 700px; margin: 0 auto; padding: 1rem; }
+        /* Layout Principal */
+        main {
+            max-width: 700px;
+            margin: 1rem auto 0; /* Espaçamento superior ajustado */
+            padding: 0 1rem; /* Padding lateral para evitar colisão com bordas */
+        }
 
+        /* Cards de Seção */
         .card {
             background: var(--white);
             border-radius: var(--radius);
             box-shadow: var(--shadow);
-            margin-bottom: 1rem;
-            overflow: visible;
+            margin-bottom: 1.25rem; /* Espaçamento maior entre cards */
+            overflow: hidden; /* Garante que o conteúdo não ultrapasse os cantos arredondados */
         }
         .card-header {
-            padding: .85rem 1.1rem;
+            padding: .9rem 1.2rem; /* Ajustado */
             border-bottom: 1px solid var(--border);
             font-weight: 700;
-            font-size: .9rem;
+            font-size: .95rem; /* Ajustado */
             color: var(--verde);
             display: flex;
             align-items: center;
-            gap: .5rem;
+            gap: .6rem; /* Ajustado */
         }
-        .card-body { padding: 1rem 1.1rem; }
+        .card-body {
+            padding: 1.1rem 1.2rem; /* Ajustado */
+        }
 
-        .produtor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
-        @media (max-width: 480px) { .produtor-grid { grid-template-columns: 1fr; } }
+        /* Grid para Produtor */
+        .produtor-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr); /* Duas colunas iguais */
+            gap: .85rem; /* Espaçamento entre itens */
+        }
+        @media (max-width: 480px) {
+            .produtor-grid {
+                grid-template-columns: 1fr; /* Uma coluna em telas menores */
+            }
+        }
 
-        .field { display: flex; flex-direction: column; gap: .3rem; }
+        /* Campos de Formulário */
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: .4rem; /* Espaçamento entre label e input */
+        }
         .field label {
-            font-size: .75rem;
+            font-size: .78rem; /* Ajustado */
             font-weight: 600;
             color: var(--verde);
             text-transform: uppercase;
-            letter-spacing: .05em;
+            letter-spacing: .06em; /* Ajustado */
         }
         .field input, .field select {
-            padding: .75rem 1rem;
+            padding: .8rem 1rem; /* Ajustado */
             border: 2px solid var(--border);
             border-radius: 10px;
             font-family: 'DM Sans', sans-serif;
-            font-size: .95rem;
+            font-size: .98rem; /* Ajustado */
             color: var(--text);
             background: var(--verde-pale);
-            transition: border .2s;
-            -webkit-appearance: none;
+            transition: border var(--transition-fast), box-shadow var(--transition-fast);
+            -webkit-appearance: none; /* Remove aparência padrão do navegador */
+            appearance: none;
         }
         .field input:focus, .field select:focus {
             outline: none;
             border-color: var(--verde);
-            box-shadow: 0 0 0 3px rgba(42,92,40,.1);
+            box-shadow: 0 0 0 3px rgba(42,92,40,.1); /* Foco visual claro */
         }
-        .field input[readonly] { background: #f0f0f0; color: var(--muted); }
+        .field input[readonly] {
+            background: #f0f0f0; /* Cor de fundo para campos somente leitura */
+            color: var(--muted);
+            cursor: not-allowed; /* Indica que não é editável */
+        }
+        /* Estilo específico para select */
+        .field select {
+            background-image: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="%231a2e19"><path d="M8 11.293l-4.646-4.647a.5.5 0 0 1 .708-.708L8 10.586l4.646-4.647a.5.5 0 0 1 .708.708L8 11.293z"/></svg>');
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            background-size: 16px;
+            padding-right: 2.5rem; /* Espaço para o ícone */
+        }
 
-        .autocomplete-wrap { position: relative; }
+        /* Autocomplete */
+        .autocomplete-wrap {
+            position: relative;
+        }
         .autocomplete-list {
             position: absolute;
-            top: calc(100% + 4px); left: 0; right: 0;
+            top: calc(100% + 4px);
+            left: 0;
+            right: 0;
             background: var(--white);
             border: 1.5px solid var(--verde);
             border-radius: 10px;
@@ -121,151 +185,257 @@
             max-height: 220px;
             overflow-y: auto;
             z-index: 500;
-            display: none;
+            display: none; /* Oculto por padrão */
+            scrollbar-width: thin; /* Estilo da scrollbar */
+            scrollbar-color: var(--verde-light) var(--border);
         }
         .autocomplete-item {
             padding: .75rem 1rem;
             cursor: pointer;
             border-bottom: 1px solid var(--border);
             font-size: .9rem;
+            transition: background var(--transition-fast);
         }
-        .autocomplete-item:last-child { border-bottom: none; }
-        .autocomplete-item:hover { background: var(--verde-light); }
-        .autocomplete-item strong { color: var(--verde); }
+        .autocomplete-item:last-child {
+            border-bottom: none;
+        }
+        .autocomplete-item:hover {
+            background: var(--verde-light);
+        }
+        .autocomplete-item strong {
+            color: var(--verde);
+            font-weight: 600; /* Negrito mais forte */
+        }
 
+        /* Banner de Produtor */
         .produtor-banner {
             background: var(--verde-light);
             border: 1.5px solid #b8d9b5;
             border-radius: 10px;
-            padding: .65rem 1rem;
-            font-size: .88rem;
+            padding: .75rem 1.1rem; /* Ajustado */
+            font-size: .9rem; /* Ajustado */
             color: var(--verde);
             font-weight: 600;
-            margin-top: .5rem;
-            display: none;
+            margin-top: .6rem; /* Ajustado */
+            display: none; /* Oculto por padrão */
             align-items: center;
-            gap: .5rem;
+            gap: .6rem; /* Ajustado */
+            opacity: 0; /* Para animação de fade-in */
+            transform: translateY(-6px); /* Para animação de slide-in */
+            transition: opacity var(--transition-medium) ease-out, transform var(--transition-medium) ease-out;
         }
-        .produtor-banner.show { display: flex; }
+        .produtor-banner.show {
+            display: flex;
+            opacity: 1;
+            transform: translateY(0);
+        }
 
-        .pills { display: flex; gap: .5rem; flex-wrap: wrap; }
+        /* Pílulas de Variedade */
+        .pills {
+            display: flex;
+            gap: .6rem; /* Ajustado */
+            flex-wrap: wrap;
+        }
         .pill {
-            padding: .55rem 1.1rem;
+            padding: .6rem 1.2rem; /* Ajustado */
             border-radius: 30px;
             border: 2px solid var(--border);
             background: var(--white);
             font-family: 'DM Sans', sans-serif;
-            font-size: .88rem;
+            font-size: .9rem; /* Ajustado */
             cursor: pointer;
-            transition: all .2s;
+            transition: all var(--transition-fast);
             font-weight: 500;
-            -webkit-tap-highlight-color: transparent;
+            -webkit-tap-highlight-color: transparent; /* Remove destaque em toque */
+            white-space: nowrap; /* Evita quebra de linha */
         }
-        .pill.active { background: var(--verde); border-color: var(--verde); color: var(--white); }
+        .pill.active {
+            background: var(--verde);
+            border-color: var(--verde);
+            color: var(--white);
+        }
+        .pill:hover:not(.active) {
+            background: var(--verde-pale);
+            border-color: var(--verde-mid);
+        }
 
-        .extras-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
-        @media (max-width: 480px) { .extras-grid { grid-template-columns: 1fr; } }
-        .saldo-tag { font-size: .75rem; color: var(--verde-mid); margin-top: .25rem; font-weight: 500; }
+        /* Grid para Extras (Origem/Horas) */
+        .extras-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: .85rem;
+        }
+        @media (max-width: 480px) {
+            .extras-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .saldo-tag {
+            font-size: .78rem; /* Ajustado */
+            color: var(--verde-mid);
+            margin-top: .3rem; /* Ajustado */
+            font-weight: 500;
+            display: block; /* Garante que ocupe espaço */
+        }
 
-        /* LOADING */
+        /* Loading Overlay */
         .loading-overlay {
-            display: none;
+            display: none; /* Oculto por padrão */
             align-items: center;
             justify-content: center;
-            gap: .6rem;
+            gap: .7rem; /* Ajustado */
             padding: 1.5rem;
             background: rgba(244,249,243,.92);
             border-radius: 10px;
-            font-size: .9rem;
+            font-size: .95rem; /* Ajustado */
             color: var(--verde);
             font-weight: 600;
             border: 1.5px dashed #b8d9b5;
+            animation: fadeIn var(--transition-medium); /* Animação de entrada */
         }
-        .loading-overlay.show { display: flex; }
+        .loading-overlay.show {
+            display: flex;
+        }
         .loader-spin {
-            width: 20px; height: 20px;
-            border: 2.5px solid #b8d9b5;
+            width: 22px; /* Ajustado */
+            height: 22px; /* Ajustado */
+            border: 3px solid #b8d9b5; /* Ajustado */
             border-top-color: var(--verde);
             border-radius: 50%;
             animation: spin .75s linear infinite;
             flex-shrink: 0;
         }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
 
-        /* PESOS */
-        .peso-list { display: flex; flex-direction: column; gap: .45rem; }
+        /* Seção de Pesos */
+        .peso-list {
+            display: flex;
+            flex-direction: column;
+            gap: .5rem; /* Ajustado */
+        }
 
         .peso-header {
             display: grid;
             grid-template-columns: 1fr 120px;
             gap: .5rem;
-            padding: .3rem .85rem;
-            font-size: .7rem;
+            padding: .4rem .85rem; /* Ajustado */
+            font-size: .72rem; /* Ajustado */
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: .06em;
+            letter-spacing: .07em; /* Ajustado */
             color: var(--muted);
         }
-        .peso-header span:last-child { text-align: right; }
+        .peso-header span:last-child {
+            text-align: right;
+        }
 
         .peso-row {
             display: grid;
             grid-template-columns: 1fr 120px;
             align-items: center;
             gap: .5rem;
-            padding: .6rem .85rem;
+            padding: .7rem .85rem; /* Ajustado */
             border-radius: 10px;
             border: 1.5px solid var(--border);
             background: var(--verde-pale);
-            transition: border-color .2s;
+            transition: border-color var(--transition-fast);
         }
-        .peso-row:focus-within { border-color: var(--verde); }
+        .peso-row:focus-within {
+            border-color: var(--verde);
+        }
         .peso-row.industria-row {
             background: #fffbec;
             border-color: #e8d78a;
         }
-        .peso-row.industria-row:focus-within { border-color: #c8a94a; }
+        .peso-row.industria-row:focus-within {
+            border-color: #c8a94a;
+        }
         .peso-row.quebra-row {
             background: var(--danger-bg);
             border-color: var(--danger-border);
         }
-        .peso-row.quebra-row:focus-within { border-color: var(--danger); }
-        .peso-row.excede { border-color: var(--danger) !important; background: var(--danger-bg) !important; }
+        .peso-row.quebra-row:focus-within {
+            border-color: var(--danger);
+        }
+        .peso-row.excede {
+            border-color: var(--danger) !important;
+            background: var(--danger-bg) !important;
+        }
 
-        .peso-classe { font-size: .9rem; font-weight: 600; min-width: 0; }
-        .peso-saldo  { font-size: .72rem; color: var(--muted); }
+        .peso-classe {
+            font-size: .92rem; /* Ajustado */
+            font-weight: 600;
+            min-width: 0; /* Permite que o texto quebre se necessário */
+            word-break: break-word; /* Quebra palavras longas */
+        }
+        .peso-saldo {
+            font-size: .75rem; /* Ajustado */
+            color: var(--muted);
+            font-weight: 500;
+            margin-top: .2rem; /* Ajustado */
+            display: block;
+        }
 
         .peso-input {
             width: 100%;
-            padding: .55rem .75rem;
+            padding: .6rem .85rem; /* Ajustado */
             border: 1.5px solid var(--border);
             border-radius: 8px;
             font-family: 'DM Sans', sans-serif;
-            font-size: .95rem;
+            font-size: .98rem; /* Ajustado */
             text-align: right;
             background: var(--white);
             color: var(--text);
             -webkit-appearance: none;
+            appearance: none;
+            transition: border-color var(--transition-fast);
         }
-        .peso-input:focus  { outline: none; border-color: var(--verde); }
-        .peso-input.ind    { border-color: #e8d78a; background: #fffef5; }
-        .peso-input.ind:focus   { border-color: #c8a94a; }
-        .peso-input.qbr    { border-color: var(--danger-border); background: #fff5f5; color: var(--danger); }
-        .peso-input.qbr:focus   { border-color: var(--danger); }
-        .peso-input.qbr::placeholder { color: #e0a0a0; }
+        .peso-input:focus {
+            outline: none;
+            border-color: var(--verde);
+        }
+        .peso-input.ind {
+            border-color: #e8d78a;
+            background: #fffef5;
+        }
+        .peso-input.ind:focus {
+            border-color: #c8a94a;
+        }
+        .peso-input.qbr {
+            border-color: var(--danger-border);
+            background: #fff5f5;
+            color: var(--danger);
+        }
+        .peso-input.qbr:focus {
+            border-color: var(--danger);
+        }
+        .peso-input.qbr::placeholder {
+            color: #e0a0a0;
+        }
 
-        .peso-separator { height: 1px; background: var(--border); margin: .15rem 0; }
+        .peso-separator {
+            height: 1px;
+            background: var(--border);
+            margin: .2rem 0; /* Ajustado */
+        }
 
-        /* TOTAIS */
+        /* Totais */
         .total-bloco {
             border-radius: 10px;
-            padding: .8rem .85rem;
-            margin-top: .3rem;
+            padding: .9rem .85rem; /* Ajustado */
+            margin-top: .4rem; /* Ajustado */
             display: flex;
             flex-direction: column;
-            gap: .35rem;
+            gap: .4rem; /* Ajustado */
+            transition: background var(--transition-fast), border-color var(--transition-fast);
         }
-        .total-bloco.simples {
+        .total-bloco.simples { /* Usado na classificação */
             background: var(--verde-light);
             border: 2px solid #b8d9b5;
             flex-direction: row;
@@ -274,84 +444,112 @@
             font-weight: 700;
             font-size: 1rem;
         }
-        .tl { display: flex; justify-content: space-between; font-size: .88rem; font-weight: 500; }
-        .tl.destaque {
-            font-weight: 700; font-size: .95rem;
-            padding-top: .3rem;
-            border-top: 1.5px dashed var(--border);
-            margin-top: .1rem;
+        .tl {
+            display: flex;
+            justify-content: space-between;
+            font-size: .9rem; /* Ajustado */
+            font-weight: 500;
         }
-        .tl .lbl { color: var(--muted); }
+        .tl.destaque {
+            font-weight: 700;
+            font-size: 1rem; /* Ajustado */
+            padding-top: .4rem; /* Ajustado */
+            border-top: 1.5px dashed var(--border);
+            margin-top: .2rem; /* Ajustado */
+        }
+        .tl .lbl {
+            color: var(--muted);
+            flex-shrink: 0; /* Evita que o label encolha */
+            margin-right: .5rem; /* Espaço entre label e valor */
+        }
         .verde   { color: var(--verde); }
         .amarelo { color: #8a6a00; }
         .vermelho{ color: var(--danger); }
-        .grande  { font-size: 1.05rem; }
+        .grande  { font-size: 1.1rem; } /* Ajustado */
 
         .alerta-excede {
             background: var(--danger-bg);
             border: 1.5px solid var(--danger-border);
             color: var(--danger);
             border-radius: 8px;
-            padding: .5rem .85rem;
-            font-size: .82rem;
+            padding: .6rem .85rem; /* Ajustado */
+            font-size: .85rem; /* Ajustado */
             font-weight: 600;
-            margin-top: .2rem;
+            margin-top: .3rem; /* Ajustado */
         }
         .sem-estoque {
             text-align: center;
             padding: 1.5rem;
             color: var(--muted);
-            font-size: .9rem;
+            font-size: .95rem; /* Ajustado */
+            font-weight: 500;
         }
 
-        /* STATUS */
+        /* Barra de Status */
         .status-bar {
-            margin: 0 1rem;
-            padding: .85rem 1rem;
+            margin: 0 1rem; /* Ajustado para alinhar com main */
+            padding: .9rem 1rem; /* Ajustado */
             border-radius: var(--radius);
-            font-size: .88rem;
+            font-size: .9rem; /* Ajustado */
             font-weight: 500;
             display: none;
             align-items: center;
-            gap: .5rem;
-            animation: slideIn .25s ease;
+            gap: .6rem; /* Ajustado */
+            animation: slideIn var(--transition-fast) ease-out;
+            box-shadow: 0 2px 10px rgba(0,0,0,.05); /* Sombra sutil */
         }
-        @keyframes slideIn { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:none} }
-        .status-bar.show    { display: flex; }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .status-bar.show {
+            display: flex;
+        }
         .status-bar.success { background: #d5f0de; color: #1a6b35; }
         .status-bar.error   { background: var(--danger-bg); color: var(--danger); }
         .status-bar.info    { background: #e3ecf7; color: #1a5276; }
         .status-bar.warning { background: #fef5e7; color: #7d5a00; }
         .status-bar.loading { background: var(--verde-light); color: var(--verde); }
 
+        /* Botões Fixos Inferiores */
         .botoes {
             position: sticky;
             bottom: 0;
-            background: rgba(242,245,240,.96);
-            backdrop-filter: blur(8px);
-            padding: .85rem 1rem;
+            background: rgba(242,245,240,.96); /* Fundo semi-transparente */
+            backdrop-filter: blur(8px); /* Efeito de desfoque */
+            padding: .9rem 1rem; /* Ajustado */
             display: flex;
-            gap: .6rem;
+            gap: .7rem; /* Ajustado */
             border-top: 1px solid var(--border);
+            z-index: 150; /* Abaixo da navegação */
         }
         .btn {
             flex: 1;
-            padding: .85rem .5rem;
+            padding: .9rem .5rem; /* Ajustado */
             border: none;
             border-radius: var(--radius);
             font-family: 'DM Sans', sans-serif;
             font-weight: 700;
-            font-size: .9rem;
+            font-size: .95rem; /* Ajustado */
             cursor: pointer;
-            transition: opacity .2s, transform .1s;
+            transition: opacity .2s, transform .1s, background-color var(--transition-fast), color var(--transition-fast);
             -webkit-tap-highlight-color: transparent;
+            display: inline-flex; /* Para alinhar spinner com texto */
+            align-items: center;
+            justify-content: center;
         }
-        .btn:active    { transform: scale(.97); }
+        .btn:active {
+            transform: scale(.97);
+        }
         .btn-primary   { background: var(--verde); color: var(--white); }
+        .btn-primary:hover { background: var(--verde-mid); }
         .btn-secondary { background: var(--verde-light); color: var(--verde); border: 1.5px solid #b8d9b5; }
+        .btn-secondary:hover { background: #d8ecca; }
         .btn-danger    { background: var(--danger-bg); color: var(--danger); border: 1.5px solid var(--danger-border); }
+        .btn-danger:hover { background: #fbd8d5; }
         .btn:disabled  { opacity: .5; cursor: not-allowed; }
 
+        /* Spinner para botões */
         .spinner {
             width: 18px; height: 18px;
             border: 2px solid rgba(255,255,255,.4);
@@ -360,7 +558,7 @@
             animation: spin .8s linear infinite;
             display: inline-block;
             vertical-align: middle;
-            margin-right: 6px;
+            margin-right: 8px; /* Ajustado */
         }
     </style>
 </head>
@@ -378,20 +576,19 @@
     <a href="/logout" class="btn-sair">Sair</a>
 </nav>
 
-<div style="max-width:700px;margin:.75rem auto 0;padding:0 1rem;">
-    <div id="statusMsg" class="status-bar"></div>
-</div>
+<!-- Mensagem de Status Fixa -->
+<div id="statusMsg" class="status-bar"></div>
 
 <main>
 
-    <!-- PRODUTOR -->
+    <!-- SEÇÃO: PRODUTOR -->
     <div class="card">
         <div class="card-header">👤 Produtor</div>
         <div class="card-body">
             <div class="produtor-grid">
                 <div class="field autocomplete-wrap">
                     <label>Matrícula / Nome</label>
-                    <input type="text" id="matriculaInput" placeholder="Buscar…"
+                    <input type="text" id="matriculaInput" placeholder="Buscar produtor..."
                         autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
                     <div id="autocompleteList" class="autocomplete-list"></div>
                 </div>
@@ -400,8 +597,8 @@
                     <input type="text" id="produtorInput" readonly placeholder="—">
                 </div>
                 <div class="field">
-                    <label>📅 Data</label>
-                    <input type="text" id="dataRegistro" readonly>
+                    <label>📅 Data de Registro</label>
+                    <input type="text" id="dataRegistro" readonly placeholder="--/--/---- --:--">
                 </div>
             </div>
             <div id="produtorBanner" class="produtor-banner"></div>
@@ -409,7 +606,7 @@
         </div>
     </div>
 
-    <!-- VARIEDADE -->
+    <!-- SEÇÃO: VARIEDADE -->
     <div class="card">
         <div class="card-header">🌾 Variedade do Alho</div>
         <div class="card-body">
@@ -421,7 +618,7 @@
         </div>
     </div>
 
-    <!-- MOVIMENTAÇÃO — banca / toletagem -->
+    <!-- SEÇÃO: MOVIMENTAÇÃO (Apenas para Banca/Toletagem) -->
     {% if role != 'classificacao' %}
     <div class="card">
         <div class="card-header">⚙️ Movimentação</div>
@@ -433,7 +630,7 @@
                         {% if role == 'banca' %}
                         <option value="Classificação">Classificação</option>
                         <option value="Toletagem">Toletagem</option>
-                        {% else %}
+                        {% else %} {# role == 'toletagem' #}
                         <option value="Classificação">Classificação</option>
                         <option value="Banca">Banca</option>
                         {% endif %}
@@ -442,14 +639,14 @@
                 </div>
                 <div class="field">
                     <label>⏱️ Horas de Banca</label>
-                    <input type="number" id="horasBanca" step="0.5" value="0" min="0">
+                    <input type="number" id="horasBanca" step="0.5" value="0" min="0" placeholder="0">
                 </div>
             </div>
         </div>
     </div>
     {% endif %}
 
-    <!-- PESAGEM -->
+    <!-- SEÇÃO: PESAGEM -->
     <div class="card">
         <div class="card-header">⚖️ Pesagem</div>
         <div class="card-body">
@@ -463,528 +660,731 @@
 
 </main>
 
+<!-- Botões de Ação Fixos -->
 <div class="botoes">
     <button class="btn btn-danger"    id="limparBtn">🗑️ Limpar</button>
     <button class="btn btn-secondary" id="exemploBtn">📋 Exemplo</button>
     <button class="btn btn-primary"   id="salvarBtn">💾 Registrar</button>
 </div>
 
+<!-- Campo oculto para o destino local -->
 <input type="hidden" id="localDestino"
     value="{{ 'Classificação' if role == 'classificacao' else 'banca' if role == 'banca' else 'toletagem' }}">
 
 <script>
-const ROLE       = "{{ role }}";
-const VALOR_HORA = {{ valor_hora_banca }};
+// --- CONSTANTES GLOBAIS ---
+const ROLE = "{{ role }}";
+const VALOR_HORA_BANCA = parseFloat("{{ valor_hora_banca }}"); // Garante que é um número
 
-// Na classificação, Indústria aparece junto com as demais
-const CLASSES_CLASSIFICACAO = ["INDÚSTRIA","TIPO 2","TIPO 3","TIPO 4","TIPO 5","TIPO 6","TIPO 7"];
-// Na banca/toletagem, Indústria é campo separado; as "classes" são só TIPO 2…7
-const CLASSES_SETOR = ["TIPO 2","TIPO 3","TIPO 4","TIPO 5","TIPO 6","TIPO 7"];
+// Classes de alho:
+// Na classificação, 'INDÚSTRIA' é tratada como uma classe comum.
+const CLASSES_CLASSIFICACAO = ["INDÚSTRIA", "TIPO 2", "TIPO 3", "TIPO 4", "TIPO 5", "TIPO 6", "TIPO 7"];
+// Na banca/toletagem, 'INDÚSTRIA' é um campo separado, e as classes são apenas TIPO 2 a 7.
+const CLASSES_SETOR = ["TIPO 2", "TIPO 3", "TIPO 4", "TIPO 5", "TIPO 6", "TIPO 7"];
 
-const CLASSE_MAP = {
-    "INDÚSTRIA":"Indústria","TIPO 2":"Classe 2","TIPO 3":"Classe 3",
-    "TIPO 4":"Classe 4","TIPO 5":"Classe 5","TIPO 6":"Classe 6","TIPO 7":"Classe 7"
+// Mapeamento para exibição amigável dos nomes das classes
+const CLASSE_DISPLAY_MAP = {
+    "INDÚSTRIA": "Indústria",
+    "TIPO 2": "Classe 2",
+    "TIPO 3": "Classe 3",
+    "TIPO 4": "Classe 4",
+    "TIPO 5": "Classe 5",
+    "TIPO 6": "Classe 6",
+    "TIPO 7": "Classe 7"
 };
 
-// ── Estado ────────────────────────────────────────────
-let pesos           = {};   // peso por classe TIPO 2…7 (e INDÚSTRIA na classificação)
-let pesoIndustria   = '';   // campo próprio na banca/toletagem
-let pesoQuebra      = '';   // sujeira/perda: sai da origem e vai para tabela perdas
-let saldos          = {};   // saldo disponível por classe (chave = TIPO X ou INDÚSTRIA)
-let saldoTotal      = 0;    // soma de todos os saldos na origem
-let classesComSaldo = [];   // quais CLASSES_SETOR têm saldo > 0
-let produtorAtual   = null;
-let variedade       = 'São Valentim';
-let carregando      = false;
-let buscaTimeout;
+// --- ESTADO DA APLICAÇÃO ---
+let state = {
+    pesos: {},           // Armazena pesos por classe (ex: { "TIPO 2": "150", "TIPO 3": "200" })
+    pesoIndustria: '',   // Peso específico para Indústria (apenas em banca/toletagem)
+    pesoQuebra: '',      // Peso de sujeira/perda (sempre em kg, pode ser decimal)
+    saldos: {},          // Saldo disponível por classe na origem (ex: { "TIPO 2": 500, "INDÚSTRIA": 1000 })
+    saldoTotal: 0,       // Soma total dos saldos disponíveis na origem
+    classesComSaldo: [], // Lista de classes (TIPO 2-7) que possuem saldo > 0 na origem
+    produtorAtual: null, // Objeto do produtor selecionado { id, matricula, nome }
+    variedade: 'São Valentim', // Variedade de alho selecionada
+    isLoading: false,    // Flag para indicar se uma operação de carregamento está em andamento
+    buscaTimeout: null   // Timeout para a busca de produtores
+};
 
-// ── DOM ───────────────────────────────────────────────
-const $  = id => document.getElementById(id);
-const matriculaInput   = $('matriculaInput');
-const produtorInput    = $('produtorInput');
-const produtorIdInput  = $('produtorId');
-const produtorBanner   = $('produtorBanner');
-const autocompleteList = $('autocompleteList');
-const dataRegistro     = $('dataRegistro');
-const pesoList         = $('pesoList');
-const pesoLoading      = $('pesoLoading');
-const pesoLoadingMsg   = $('pesoLoadingMsg');
-const statusMsg        = $('statusMsg');
-const localDestino     = $('localDestino');
-const origemSelect     = ROLE !== 'classificacao' ? $('origemSelect') : null;
-const horasInput       = ROLE !== 'classificacao' ? $('horasBanca')   : null;
-const saldoTag         = $('saldoOrigemTag');
+// --- REFERÊNCIAS DOM ---
+const $ = id => document.getElementById(id); // Helper para obter elementos pelo ID
 
-// ── STATUS ────────────────────────────────────────────
-function showStatus(msg, tipo, dur=5000) {
-    statusMsg.textContent = msg;
-    statusMsg.className   = `status-bar show ${tipo}`;
-    clearTimeout(statusMsg._t);
-    if (dur > 0) statusMsg._t = setTimeout(() => statusMsg.classList.remove('show'), dur);
-}
-function hideStatus() { statusMsg.classList.remove('show'); }
+const el = {
+    matriculaInput: $('matriculaInput'),
+    produtorInput: $('produtorInput'),
+    produtorIdInput: $('produtorId'),
+    produtorBanner: $('produtorBanner'),
+    autocompleteList: $('autocompleteList'),
+    dataRegistro: $('dataRegistro'),
+    pesoList: $('pesoList'),
+    pesoLoading: $('pesoLoading'),
+    pesoLoadingMsg: $('pesoLoadingMsg'),
+    statusMsg: $('statusMsg'),
+    localDestinoInput: $('localDestino'),
+    origemSelect: ROLE !== 'classificacao' ? $('origemSelect') : null,
+    horasInput: ROLE !== 'classificacao' ? $('horasBanca') : null,
+    saldoOrigemTag: $('saldoOrigemTag'),
+    limparBtn: $('limparBtn'),
+    exemploBtn: $('exemploBtn'),
+    salvarBtn: $('salvarBtn')
+};
 
-// ── DATA ──────────────────────────────────────────────
-function atualizarData() {
-    dataRegistro.value = new Date().toLocaleString('pt-BR',
-        {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
-}
+// --- FUNÇÕES DE UTILIDADE ---
 
-// ── LOADING ───────────────────────────────────────────
-function mostrarLoading(msg) {
-    pesoLoadingMsg.textContent = msg || 'Aguardando dados do banco...';
-    pesoLoading.classList.add('show');
-    pesoList.style.opacity = '.2';
-    pesoList.style.pointerEvents = 'none';
-}
-function ocultarLoading() {
-    pesoLoading.classList.remove('show');
-    pesoList.style.opacity = '';
-    pesoList.style.pointerEvents = '';
+/**
+ * Exibe uma mensagem de status na barra superior.
+ * @param {string} msg - A mensagem a ser exibida.
+ * @param {'success'|'error'|'info'|'warning'|'loading'} tipo - O tipo de status para estilização.
+ * @param {number} [dur=5000] - Duração em milissegundos para a mensagem desaparecer (0 para permanente).
+ */
+function showStatus(msg, tipo, dur = 5000) {
+    el.statusMsg.textContent = msg;
+    el.statusMsg.className = `status-bar show ${tipo}`;
+    clearTimeout(el.statusMsg._t); // Limpa timeout anterior
+    if (dur > 0) {
+        el.statusMsg._t = setTimeout(() => el.statusMsg.classList.remove('show'), dur);
+    }
 }
 
-// ── PILLS ─────────────────────────────────────────────
-document.querySelectorAll('.pill').forEach(p => {
-    p.addEventListener('click', () => {
-        document.querySelectorAll('.pill').forEach(x => x.classList.remove('active'));
-        p.classList.add('active');
-        variedade = p.dataset.value;
-        if (ROLE !== 'classificacao' && produtorIdInput.value) {
-            atualizarSaldos(`Buscando estoque de ${variedade}...`);
-        }
+/** Oculta a barra de status. */
+function hideStatus() {
+    el.statusMsg.classList.remove('show');
+}
+
+/** Atualiza o campo de data e hora com o momento atual. */
+function updateDateTime() {
+    el.dataRegistro.value = new Date().toLocaleString('pt-BR', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
     });
-});
+}
 
-// ── AUTOCOMPLETE ──────────────────────────────────────
-matriculaInput.addEventListener('input', e => {
-    const t = e.target.value.trim();
-    if (!t) { autocompleteList.style.display='none'; limparProdutor(); return; }
-    clearTimeout(buscaTimeout);
-    buscaTimeout = setTimeout(async () => {
-        const lista = await fetchJSON(`/api/buscar-produtores?termo=${encodeURIComponent(t)}`);
-        renderAutocomplete(lista || []);
-    }, 280);
-});
-matriculaInput.addEventListener('blur', () => {
-    setTimeout(() => { autocompleteList.style.display='none'; }, 200);
-});
+/**
+ * Mostra o overlay de carregamento para a seção de pesos.
+ * @param {string} [msg='Aguardando dados do banco...'] - Mensagem a ser exibida no overlay.
+ */
+function showLoadingOverlay(msg = 'Aguardando dados do banco...') {
+    state.isLoading = true;
+    el.pesoLoadingMsg.textContent = msg;
+    el.pesoLoading.classList.add('show');
+    el.pesoList.style.opacity = '.2';
+    el.pesoList.style.pointerEvents = 'none'; // Desabilita interações enquanto carrega
+}
 
-function renderAutocomplete(lista) {
-    if (!lista.length) { autocompleteList.style.display='none'; return; }
-    autocompleteList.innerHTML = lista.map(p =>
+/** Oculta o overlay de carregamento. */
+function hideLoadingOverlay() {
+    state.isLoading = false;
+    el.pesoLoading.classList.remove('show');
+    el.pesoList.style.opacity = '';
+    el.pesoList.style.pointerEvents = '';
+}
+
+/**
+ * Faz uma requisição JSON para o servidor.
+ * @param {string} url - A URL do endpoint.
+ * @param {string} [method='GET'] - O método HTTP.
+ * @param {object} [body=null] - O corpo da requisição (para POST, PUT, etc.).
+ * @returns {Promise<object|null>} - A resposta JSON ou null em caso de erro.
+ */
+async function fetchJSON(url, method = 'GET', body = null) {
+    try {
+        const options = {
+            method,
+            headers: { 'Content-Type': 'application/json' }
+        };
+        if (body) {
+            options.body = JSON.stringify(body);
+        }
+        const response = await fetch(url, options);
+        if (!response.ok) {
+            console.error(`HTTP error! status: ${response.status}`);
+            return { sucesso: false, mensagem: `Erro de rede (${response.status})` };
+        }
+        return await response.json();
+    } catch (error) {
+        console.error("Erro na requisição fetchJSON:", error);
+        return { sucesso: false, mensagem: `Falha na comunicação: ${error.message}` };
+    }
+}
+
+// --- FUNÇÕES DE GERENCIAMENTO DE ESTADO E DOM ---
+
+/**
+ * Limpa os dados do produtor selecionado e reseta os pesos.
+ */
+function clearProducerData() {
+    el.matriculaInput.value = '';
+    el.produtorInput.value = '';
+    el.produtorIdInput.value = '';
+    state.produtorAtual = null;
+    state.saldos = {};
+    state.saldoTotal = 0;
+    state.classesComSaldo = [];
+    resetPesos();
+    renderPesos();
+    el.produtorBanner.innerHTML = '';
+    el.produtorBanner.classList.remove('show');
+    hideStatus(); // Limpa status se houver
+}
+
+/**
+ * Renderiza a lista de sugestões de produtores no autocomplete.
+ * @param {Array<object>} producers - Lista de produtores encontrados.
+ */
+function renderAutocomplete(producers) {
+    if (!producers || producers.length === 0) {
+        el.autocompleteList.style.display = 'none';
+        return;
+    }
+    el.autocompleteList.innerHTML = producers.map(p =>
         `<div class="autocomplete-item" data-id="${p.id}" data-mat="${p.matricula}" data-nome="${p.nome}">
             <strong>${p.matricula}</strong> – ${p.nome}
          </div>`
     ).join('');
-    autocompleteList.style.display = 'block';
-    autocompleteList.querySelectorAll('.autocomplete-item').forEach(el => {
-        el.addEventListener('mousedown', () => selecionarProdutor({
-            id: el.dataset.id, matricula: el.dataset.mat, nome: el.dataset.nome
-        }));
-    });
-}
+    el.autocompleteList.style.display = 'block';
 
-function selecionarProdutor(p) {
-    matriculaInput.value  = p.matricula;
-    produtorInput.value   = p.nome;
-    produtorIdInput.value = p.id;
-    produtorAtual = p;
-    autocompleteList.style.display = 'none';
-    produtorBanner.innerHTML = `✅ <strong>${p.nome}</strong> (Matrícula: ${p.matricula})`;
-    produtorBanner.classList.add('show');
-    setTimeout(() => produtorBanner.classList.remove('show'), 3500);
-    if (ROLE !== 'classificacao') {
-        atualizarSaldos(`Buscando estoque de ${p.nome}...`);
-    } else {
-        showStatus(`✅ Produtor selecionado: ${p.nome}`, 'success', 3000);
-    }
-}
-
-function limparProdutor() {
-    produtorInput.value = produtorIdInput.value = '';
-    produtorAtual = null;
-    saldos = {}; saldoTotal = 0; classesComSaldo = [];
-    resetPesos(); renderPesos();
-}
-
-// ── SALDOS ────────────────────────────────────────────
-async function atualizarSaldos(msg) {
-    const pid    = produtorIdInput.value;
-    const origem = origemSelect?.value;
-    if (!pid || !origem) return;
-
-    carregando = true;
-    mostrarLoading(msg || 'Aguardando dados do banco...');
-    showStatus(`⏳ ${msg || 'Buscando saldos...'}`, 'loading', 0);
-
-    const data = await fetchJSON('/api/obter-saldos-todos', 'POST', {
-        produtor_id: parseInt(pid),
-        tipo_alho:   variedade,
-        local:       origem
-    });
-
-    saldos     = data?.sucesso ? (data.saldos || {}) : {};
-    saldoTotal = Object.values(saldos).reduce((s,v) => s+v, 0);
-
-    if (saldoTag) {
-        saldoTag.textContent = saldoTotal > 0
-            ? `Disponível em ${origem}: ${saldoTotal.toLocaleString('pt-BR')} kg`
-            : `Sem estoque em ${origem} para ${variedade}`;
-    }
-
-    // Só exibe classes TIPO 2…7 que têm saldo
-    classesComSaldo = CLASSES_SETOR.filter(c => (saldos[c]||0) > 0);
-    // Limpa pesos de classes que somem do saldo
-    for (const c of CLASSES_SETOR) { if (!classesComSaldo.includes(c)) delete pesos[c]; }
-
-    carregando = false;
-    ocultarLoading();
-
-    const temInd = (saldos['INDÚSTRIA']||0) > 0;
-    if (classesComSaldo.length === 0 && !temInd) {
-        showStatus(`⚠️ Nenhum estoque em ${origem} para ${variedade}.`, 'warning', 6000);
-    } else {
-        hideStatus();
-    }
-    renderPesos();
-}
-
-if (origemSelect) {
-    origemSelect.addEventListener('change', () => {
-        if (produtorIdInput.value) atualizarSaldos(`Buscando saldos em ${origemSelect.value}...`);
-    });
-}
-
-// ── RESET ─────────────────────────────────────────────
-function resetPesos() {
-    pesos = {}; pesoIndustria = ''; pesoQuebra = '';
-}
-
-// ── RENDER ────────────────────────────────────────────
-function renderPesos() {
-    pesoList.innerHTML = '';
-
-    /* ════ CLASSIFICAÇÃO ════════════════════════════ */
-    if (ROLE === 'classificacao') {
-        const hdr = document.createElement('div');
-        hdr.className = 'peso-header';
-        hdr.innerHTML = '<span>Classe</span><span>Peso (kg)</span>';
-        pesoList.appendChild(hdr);
-
-        CLASSES_CLASSIFICACAO.forEach(c => {
-            const val = pesos[c] || '';
-            const row = document.createElement('div');
-            row.className = `peso-row${c==='INDÚSTRIA' ? ' industria-row' : ''}`;
-            row.innerHTML = `
-                <div class="peso-classe">${c==='INDÚSTRIA' ? '🏭 INDÚSTRIA' : c}</div>
-                <input class="peso-input${c==='INDÚSTRIA' ? ' ind' : ''}"
-                    type="number" inputmode="decimal" step="1" min="0"
-                    placeholder="0" value="${val}" data-classe="${c}">
-            `;
-            row.querySelector('input').addEventListener('change', e => {
-                pesos[c] = e.target.value==='' ? '' : String(Math.max(0, Math.round(parseFloat(e.target.value)||0)));
-                e.target.value = pesos[c];
-                renderPesos();
-            });
-            pesoList.appendChild(row);
+    // Adiciona listeners para os itens de autocomplete
+    el.autocompleteList.querySelectorAll('.autocomplete-item').forEach(item => {
+        item.addEventListener('mousedown', (e) => {
+            e.preventDefault(); // Previne que o blur do input feche a lista imediatamente
+            const producer = {
+                id: item.dataset.id,
+                matricula: item.dataset.mat,
+                nome: item.dataset.nome
+            };
+            selectProducer(producer);
         });
+    });
+}
 
-        const total = CLASSES_CLASSIFICACAO.reduce((s,c)=>s+(parseFloat(pesos[c])||0),0);
-        const tot = document.createElement('div');
-        tot.className = 'total-bloco simples';
-        tot.innerHTML = `<span>🔹 TOTAL</span><span>${total.toLocaleString('pt-BR')} kg</span>`;
-        pesoList.appendChild(tot);
-        return;
+/**
+ * Seleciona um produtor e atualiza a UI.
+ * @param {object} producer - O objeto do produtor selecionado.
+ */
+function selectProducer(producer) {
+    el.matriculaInput.value = producer.matricula;
+    el.produtorInput.value = producer.nome;
+    el.produtorIdInput.value = producer.id;
+    state.produtorAtual = producer;
+    el.autocompleteList.style.display = 'none';
+
+    // Exibe banner temporário
+    el.produtorBanner.innerHTML = `✅ <strong>${producer.nome}</strong> (Matrícula: ${producer.matricula})`;
+    el.produtorBanner.classList.add('show');
+    setTimeout(() => el.produtorBanner.classList.remove('show'), 3500);
+
+    // Atualiza saldos se não for classificação
+    if (ROLE !== 'classificacao' && el.origemSelect) {
+        updateSaldos(`Buscando estoque de ${producer.nome}...`);
+    } else {
+        showStatus(`✅ Produtor selecionado: ${producer.nome}`, 'success', 3000);
     }
+}
 
-    /* ════ BANCA / TOLETAGEM ════════════════════════ */
-    /*
-     * Lógica do fluxo:
-     *   Origem tinha X kg
-     *   → Saem: classes (TIPO 2…7) + Indústria + Quebra/Sujeira
-     *   → Total saindo = soma(classes) + indústria + quebra
-     *   → Total saindo deve ser <= saldo disponível na origem
-     *
-     *   Indústria → entra no estoque do destino como classe "Indústria"
-     *   Quebra    → sai da origem e é registrada na tabela `perdas` (não entra no destino)
-     */
+/**
+ * Atualiza os saldos disponíveis na origem selecionada para o produtor e variedade atuais.
+ * @param {string} [loadingMsg='Buscando saldos...'] - Mensagem para o overlay de carregamento.
+ */
+async function updateSaldos(loadingMsg = 'Buscando saldos...') {
+    const producerId = el.produtorIdInput.value;
+    const origem = el.origemSelect ? el.origemSelect.value : null;
 
-    const temInd = (saldos['INDÚSTRIA']||0) > 0;
-    if (classesComSaldo.length === 0 && !temInd) {
-        pesoList.innerHTML = '<div class="sem-estoque">🔍 Nenhuma classe com estoque disponível.<br>Selecione um produtor e origem com saldo.</div>';
-        return;
+    if (!producerId || !origem) return;
+
+    showLoadingOverlay(loadingMsg);
+    showStatus(`⏳ ${loadingMsg}`, 'loading', 0); // Mensagem de status persistente
+
+    const response = await fetchJSON('/api/obter-saldos-todos', 'POST', {
+        produtor_id: parseInt(producerId),
+        tipo_alho: state.variedade,
+        local: origem
+    });
+
+    if (response?.sucesso) {
+        state.saldos = response.saldos || {};
+        state.saldoTotal = Object.values(state.saldos).reduce((sum, value) => sum + (parseFloat(value) || 0), 0);
+
+        // Atualiza a tag de saldo
+        if (el.saldoOrigemTag) {
+            el.saldoOrigemTag.textContent = state.saldoTotal > 0
+                ? `Disponível em ${origem}: ${state.saldoTotal.toLocaleString('pt-BR')} kg`
+                : `Sem estoque em ${origem} para ${state.variedade}`;
+        }
+
+        // Determina quais classes TIPO 2-7 têm saldo e quais devem ser limpas dos pesos
+        state.classesComSaldo = CLASSES_SETOR.filter(c => (state.saldos[c] || 0) > 0);
+        // Remove pesos de classes que não estão mais disponíveis
+        for (const classe of CLASSES_SETOR) {
+            if (!state.classesComSaldo.includes(classe) && state.pesos[classe]) {
+                delete state.pesos[classe];
+            }
+        }
+
+        hideLoadingOverlay();
+        hideStatus(); // Esconde status de loading se não houver erro
+        renderPesos(); // Re-renderiza os pesos com base nos novos saldos
+    } else {
+        hideLoadingOverlay();
+        showStatus(`❌ Erro ao buscar saldos: ${response?.mensagem || 'Desconhecido'}`, 'error', 7000);
+        // Limpa dados de peso e saldo em caso de erro
+        state.saldos = {};
+        state.saldoTotal = 0;
+        state.classesComSaldo = [];
+        resetPesos();
+        renderPesos();
     }
+}
 
-    const hdr = document.createElement('div');
-    hdr.className = 'peso-header';
-    hdr.innerHTML = '<span>Classe</span><span>Peso (kg)</span>';
-    pesoList.appendChild(hdr);
+/** Reseta todos os campos de peso para vazio. */
+function resetPesos() {
+    state.pesos = {};
+    state.pesoIndustria = '';
+    state.pesoQuebra = '';
+}
 
-    // Classes TIPO 2…7
-    classesComSaldo.forEach(c => {
-        const saldo = saldos[c] || 0;
-        const val   = pesos[c] || '';
-        const v     = parseFloat(val) || 0;
-        const exc   = val !== '' && v > saldo;
+/**
+ * Renderiza a seção de pesos com base no estado atual.
+ * Adapta a UI para 'classificacao' vs 'banca'/'toletagem'.
+ */
+function renderPesos() {
+    el.pesoList.innerHTML = ''; // Limpa o conteúdo anterior
+
+    const isClassificacao = ROLE === 'classificacao';
+    const classesToRender = isClassificacao ? CLASSES_CLASSIFICACAO : state.classesComSaldo;
+    const hasIndustriaSaldo = (state.saldos['INDÚSTRIA'] || 0) > 0;
+
+    // --- Cabeçalho da Tabela de Pesos ---
+    const header = document.createElement('div');
+    header.className = 'peso-header';
+    header.innerHTML = `<span>Classe</span><span>Peso (kg)</span>`;
+    el.pesoList.appendChild(header);
+
+    // --- Renderiza Classes TIPO 2-7 ---
+    classesToRender.forEach(classe => {
+        const saldo = state.saldos[classe] || 0;
+        const pesoAtual = state.pesos[classe] || '';
+        const pesoNum = parseFloat(pesoAtual) || 0;
+        const exceedsSaldo = pesoAtual !== '' && pesoNum > saldo; // Verifica se o peso excede o saldo
 
         const row = document.createElement('div');
-        row.className = `peso-row${exc ? ' excede' : ''}`;
+        row.className = `peso-row ${exceedsSaldo ? 'excede' : ''}`;
         row.innerHTML = `
             <div class="peso-classe">
-                ${c}
-                <div class="peso-saldo">disp: ${saldo.toLocaleString('pt-BR')} kg</div>
+                ${CLASSE_DISPLAY_MAP[classe]}
+                ${!isClassificacao ? `<div class="peso-saldo">disp: ${saldo.toLocaleString('pt-BR')} kg</div>` : ''}
             </div>
-            <input class="peso-input" type="number" inputmode="decimal"
-                step="1" min="0" placeholder="0"
-                value="${val}" data-classe="${c}">
+            <input class="peso-input ${isClassificacao ? '' : (classe === 'INDÚSTRIA' ? 'ind' : '')}"
+                type="number" inputmode="decimal" step="1" min="0"
+                placeholder="0" value="${pesoAtual}" data-classe="${classe}">
         `;
-        row.querySelector('input').addEventListener('change', e => {
-            pesos[c] = e.target.value==='' ? '' : String(Math.max(0, Math.round(parseFloat(e.target.value)||0)));
-            e.target.value = pesos[c];
-            renderPesos();
+
+        // Adiciona listener para o input de peso
+        const input = row.querySelector('input');
+        input.addEventListener('change', (e) => {
+            const value = e.target.value.trim();
+            // Valida e sanitiza o input: apenas números, no máximo 2 casas decimais para quebra, 0 para outros
+            let sanitizedValue = '';
+            if (value !== '') {
+                const numValue = parseFloat(value);
+                if (!isNaN(numValue)) {
+                    if (classe === '__QUEBRA__') { // Quebra pode ter decimais
+                        sanitizedValue = Math.max(0, numValue).toFixed(2);
+                    } else { // Outras classes são inteiros
+                        sanitizedValue = String(Math.max(0, Math.round(numValue)));
+                    }
+                }
+            }
+            e.target.value = sanitizedValue; // Atualiza o valor no input
+
+            // Atualiza o estado
+            if (classe === '__QUEBRA__') {
+                state.pesoQuebra = sanitizedValue;
+            } else if (classe === 'INDÚSTRIA') {
+                state.pesoIndustria = sanitizedValue;
+            } else {
+                state.pesos[classe] = sanitizedValue;
+            }
+            renderPesos(); // Re-renderiza para atualizar totais e destaques
         });
-        pesoList.appendChild(row);
+        el.pesoList.appendChild(row);
     });
 
-    // Indústria (campo próprio — vai para o estoque do destino)
-    if (temInd) {
-        const saldoInd = saldos['INDÚSTRIA'] || 0;
-        const exc = pesoIndustria !== '' && parseFloat(pesoIndustria) > saldoInd;
-        const rowI = document.createElement('div');
-        rowI.className = `peso-row industria-row${exc ? ' excede' : ''}`;
-        rowI.innerHTML = `
+    // --- Renderiza Campo de Indústria (apenas em Banca/Toletagem) ---
+    if (!isClassificacao && hasIndustriaSaldo) {
+        const saldoInd = state.saldos['INDÚSTRIA'] || 0;
+        const pesoIndNum = parseFloat(state.pesoIndustria) || 0;
+        const exceedsSaldoInd = state.pesoIndustria !== '' && pesoIndNum > saldoInd;
+
+        const rowInd = document.createElement('div');
+        rowInd.className = `peso-row industria-row ${exceedsSaldoInd ? 'excede' : ''}`;
+        rowInd.innerHTML = `
             <div class="peso-classe">
                 🏭 INDÚSTRIA
-                <div class="peso-saldo">disp: ${saldoInd.toLocaleString('pt-BR')} kg → vai para o destino</div>
+                <div class="peso-saldo">disp: ${saldoInd.toLocaleString('pt-BR')} kg → entra no destino</div>
             </div>
             <input class="peso-input ind" type="number" inputmode="decimal"
                 step="1" min="0" placeholder="0"
-                value="${pesoIndustria}" id="inputIndustria">
+                value="${state.pesoIndustria}" id="inputIndustria">
         `;
-        rowI.querySelector('input').addEventListener('change', e => {
-            pesoIndustria = e.target.value==='' ? '' : String(Math.max(0, Math.round(parseFloat(e.target.value)||0)));
-            e.target.value = pesoIndustria;
+        const inputInd = rowInd.querySelector('input');
+        inputInd.addEventListener('change', (e) => {
+            const value = e.target.value.trim();
+            let sanitizedValue = '';
+            if (value !== '') {
+                const numValue = parseFloat(value);
+                if (!isNaN(numValue)) {
+                    sanitizedValue = String(Math.max(0, Math.round(numValue)));
+                }
+            }
+            e.target.value = sanitizedValue;
+            state.pesoIndustria = sanitizedValue;
             renderPesos();
         });
-        pesoList.appendChild(rowI);
+        el.pesoList.appendChild(rowInd);
     }
 
-    // Separador visual antes da quebra
-    pesoList.appendChild(Object.assign(document.createElement('div'), {className:'peso-separator'}));
+    // --- Separador Visual ---
+    const separator = document.createElement('div');
+    separator.className = 'peso-separator';
+    el.pesoList.appendChild(separator);
 
-    // Quebra / Sujeira — sai da origem e vai para tabela perdas (NÃO entra no destino)
-    const rowQ = document.createElement('div');
-    rowQ.className = 'peso-row quebra-row';
-    rowQ.title = 'Peso de sujeiras e alhos ruins — são removidos do estoque de origem e registrados como perda';
-    rowQ.innerHTML = `
+    // --- Renderiza Campo de Quebra/Sujeira (sempre em Banca/Toletagem) ---
+    const rowQuebra = document.createElement('div');
+    rowQuebra.className = 'peso-row quebra-row';
+    rowQuebra.title = 'Peso de sujeiras e alhos ruins — são removidos do estoque de origem e registrados como perda';
+    rowQuebra.innerHTML = `
         <div class="peso-classe" style="color:var(--danger)">
             ⚠️ QUEBRA / SUJEIRA
             <div class="peso-saldo" style="color:#c03">Removido da origem → registrado como perda</div>
         </div>
         <input class="peso-input qbr" type="number" inputmode="decimal"
             step="0.1" min="0" placeholder="0"
-            value="${pesoQuebra}" id="inputQuebra">
+            value="${state.pesoQuebra}" id="inputQuebra">
     `;
-    rowQ.querySelector('input').addEventListener('change', e => {
-        pesoQuebra = e.target.value==='' ? '' : String(Math.max(0, parseFloat(e.target.value)||0));
-        e.target.value = pesoQuebra;
+    const inputQuebra = rowQuebra.querySelector('input');
+    inputQuebra.addEventListener('change', (e) => {
+        const value = e.target.value.trim();
+        let sanitizedValue = '';
+        if (value !== '') {
+            const numValue = parseFloat(value);
+            if (!isNaN(numValue)) {
+                sanitizedValue = Math.max(0, numValue).toFixed(2); // Quebra pode ter decimais
+            }
+        }
+        e.target.value = sanitizedValue;
+        state.pesoQuebra = sanitizedValue;
         renderPesos();
     });
-    pesoList.appendChild(rowQ);
+    el.pesoList.appendChild(rowQuebra);
 
-    // ── Bloco de totais ───────────────────────────────
-    const totClasses  = classesComSaldo.reduce((s,c) => s+(parseFloat(pesos[c])||0), 0);
-    const totInd      = parseFloat(pesoIndustria) || 0;
-    const totQuebra   = parseFloat(pesoQuebra)    || 0;
-    const totSaindo   = totClasses + totInd + totQuebra;   // bruto que sai da origem
-    const excede      = totSaindo > saldoTotal + 0.001;
+    // --- Bloco de Totais ---
+    const totalClasses = classesToRender.reduce((sum, c) => sum + (parseFloat(state.pesos[c]) || 0), 0);
+    const totalIndustria = isClassificacao ? 0 : (parseFloat(state.pesoIndustria) || 0);
+    const totalQuebra = parseFloat(state.pesoQuebra) || 0;
+    const totalSaindoOrigem = totalClasses + totalIndustria + totalQuebra;
+    const exceedsTotalSaldo = totalSaindoOrigem > state.saldoTotal + 0.001; // Adiciona uma pequena tolerância
 
-    const bloco = document.createElement('div');
-    bloco.className = 'total-bloco';
-    bloco.style.background = excede ? 'var(--danger-bg)' : 'var(--verde-light)';
-    bloco.style.border     = `2px solid ${excede ? 'var(--danger-border)' : '#b8d9b5'}`;
-    bloco.style.borderRadius = '10px';
+    const totalBlock = document.createElement('div');
+    totalBlock.className = 'total-bloco';
+    totalBlock.style.background = exceedsTotalSaldo ? 'var(--danger-bg)' : 'var(--verde-light)';
+    totalBlock.style.borderColor = exceedsTotalSaldo ? 'var(--danger-border)' : '#b8d9b5';
 
-    bloco.innerHTML = `
+    let totalBlockHTML = `
         <div class="tl">
-            <span class="lbl">Classes (TIPO 2…7) → entram no destino</span>
-            <span class="verde">${totClasses.toLocaleString('pt-BR')} kg</span>
+            <span class="lbl">Classes (TIPO 2…7)</span>
+            <span class="verde">${totalClasses.toLocaleString('pt-BR')} kg</span>
         </div>
-        ${totInd > 0 ? `
+    `;
+    if (!isClassificacao && totalIndustria > 0) {
+        totalBlockHTML += `
         <div class="tl">
             <span class="lbl">🏭 Indústria → entra no destino</span>
-            <span class="amarelo">${totInd.toLocaleString('pt-BR')} kg</span>
-        </div>` : ''}
-        ${totQuebra > 0 ? `
+            <span class="amarelo">${totalIndustria.toLocaleString('pt-BR')} kg</span>
+        </div>`;
+    }
+    if (totalQuebra > 0) {
+        totalBlockHTML += `
         <div class="tl">
             <span class="lbl">⚠️ Quebra / Sujeira → perda na origem</span>
-            <span class="vermelho">− ${totQuebra.toLocaleString('pt-BR')} kg</span>
-        </div>` : ''}
+            <span class="vermelho">− ${totalQuebra.toLocaleString('pt-BR')} kg</span>
+        </div>`;
+    }
+    totalBlockHTML += `
         <div class="tl destaque">
             <span class="lbl">🔹 Total saindo da origem</span>
-            <span class="${excede ? 'vermelho' : 'verde'} grande">${totSaindo.toLocaleString('pt-BR')} kg</span>
+            <span class="${exceedsTotalSaldo ? 'vermelho' : 'verde'} grande">${totalSaindoOrigem.toLocaleString('pt-BR')} kg</span>
         </div>
         <div class="tl" style="font-size:.8rem;color:var(--muted)">
             <span>Saldo disponível na origem</span>
-            <span>${saldoTotal.toLocaleString('pt-BR')} kg</span>
+            <span>${state.saldoTotal.toLocaleString('pt-BR')} kg</span>
         </div>
-        ${excede ? `<div class="alerta-excede">❌ Total excede o saldo em ${(totSaindo-saldoTotal).toLocaleString('pt-BR')} kg</div>` : ''}
     `;
-    pesoList.appendChild(bloco);
+    if (exceedsTotalSaldo) {
+        totalBlockHTML += `<div class="alerta-excede">❌ Total excede o saldo em ${(totalSaindoOrigem - state.saldoTotal).toLocaleString('pt-BR')} kg</div>`;
+    }
+    totalBlock.innerHTML = totalBlockHTML;
+    el.pesoList.appendChild(totalBlock);
+
+    // Se não houver classes com saldo e não for classificação, exibe mensagem de "sem estoque"
+    if (!isClassificacao && classesToRender.length === 0 && !hasIndustriaSaldo) {
+        el.pesoList.innerHTML = '<div class="sem-estoque">🔍 Nenhuma classe com estoque disponível.<br>Selecione um produtor e origem com saldo.</div>';
+    }
 }
 
-// ── LIMPAR ────────────────────────────────────────────
-function limpar() { resetPesos(); renderPesos(); showStatus('✅ Formulário limpo.','success',2500); }
-
-// ── EXEMPLO ───────────────────────────────────────────
-function carregarExemplo() {
-    if (ROLE !== 'classificacao' && classesComSaldo.length===0 && !(saldos['INDÚSTRIA']>0)) {
-        showStatus('⚠️ Selecione produtor e origem primeiro.','warning'); return;
-    }
-    if (ROLE === 'classificacao') {
-        const ex = {
-            'São Valentim':{'INDÚSTRIA':150,'TIPO 2':512,'TIPO 3':870,'TIPO 4':1269,'TIPO 5':579,'TIPO 6':199,'TIPO 7':45},
-            'Ito':         {'INDÚSTRIA':200,'TIPO 2':780,'TIPO 3':1250,'TIPO 4':890,'TIPO 5':445,'TIPO 6':267,'TIPO 7':89},
-            'Chonan':      {'INDÚSTRIA':180,'TIPO 2':650,'TIPO 3':980,'TIPO 4':1540,'TIPO 5':720,'TIPO 6':310,'TIPO 7':125},
-        }[variedade] || {};
-        CLASSES_CLASSIFICACAO.forEach(c => { if (ex[c]!==undefined) pesos[c]=String(ex[c]); });
-    } else {
-        classesComSaldo.forEach((c,i) => { pesos[c] = String(100*(i+2)); });
-        if ((saldos['INDÚSTRIA']||0) > 0) pesoIndustria = '50';
-        pesoQuebra = '2';
-    }
+/** Limpa todos os campos de peso e re-renderiza a seção. */
+function clearPesos() {
+    resetPesos();
     renderPesos();
-    showStatus(`📋 Exemplo ${variedade} carregado.`,'info',2500);
+    showStatus('✅ Campos de peso limpos.', 'success', 2500);
 }
 
-// ── SALVAR ────────────────────────────────────────────
-async function salvar() {
-    if (carregando) { showStatus('⏳ Aguarde o carregamento dos saldos.','warning'); return; }
-
-    const pid    = produtorIdInput.value;
-    const pnome  = produtorInput.value.trim();
-    const local  = localDestino.value;
-    const origem = origemSelect?.value ?? null;
-    const horas  = parseFloat(horasInput?.value) || 0;
-
-    if (!pid||!pnome) { showStatus('❌ Selecione um produtor.','error'); return; }
-    if (ROLE!=='classificacao'&&!origem) { showStatus('❌ Selecione a origem.','error'); return; }
-
-    const detalhes = [];
-    let totSaindo  = 0;
-
-    if (ROLE === 'classificacao') {
-        for (const c of CLASSES_CLASSIFICACAO) {
-            const p = parseFloat(pesos[c])||0;
-            if (p<=0) continue;
-            detalhes.push({classe:c, peso:p, tipo:'classe'});
-            totSaindo += p;
-        }
-    } else {
-        // Classes TIPO 2…7 — entram no destino
-        for (const c of classesComSaldo) {
-            const p = parseFloat(pesos[c])||0;
-            if (p<=0) continue;
-            if (p > (saldos[c]||0)) {
-                showStatus(`❌ ${c}: peso (${p} kg) excede saldo (${saldos[c]} kg).`,'error'); return;
-            }
-            detalhes.push({classe:c, peso:p, tipo:'classe'});
-            totSaindo += p;
-        }
-        // Indústria — entra no destino
-        const indP = parseFloat(pesoIndustria)||0;
-        if (indP > 0) {
-            if (indP > (saldos['INDÚSTRIA']||0)) {
-                showStatus(`❌ INDÚSTRIA: peso (${indP} kg) excede saldo (${saldos['INDÚSTRIA']} kg).`,'error'); return;
-            }
-            detalhes.push({classe:'INDÚSTRIA', peso:indP, tipo:'industria'});
-            totSaindo += indP;
-        }
-        // Quebra/Sujeira — removida da origem, registrada como perda
-        const qP = parseFloat(pesoQuebra)||0;
-        if (qP > 0) {
-            detalhes.push({classe:'__QUEBRA__', peso:qP, tipo:'quebra'});
-            totSaindo += qP;
-        }
-    }
-
-    if (detalhes.filter(d=>d.tipo!=='quebra').length===0) {
-        showStatus('⚠️ Preencha pelo menos um peso.','warning'); return;
-    }
-    if (ROLE!=='classificacao' && totSaindo > saldoTotal+0.001) {
-        showStatus(`❌ Total (${totSaindo.toLocaleString('pt-BR')} kg) excede saldo disponível (${saldoTotal.toLocaleString('pt-BR')} kg).`,'error');
+/** Carrega dados de exemplo para os campos de peso. */
+function loadExamplePesos() {
+    if (ROLE !== 'classificacao' && state.classesComSaldo.length === 0 && !(state.saldos['INDÚSTRIA'] > 0)) {
+        showStatus('⚠️ Selecione produtor e origem primeiro para carregar exemplo.', 'warning');
         return;
     }
 
-    const destLabel = local==='Classificação'?'Classificação':local==='banca'?'Banca':'Toletagem';
-    const qP  = parseFloat(pesoQuebra)||0;
-    const indP = parseFloat(pesoIndustria)||0;
-    let conf = `Confirmar ${ROLE==='classificacao'?'entrada':'transferência'}?\n\n`
-             + `Produtor: ${pnome}\nVariedade: ${variedade}\nDestino: ${destLabel}\n`
-             + `Total saindo da origem: ${totSaindo.toLocaleString('pt-BR')} kg`;
-    if (ROLE!=='classificacao') {
-        conf += `\nOrigem: ${origem}`;
-        if (indP>0) conf += `\n🏭 Indústria: ${indP} kg → entra em ${destLabel}`;
-        if (qP>0)   conf += `\n⚠️ Quebra/Sujeira: ${qP} kg → perda (removida da ${origem})`;
+    let exampleData = {};
+    if (ROLE === 'classificacao') {
+        exampleData = {
+            'São Valentim': { 'INDÚSTRIA': 150, 'TIPO 2': 512, 'TIPO 3': 870, 'TIPO 4': 1269, 'TIPO 5': 579, 'TIPO 6': 199, 'TIPO 7': 45 },
+            'Ito': { 'INDÚSTRIA': 200, 'TIPO 2': 780, 'TIPO 3': 1250, 'TIPO 4': 890, 'TIPO 5': 445, 'TIPO 6': 267, 'TIPO 7': 89 },
+            'Chonan': { 'INDÚSTRIA': 180, 'TIPO 2': 650, 'TIPO 3': 980, 'TIPO 4': 1540, 'TIPO 5': 720, 'TIPO 6': 310, 'TIPO 7': 125 },
+        }[state.variedade] || {};
+        CLASSES_CLASSIFICACAO.forEach(c => { if (exampleData[c] !== undefined) state.pesos[c] = String(exampleData[c]); });
+    } else { // Banca / Toletagem
+        // Distribui pesos entre as classes com saldo, até um limite razoável
+        const classesAvailable = [...state.classesComSaldo];
+        if ((state.saldos['INDÚSTRIA'] || 0) > 0) classesAvailable.push('INDÚSTRIA');
+
+        classesAvailable.forEach((c, i) => {
+            const baseWeight = 100 + (i * 20); // Peso base crescente
+            const maxWeight = state.saldos[c] || Infinity;
+            state.pesos[c] = String(Math.min(baseWeight, maxWeight));
+        });
+        if ((state.saldos['INDÚSTRIA'] || 0) > 0) state.pesoIndustria = '50';
+        state.pesoQuebra = '2.5'; // Exemplo de quebra
     }
-    if (horas>0) conf += `\nHoras de banca: ${horas}`;
-    if (!confirm(conf)) return;
+    renderPesos();
+    showStatus(`📋 Exemplo de ${state.variedade} carregado.`, 'info', 2500);
+}
 
-    const btn = $('salvarBtn');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span>Salvando…';
+/**
+ * Valida os dados e envia para salvar.
+ */
+async function saveEntry() {
+    if (state.isLoading) {
+        showStatus('⏳ Aguarde o carregamento dos saldos.', 'warning');
+        return;
+    }
 
-    const result = await fetchJSON('/api/salvar-entrada','POST',{
-        produtor_id:  parseInt(pid),
-        tipo_alho:    variedade,
-        local,
-        local_origem: origem,
-        detalhes,
-        horas_banca:  horas,
+    const producerId = el.produtorIdInput.value;
+    const producerName = el.produtorInput.value.trim();
+    const destination = el.localDestinoInput.value;
+    const origin = el.origemSelect ? el.origemSelect.value : null;
+    const bankHours = parseFloat(el.horasInput?.value) || 0;
+
+    // --- Validações ---
+    if (!producerId || !producerName) {
+        showStatus('❌ Selecione um produtor.', 'error');
+        return;
+    }
+    if (ROLE !== 'classificacao' && !origin) {
+        showStatus('❌ Selecione a origem.', 'error');
+        return;
+    }
+
+    const details = [];
+    let totalWeightLeavingOrigin = 0;
+    let hasClassesWeight = false; // Flag para verificar se há peso em classes (TIPO 2-7 ou INDÚSTRIA)
+
+    // --- Coleta de Detalhes de Peso ---
+    if (ROLE === 'classificacao') {
+        for (const classe of CLASSES_CLASSIFICACAO) {
+            const peso = parseFloat(state.pesos[classe]) || 0;
+            if (peso > 0) {
+                details.push({ classe: classe, peso: peso, type: 'class' });
+                totalWeightLeavingOrigin += peso;
+                hasClassesWeight = true;
+            }
+        }
+    } else { // Banca / Toletagem
+        // Classes TIPO 2-7
+        for (const classe of state.classesComSaldo) {
+            const peso = parseFloat(state.pesos[classe]) || 0;
+            if (peso > 0) {
+                // Validação de saldo
+                if (peso > (state.saldos[classe] || 0)) {
+                    showStatus(`❌ ${CLASSE_DISPLAY_MAP[classe]}: peso (${peso.toLocaleString('pt-BR')} kg) excede saldo disponível (${(state.saldos[classe] || 0).toLocaleString('pt-BR')} kg).`, 'error');
+                    return;
+                }
+                details.push({ classe: classe, peso: peso, type: 'class' });
+                totalWeightLeavingOrigin += peso;
+                hasClassesWeight = true;
+            }
+        }
+        // Indústria
+        const industriaWeight = parseFloat(state.pesoIndustria) || 0;
+        if (industriaWeight > 0) {
+            // Validação de saldo para Indústria
+            if (industriaWeight > (state.saldos['INDÚSTRIA'] || 0)) {
+                showStatus(`❌ Indústria: peso (${industriaWeight.toLocaleString('pt-BR')} kg) excede saldo disponível (${(state.saldos['INDÚSTRIA'] || 0).toLocaleString('pt-BR')} kg).`, 'error');
+                return;
+            }
+            details.push({ classe: 'INDÚSTRIA', peso: industriaWeight, type: 'industry' });
+            totalWeightLeavingOrigin += industriaWeight;
+            hasClassesWeight = true;
+        }
+        // Quebra/Sujeira
+        const quebraWeight = parseFloat(state.pesoQuebra) || 0;
+        if (quebraWeight > 0) {
+            details.push({ classe: '__QUEBRA__', peso: quebraWeight, type: 'loss' });
+            totalWeightLeavingOrigin += quebraWeight; // Quebra também sai da origem
+        }
+    }
+
+    // --- Validação Final ---
+    if (details.filter(d => d.type !== 'loss').length === 0) {
+        showStatus('⚠️ Preencha pelo menos um peso para registrar.', 'warning');
+        return;
+    }
+    if (!isClassificacao && totalWeightLeavingOrigin > state.saldoTotal + 0.001) {
+        showStatus(`❌ Total saindo da origem (${totalWeightLeavingOrigin.toLocaleString('pt-BR')} kg) excede o saldo total disponível (${state.saldoTotal.toLocaleString('pt-BR')} kg).`, 'error');
+        return;
+    }
+
+    // --- Confirmação do Usuário ---
+    const destinationLabel = destination === 'Classificação' ? 'Classificação' : destination === 'banca' ? 'Banca' : 'Toletagem';
+    let confirmationMessage = `Confirmar ${isClassificacao ? 'entrada' : 'transferência'}?\n\n`
+                            + `Produtor: ${producerName}\nVariedade: ${state.variedade}\nDestino: ${destinationLabel}\n`
+                            + `Total saindo da origem: ${totalWeightLeavingOrigin.toLocaleString('pt-BR')} kg`;
+
+    if (!isClassificacao) {
+        confirmationMessage += `\nOrigem: ${origin}`;
+        if (totalWeightLeavingOrigin > 0) { // Se houver peso total saindo
+            if (parseFloat(state.pesoIndustria) > 0) confirmationMessage += `\n🏭 Indústria: ${parseFloat(state.pesoIndustria).toLocaleString('pt-BR')} kg → entra em ${destinationLabel}`;
+            if (parseFloat(state.pesoQuebra) > 0) confirmationMessage += `\n⚠️ Quebra/Sujeira: ${parseFloat(state.pesoQuebra).toLocaleString('pt-BR')} kg → perda (removida da ${origin})`;
+        }
+    }
+    if (bankHours > 0) confirmationMessage += `\nHoras de banca: ${bankHours}`;
+
+    if (!confirm(confirmationMessage)) return;
+
+    // --- Processo de Salvamento ---
+    const saveButton = el.salvarBtn;
+    saveButton.disabled = true;
+    saveButton.innerHTML = '<span class="spinner"></span>Salvando…';
+
+    const response = await fetchJSON('/api/salvar-entrada', 'POST', {
+        produtor_id: parseInt(producerId),
+        tipo_alho: state.variedade,
+        destination_local: destination,
+        origin_local: origin,
+        details: details,
+        bank_hours: bankHours,
     });
 
-    btn.disabled = false;
-    btn.innerHTML = '💾 Registrar';
+    saveButton.disabled = false;
+    saveButton.innerHTML = '💾 Registrar';
 
-    if (result?.sucesso) {
-        showStatus(`✅ ${result.mensagem}`,'success',7000);
-        resetPesos();
-        if (horasInput) horasInput.value = 0;
-        if (ROLE!=='classificacao'&&produtorIdInput.value) atualizarSaldos('Atualizando saldos...');
-        else renderPesos();
+    if (response?.sucesso) {
+        showStatus(`✅ ${response.mensagem}`, 'success', 7000);
+        resetPesos(); // Limpa pesos após salvar
+        if (el.horasInput) el.horasInput.value = '0'; // Reseta horas de banca
+
+        // Atualiza saldos se for banca/toletagem e houver produtor selecionado
+        if (!isClassificacao && el.produtorIdInput.value) {
+            updateSaldos('Atualizando saldos...');
+        } else {
+            renderPesos(); // Re-renderiza pesos (mesmo que vazios)
+        }
+
+        // Pergunta se deseja registrar outro produtor
         setTimeout(() => {
-            if (confirm('Registro salvo! Registrar outro produtor?')) {
-                matriculaInput.value = produtorInput.value = produtorIdInput.value = '';
-                produtorAtual=null; saldos={}; saldoTotal=0; classesComSaldo=[];
-                resetPesos(); renderPesos(); matriculaInput.focus();
+            if (confirm('Registro salvo com sucesso! Deseja registrar outro produtor?')) {
+                clearProducerData(); // Limpa todos os dados do formulário
+                el.matriculaInput.focus(); // Foca no input de matrícula
             }
         }, 700);
     } else {
-        showStatus(`❌ ${result?.mensagem||'Erro ao salvar.'}`,'error');
+        showStatus(`❌ ${response?.mensagem || 'Erro ao salvar registro.'}`, 'error');
     }
 }
 
-// ── FETCH ─────────────────────────────────────────────
-async function fetchJSON(url, method='GET', body=null) {
-    try {
-        const opts = {method, headers:{'Content-Type':'application/json'}};
-        if (body) opts.body = JSON.stringify(body);
-        const r = await fetch(url, opts);
-        return await r.json();
-    } catch(e) { console.error(e); return null; }
+// --- LISTENERS DE EVENTOS ---
+
+/** Inicializa os listeners de eventos para os elementos da página. */
+function setupEventListeners() {
+    // Input de Matrícula/Nome para Autocomplete
+    el.matriculaInput.addEventListener('input', () => {
+        const searchTerm = el.matriculaInput.value.trim();
+        if (!searchTerm) {
+            el.autocompleteList.style.display = 'none';
+            clearProducerData(); // Limpa dados do produtor se o campo ficar vazio
+            return;
+        }
+        clearTimeout(state.buscaTimeout); // Cancela timeout anterior
+        state.buscaTimeout = setTimeout(async () => {
+            const response = await fetchJSON(`/api/buscar-produtores?termo=${encodeURIComponent(searchTerm)}`);
+            renderAutocomplete(response?.sucesso ? (response.produtores || []) : []);
+        }, 300); // Pequeno delay para evitar chamadas excessivas
+    });
+
+    // Oculta a lista de autocomplete ao perder o foco (com pequeno delay para permitir clique)
+    el.matriculaInput.addEventListener('blur', () => {
+        setTimeout(() => {
+            if (!el.autocompleteList.contains(document.activeElement)) { // Só fecha se o foco não for para a lista
+                el.autocompleteList.style.display = 'none';
+            }
+        }, 200);
+    });
+
+    // Listener para o select de origem (se existir)
+    if (el.origemSelect) {
+        el.origemSelect.addEventListener('change', () => {
+            if (el.produtorIdInput.value) { // Se já houver um produtor selecionado
+                updateSaldos(`Buscando saldos em ${el.origemSelect.value}...`);
+            }
+        });
+    }
+
+    // Listeners para os botões de ação
+    el.limparBtn.onclick = clearPesos;
+    el.exemploBtn.onclick = loadExamplePesos;
+    el.salvarBtn.onclick = saveEntry;
+
+    // Listeners para as pílulas de variedade
+    document.querySelectorAll('.pill').forEach(pill => {
+        pill.addEventListener('click', () => {
+            document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+            pill.classList.add('active');
+            state.variedade = pill.dataset.value;
+            // Se não for classificação e já houver produtor selecionado, atualiza saldos
+            if (ROLE !== 'classificacao' && el.produtorIdInput.value) {
+                updateSaldos(`Buscando estoque de ${state.variedade}...`);
+            } else {
+                renderPesos(); // Re-renderiza pesos caso a variedade mude (ex: classes disponíveis)
+            }
+        });
+    });
 }
 
-// ── INIT ──────────────────────────────────────────────
-function init() {
-    renderPesos();
-    atualizarData();
-    setInterval(atualizarData, 60000);
-    $('limparBtn').onclick  = limpar;
-    $('exemploBtn').onclick = carregarExemplo;
-    $('salvarBtn').onclick  = salvar;
-    showStatus('📝 Digite a matrícula e selecione o produtor.','info',4000);
+// --- INICIALIZAÇÃO ---
+
+/** Função principal de inicialização da página. */
+function initializeApp() {
+    setupEventListeners();
+    updateDateTime(); // Define a data/hora inicial
+    setInterval(updateDateTime, 60000); // Atualiza a cada minuto
+    renderPesos(); // Renderiza a seção de pesos inicialmente (vazia ou com placeholders)
+    showStatus('📝 Digite a matrícula e selecione o produtor.', 'info', 4000); // Mensagem inicial
 }
-init();
+
+// Executa a inicialização quando o DOM estiver pronto
+document.addEventListener('DOMContentLoaded', initializeApp);
+
 </script>
 </body>
 </html>
