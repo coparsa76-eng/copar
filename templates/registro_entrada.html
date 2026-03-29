@@ -18,7 +18,6 @@
             --verde-mid:   #3d7a3a;
             --verde-light: #e8f2e7;
             --verde-pale:  #f4f9f3;
-            --dourado:     #c8a94a;
             --bg:          #f2f5f0;
             --text:        #1a2e19;
             --muted:       #6b7c6a;
@@ -26,7 +25,7 @@
             --white:       #ffffff;
             --danger:      #c0392b;
             --danger-bg:   #fdecea;
-            --warning:     #e67e22;
+            --danger-border:#f5c6c2;
             --radius:      12px;
             --shadow:      0 4px 20px rgba(42,92,40,.1);
         }
@@ -36,10 +35,9 @@
             background: var(--bg);
             color: var(--text);
             min-height: 100dvh;
-            padding-bottom: 5rem;
+            padding-bottom: 5.5rem;
         }
 
-        /* NAV */
         nav {
             background: var(--verde);
             padding: .85rem 1.25rem;
@@ -64,7 +62,6 @@
 
         main { max-width: 700px; margin: 0 auto; padding: 1rem; }
 
-        /* CARD */
         .card {
             background: var(--white);
             border-radius: var(--radius);
@@ -84,7 +81,6 @@
         }
         .card-body { padding: 1rem 1.1rem; }
 
-        /* GRID PRODUTOR */
         .produtor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
         @media (max-width: 480px) { .produtor-grid { grid-template-columns: 1fr; } }
 
@@ -113,14 +109,11 @@
             box-shadow: 0 0 0 3px rgba(42,92,40,.1);
         }
         .field input[readonly] { background: #f0f0f0; color: var(--muted); }
-        .field-full { grid-column: 1 / -1; }
 
-        /* AUTOCOMPLETE */
         .autocomplete-wrap { position: relative; }
         .autocomplete-list {
             position: absolute;
-            top: calc(100% + 4px);
-            left: 0; right: 0;
+            top: calc(100% + 4px); left: 0; right: 0;
             background: var(--white);
             border: 1.5px solid var(--verde);
             border-radius: 10px;
@@ -140,7 +133,6 @@
         .autocomplete-item:hover { background: var(--verde-light); }
         .autocomplete-item strong { color: var(--verde); }
 
-        /* BANNER PRODUTOR */
         .produtor-banner {
             background: var(--verde-light);
             border: 1.5px solid #b8d9b5;
@@ -156,7 +148,6 @@
         }
         .produtor-banner.show { display: flex; }
 
-        /* PILLS */
         .pills { display: flex; gap: .5rem; flex-wrap: wrap; }
         .pill {
             padding: .55rem 1.1rem;
@@ -172,13 +163,11 @@
         }
         .pill.active { background: var(--verde); border-color: var(--verde); color: var(--white); }
 
-        /* EXTRAS */
         .extras-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
         @media (max-width: 480px) { .extras-grid { grid-template-columns: 1fr; } }
-
         .saldo-tag { font-size: .75rem; color: var(--verde-mid); margin-top: .25rem; font-weight: 500; }
 
-        /* ── LOADING OVERLAY ────────────────────────────── */
+        /* LOADING */
         .loading-overlay {
             display: none;
             align-items: center;
@@ -203,28 +192,25 @@
         }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* ── TABELA PESOS ────────────────────────────────── */
-        .peso-list { display: flex; flex-direction: column; gap: .5rem; }
+        /* PESOS */
+        .peso-list { display: flex; flex-direction: column; gap: .45rem; }
 
-        /* Cabeçalho das colunas */
         .peso-header {
             display: grid;
-            grid-template-columns: 1fr 100px 100px;
+            grid-template-columns: 1fr 120px;
             gap: .5rem;
             padding: .3rem .85rem;
-            font-size: .72rem;
+            font-size: .7rem;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: .06em;
             color: var(--muted);
         }
         .peso-header span:last-child { text-align: right; }
-        .peso-header span:nth-child(2) { text-align: right; }
 
-        /* Row de cada classe */
         .peso-row {
             display: grid;
-            grid-template-columns: 1fr 100px 100px;
+            grid-template-columns: 1fr 120px;
             align-items: center;
             gap: .5rem;
             padding: .6rem .85rem;
@@ -234,50 +220,83 @@
             transition: border-color .2s;
         }
         .peso-row:focus-within { border-color: var(--verde); }
-        .peso-row.excede       { border-color: var(--danger); background: var(--danger-bg); }
-
-        .peso-classe {
-            font-size: .9rem;
-            font-weight: 600;
-            min-width: 0;
+        .peso-row.industria-row {
+            background: #fffbec;
+            border-color: #e8d78a;
         }
-        .peso-saldo { font-size: .72rem; color: var(--muted); white-space: nowrap; }
+        .peso-row.industria-row:focus-within { border-color: #c8a94a; }
+        .peso-row.quebra-row {
+            background: var(--danger-bg);
+            border-color: var(--danger-border);
+        }
+        .peso-row.quebra-row:focus-within { border-color: var(--danger); }
+        .peso-row.excede { border-color: var(--danger) !important; background: var(--danger-bg) !important; }
 
-        /* input de peso e quebra compartilham mesmo estilo */
-        .peso-input, .quebra-input {
+        .peso-classe { font-size: .9rem; font-weight: 600; min-width: 0; }
+        .peso-saldo  { font-size: .72rem; color: var(--muted); }
+
+        .peso-input {
             width: 100%;
-            padding: .55rem .65rem;
+            padding: .55rem .75rem;
             border: 1.5px solid var(--border);
             border-radius: 8px;
             font-family: 'DM Sans', sans-serif;
-            font-size: .93rem;
+            font-size: .95rem;
             text-align: right;
             background: var(--white);
             color: var(--text);
             -webkit-appearance: none;
         }
-        .peso-input:focus, .quebra-input:focus { outline: none; border-color: var(--verde); }
-        .quebra-input { border-color: #f5c6c2; background: #fff9f9; color: var(--danger); }
-        .quebra-input:focus { border-color: var(--danger); }
-        .quebra-input::placeholder { color: #e0a0a0; }
+        .peso-input:focus  { outline: none; border-color: var(--verde); }
+        .peso-input.ind    { border-color: #e8d78a; background: #fffef5; }
+        .peso-input.ind:focus   { border-color: #c8a94a; }
+        .peso-input.qbr    { border-color: var(--danger-border); background: #fff5f5; color: var(--danger); }
+        .peso-input.qbr:focus   { border-color: var(--danger); }
+        .peso-input.qbr::placeholder { color: #e0a0a0; }
 
-        /* Total row */
-        .total-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: .75rem .85rem;
-            background: var(--verde-light);
+        .peso-separator { height: 1px; background: var(--border); margin: .15rem 0; }
+
+        /* TOTAIS */
+        .total-bloco {
             border-radius: 10px;
+            padding: .8rem .85rem;
+            margin-top: .3rem;
+            display: flex;
+            flex-direction: column;
+            gap: .35rem;
+        }
+        .total-bloco.simples {
+            background: var(--verde-light);
             border: 2px solid #b8d9b5;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
             font-weight: 700;
             font-size: 1rem;
-            margin-top: .25rem;
         }
-        .total-row .totals-group { display: flex; gap: 1.5rem; font-size: .88rem; }
-        .total-row .t-quebra { color: var(--danger); }
+        .tl { display: flex; justify-content: space-between; font-size: .88rem; font-weight: 500; }
+        .tl.destaque {
+            font-weight: 700; font-size: .95rem;
+            padding-top: .3rem;
+            border-top: 1.5px dashed var(--border);
+            margin-top: .1rem;
+        }
+        .tl .lbl { color: var(--muted); }
+        .verde   { color: var(--verde); }
+        .amarelo { color: #8a6a00; }
+        .vermelho{ color: var(--danger); }
+        .grande  { font-size: 1.05rem; }
 
-        /* Sem estoque */
+        .alerta-excede {
+            background: var(--danger-bg);
+            border: 1.5px solid var(--danger-border);
+            color: var(--danger);
+            border-radius: 8px;
+            padding: .5rem .85rem;
+            font-size: .82rem;
+            font-weight: 600;
+            margin-top: .2rem;
+        }
         .sem-estoque {
             text-align: center;
             padding: 1.5rem;
@@ -285,11 +304,30 @@
             font-size: .9rem;
         }
 
-        /* BOTÕES */
+        /* STATUS */
+        .status-bar {
+            margin: 0 1rem;
+            padding: .85rem 1rem;
+            border-radius: var(--radius);
+            font-size: .88rem;
+            font-weight: 500;
+            display: none;
+            align-items: center;
+            gap: .5rem;
+            animation: slideIn .25s ease;
+        }
+        @keyframes slideIn { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:none} }
+        .status-bar.show    { display: flex; }
+        .status-bar.success { background: #d5f0de; color: #1a6b35; }
+        .status-bar.error   { background: var(--danger-bg); color: var(--danger); }
+        .status-bar.info    { background: #e3ecf7; color: #1a5276; }
+        .status-bar.warning { background: #fef5e7; color: #7d5a00; }
+        .status-bar.loading { background: var(--verde-light); color: var(--verde); }
+
         .botoes {
             position: sticky;
             bottom: 0;
-            background: rgba(242,245,240,.95);
+            background: rgba(242,245,240,.96);
             backdrop-filter: blur(8px);
             padding: .85rem 1rem;
             display: flex;
@@ -308,31 +346,11 @@
             transition: opacity .2s, transform .1s;
             -webkit-tap-highlight-color: transparent;
         }
-        .btn:active  { transform: scale(.97); }
-        .btn-primary { background: var(--verde); color: var(--white); }
+        .btn:active    { transform: scale(.97); }
+        .btn-primary   { background: var(--verde); color: var(--white); }
         .btn-secondary { background: var(--verde-light); color: var(--verde); border: 1.5px solid #b8d9b5; }
-        .btn-danger    { background: #fdecea; color: var(--danger); border: 1.5px solid #f5c6c2; }
-        .btn:disabled  { opacity: .55; cursor: not-allowed; }
-
-        /* STATUS */
-        .status-bar {
-            margin: 0 1rem;
-            padding: .85rem 1rem;
-            border-radius: var(--radius);
-            font-size: .88rem;
-            font-weight: 500;
-            display: none;
-            align-items: center;
-            gap: .5rem;
-            animation: slideIn .25s ease;
-        }
-        @keyframes slideIn { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:none; } }
-        .status-bar.show    { display: flex; }
-        .status-bar.success { background: #d5f0de; color: #1a6b35; }
-        .status-bar.error   { background: #fdecea; color: var(--danger); }
-        .status-bar.info    { background: #e3ecf7; color: #1a5276; }
-        .status-bar.warning { background: #fef5e7; color: #7d5a00; }
-        .status-bar.loading { background: var(--verde-light); color: var(--verde); }
+        .btn-danger    { background: var(--danger-bg); color: var(--danger); border: 1.5px solid var(--danger-border); }
+        .btn:disabled  { opacity: .5; cursor: not-allowed; }
 
         .spinner {
             width: 18px; height: 18px;
@@ -347,6 +365,7 @@
     </style>
 </head>
 <body>
+
 <nav>
     <div>
         <div class="nav-brand">🌾 COPAR</div>
@@ -364,6 +383,7 @@
 </div>
 
 <main>
+
     <!-- PRODUTOR -->
     <div class="card">
         <div class="card-header">👤 Produtor</div>
@@ -371,7 +391,7 @@
             <div class="produtor-grid">
                 <div class="field autocomplete-wrap">
                     <label>Matrícula / Nome</label>
-                    <input type="text" id="matriculaInput" placeholder="Buscar por matrícula ou nome"
+                    <input type="text" id="matriculaInput" placeholder="Buscar…"
                         autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
                     <div id="autocompleteList" class="autocomplete-list"></div>
                 </div>
@@ -401,7 +421,7 @@
         </div>
     </div>
 
-    <!-- MOVIMENTAÇÃO (apenas banca / toletagem) -->
+    <!-- MOVIMENTAÇÃO — banca / toletagem -->
     {% if role != 'classificacao' %}
     <div class="card">
         <div class="card-header">⚙️ Movimentação</div>
@@ -429,26 +449,18 @@
     </div>
     {% endif %}
 
-    <!-- TABELA PESOS -->
+    <!-- PESAGEM -->
     <div class="card">
-        <div class="card-header">
-            ⚖️ Pesos por Classe
-            {% if role != 'classificacao' %}
-            <span style="font-size:.75rem;font-weight:500;color:var(--muted);margin-left:auto;">
-                Quebra é por classe
-            </span>
-            {% endif %}
-        </div>
+        <div class="card-header">⚖️ Pesagem</div>
         <div class="card-body">
-            <!-- Loading -->
             <div id="pesoLoading" class="loading-overlay">
                 <div class="loader-spin"></div>
                 <span id="pesoLoadingMsg">Aguardando dados do banco...</span>
             </div>
-            <!-- Lista -->
-            <div class="peso-list" id="pesoList"></div>
+            <div id="pesoList" class="peso-list"></div>
         </div>
     </div>
+
 </main>
 
 <div class="botoes">
@@ -464,27 +476,30 @@
 const ROLE       = "{{ role }}";
 const VALOR_HORA = {{ valor_hora_banca }};
 
-// Todas as classes possíveis (usadas na Classificação)
-const TODAS_CLASSES = ["INDÚSTRIA","TIPO 2","TIPO 3","TIPO 4","TIPO 5","TIPO 6","TIPO 7"];
+// Na classificação, Indústria aparece junto com as demais
+const CLASSES_CLASSIFICACAO = ["INDÚSTRIA","TIPO 2","TIPO 3","TIPO 4","TIPO 5","TIPO 6","TIPO 7"];
+// Na banca/toletagem, Indústria é campo separado; as "classes" são só TIPO 2…7
+const CLASSES_SETOR = ["TIPO 2","TIPO 3","TIPO 4","TIPO 5","TIPO 6","TIPO 7"];
 
-// Mapeamento interface → banco
 const CLASSE_MAP = {
     "INDÚSTRIA":"Indústria","TIPO 2":"Classe 2","TIPO 3":"Classe 3",
     "TIPO 4":"Classe 4","TIPO 5":"Classe 5","TIPO 6":"Classe 6","TIPO 7":"Classe 7"
 };
 
-// Estado
-let pesos   = {};   // { "TIPO 2": "500", ... }
-let quebras = {};   // { "TIPO 2": "10", ... }  — por classe
-let saldos  = {};   // { "TIPO 2": 800, ... }
-let classesAtivas = [...TODAS_CLASSES];  // quais classes exibir
-let produtorAtual = null;
-let variedade     = 'São Valentim';
-let carregandoSaldos = false;
+// ── Estado ────────────────────────────────────────────
+let pesos           = {};   // peso por classe TIPO 2…7 (e INDÚSTRIA na classificação)
+let pesoIndustria   = '';   // campo próprio na banca/toletagem
+let pesoQuebra      = '';   // sujeira/perda: sai da origem e vai para tabela perdas
+let saldos          = {};   // saldo disponível por classe (chave = TIPO X ou INDÚSTRIA)
+let saldoTotal      = 0;    // soma de todos os saldos na origem
+let classesComSaldo = [];   // quais CLASSES_SETOR têm saldo > 0
+let produtorAtual   = null;
+let variedade       = 'São Valentim';
+let carregando      = false;
 let buscaTimeout;
 
-// ── ELEMENTOS ────────────────────────────────────────
-const $ = id => document.getElementById(id);
+// ── DOM ───────────────────────────────────────────────
+const $  = id => document.getElementById(id);
 const matriculaInput   = $('matriculaInput');
 const produtorInput    = $('produtorInput');
 const produtorIdInput  = $('produtorId');
@@ -500,8 +515,8 @@ const origemSelect     = ROLE !== 'classificacao' ? $('origemSelect') : null;
 const horasInput       = ROLE !== 'classificacao' ? $('horasBanca')   : null;
 const saldoTag         = $('saldoOrigemTag');
 
-// ── STATUS ───────────────────────────────────────────
-function showStatus(msg, tipo, dur = 5000) {
+// ── STATUS ────────────────────────────────────────────
+function showStatus(msg, tipo, dur=5000) {
     statusMsg.textContent = msg;
     statusMsg.className   = `status-bar show ${tipo}`;
     clearTimeout(statusMsg._t);
@@ -509,33 +524,33 @@ function showStatus(msg, tipo, dur = 5000) {
 }
 function hideStatus() { statusMsg.classList.remove('show'); }
 
-// ── DATA ─────────────────────────────────────────────
+// ── DATA ──────────────────────────────────────────────
 function atualizarData() {
     dataRegistro.value = new Date().toLocaleString('pt-BR',
         {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
 }
 
-// ── LOADING PESOS ────────────────────────────────────
-function mostrarLoadingPesos(msg) {
+// ── LOADING ───────────────────────────────────────────
+function mostrarLoading(msg) {
     pesoLoadingMsg.textContent = msg || 'Aguardando dados do banco...';
     pesoLoading.classList.add('show');
-    pesoList.style.opacity = '.25';
+    pesoList.style.opacity = '.2';
     pesoList.style.pointerEvents = 'none';
 }
-function ocultarLoadingPesos() {
+function ocultarLoading() {
     pesoLoading.classList.remove('show');
     pesoList.style.opacity = '';
     pesoList.style.pointerEvents = '';
 }
 
-// ── VARIEDADE PILLS ───────────────────────────────────
+// ── PILLS ─────────────────────────────────────────────
 document.querySelectorAll('.pill').forEach(p => {
     p.addEventListener('click', () => {
         document.querySelectorAll('.pill').forEach(x => x.classList.remove('active'));
         p.classList.add('active');
         variedade = p.dataset.value;
         if (ROLE !== 'classificacao' && produtorIdInput.value) {
-            atualizarSaldos('Atualizando classes para ' + variedade + '...');
+            atualizarSaldos(`Buscando estoque de ${variedade}...`);
         }
     });
 });
@@ -543,20 +558,19 @@ document.querySelectorAll('.pill').forEach(p => {
 // ── AUTOCOMPLETE ──────────────────────────────────────
 matriculaInput.addEventListener('input', e => {
     const t = e.target.value.trim();
-    if (!t) { autocompleteList.style.display = 'none'; limparProdutor(); return; }
+    if (!t) { autocompleteList.style.display='none'; limparProdutor(); return; }
     clearTimeout(buscaTimeout);
     buscaTimeout = setTimeout(async () => {
         const lista = await fetchJSON(`/api/buscar-produtores?termo=${encodeURIComponent(t)}`);
         renderAutocomplete(lista || []);
     }, 280);
 });
-
 matriculaInput.addEventListener('blur', () => {
-    setTimeout(() => { autocompleteList.style.display = 'none'; }, 200);
+    setTimeout(() => { autocompleteList.style.display='none'; }, 200);
 });
 
 function renderAutocomplete(lista) {
-    if (!lista.length) { autocompleteList.style.display = 'none'; return; }
+    if (!lista.length) { autocompleteList.style.display='none'; return; }
     autocompleteList.innerHTML = lista.map(p =>
         `<div class="autocomplete-item" data-id="${p.id}" data-mat="${p.matricula}" data-nome="${p.nome}">
             <strong>${p.matricula}</strong> – ${p.nome}
@@ -579,35 +593,29 @@ function selecionarProdutor(p) {
     produtorBanner.innerHTML = `✅ <strong>${p.nome}</strong> (Matrícula: ${p.matricula})`;
     produtorBanner.classList.add('show');
     setTimeout(() => produtorBanner.classList.remove('show'), 3500);
-    showStatus(`✅ Produtor selecionado: ${p.nome}`, 'success', 3000);
-
     if (ROLE !== 'classificacao') {
-        atualizarSaldos('Buscando estoque de ' + p.nome + '...');
+        atualizarSaldos(`Buscando estoque de ${p.nome}...`);
+    } else {
+        showStatus(`✅ Produtor selecionado: ${p.nome}`, 'success', 3000);
     }
 }
 
 function limparProdutor() {
-    produtorInput.value = '';
-    produtorIdInput.value = '';
+    produtorInput.value = produtorIdInput.value = '';
     produtorAtual = null;
-    produtorBanner.classList.remove('show');
-    saldos = {};
-    classesAtivas = ROLE === 'classificacao' ? [...TODAS_CLASSES] : [];
-    resetPesos();
-    renderPesos();
+    saldos = {}; saldoTotal = 0; classesComSaldo = [];
+    resetPesos(); renderPesos();
 }
 
 // ── SALDOS ────────────────────────────────────────────
-async function atualizarSaldos(msgLoading) {
+async function atualizarSaldos(msg) {
     const pid    = produtorIdInput.value;
     const origem = origemSelect?.value;
     if (!pid || !origem) return;
 
-    carregandoSaldos = true;
-    mostrarLoadingPesos(msgLoading || 'Aguardando dados do banco...');
-    showStatus('⏳ ' + (msgLoading || 'Buscando saldos...'), 'loading', 0);
-
-    saldos = {};
+    carregando = true;
+    mostrarLoading(msg || 'Aguardando dados do banco...');
+    showStatus(`⏳ ${msg || 'Buscando saldos...'}`, 'loading', 0);
 
     const data = await fetchJSON('/api/obter-saldos-todos', 'POST', {
         produtor_id: parseInt(pid),
@@ -615,190 +623,243 @@ async function atualizarSaldos(msgLoading) {
         local:       origem
     });
 
-    if (data?.sucesso) {
-        saldos = data.saldos || {};
-    }
+    saldos     = data?.sucesso ? (data.saldos || {}) : {};
+    saldoTotal = Object.values(saldos).reduce((s,v) => s+v, 0);
 
-    // Calcular total disponível
-    const totalDisp = Object.values(saldos).reduce((s, v) => s + v, 0);
     if (saldoTag) {
-        saldoTag.textContent = totalDisp > 0
-            ? `Disponível em ${origem}: ${totalDisp.toLocaleString('pt-BR')} kg`
+        saldoTag.textContent = saldoTotal > 0
+            ? `Disponível em ${origem}: ${saldoTotal.toLocaleString('pt-BR')} kg`
             : `Sem estoque em ${origem} para ${variedade}`;
     }
 
-    // Só exibir classes que têm saldo > 0
-    classesAtivas = TODAS_CLASSES.filter(c => (saldos[c] || 0) > 0);
+    // Só exibe classes TIPO 2…7 que têm saldo
+    classesComSaldo = CLASSES_SETOR.filter(c => (saldos[c]||0) > 0);
+    // Limpa pesos de classes que somem do saldo
+    for (const c of CLASSES_SETOR) { if (!classesComSaldo.includes(c)) delete pesos[c]; }
 
-    // Limpar pesos/quebras de classes que não existem mais
-    for (const c of TODAS_CLASSES) {
-        if (!classesAtivas.includes(c)) {
-            delete pesos[c];
-            delete quebras[c];
-        }
-    }
+    carregando = false;
+    ocultarLoading();
 
-    carregandoSaldos = false;
-    ocultarLoadingPesos();
-
-    if (classesAtivas.length === 0) {
-        showStatus(`⚠️ Nenhum estoque encontrado em ${origem} para ${variedade}.`, 'warning', 6000);
+    const temInd = (saldos['INDÚSTRIA']||0) > 0;
+    if (classesComSaldo.length === 0 && !temInd) {
+        showStatus(`⚠️ Nenhum estoque em ${origem} para ${variedade}.`, 'warning', 6000);
     } else {
         hideStatus();
     }
-
     renderPesos();
 }
 
 if (origemSelect) {
     origemSelect.addEventListener('change', () => {
-        if (produtorIdInput.value) {
-            atualizarSaldos('Buscando saldos em ' + origemSelect.value + '...');
-        }
+        if (produtorIdInput.value) atualizarSaldos(`Buscando saldos em ${origemSelect.value}...`);
     });
 }
 
-// ── RESET PESOS ───────────────────────────────────────
+// ── RESET ─────────────────────────────────────────────
 function resetPesos() {
-    pesos   = {};
-    quebras = {};
+    pesos = {}; pesoIndustria = ''; pesoQuebra = '';
 }
 
-// ── RENDER PESOS ─────────────────────────────────────
+// ── RENDER ────────────────────────────────────────────
 function renderPesos() {
     pesoList.innerHTML = '';
 
-    if (classesAtivas.length === 0 && ROLE !== 'classificacao') {
+    /* ════ CLASSIFICAÇÃO ════════════════════════════ */
+    if (ROLE === 'classificacao') {
+        const hdr = document.createElement('div');
+        hdr.className = 'peso-header';
+        hdr.innerHTML = '<span>Classe</span><span>Peso (kg)</span>';
+        pesoList.appendChild(hdr);
+
+        CLASSES_CLASSIFICACAO.forEach(c => {
+            const val = pesos[c] || '';
+            const row = document.createElement('div');
+            row.className = `peso-row${c==='INDÚSTRIA' ? ' industria-row' : ''}`;
+            row.innerHTML = `
+                <div class="peso-classe">${c==='INDÚSTRIA' ? '🏭 INDÚSTRIA' : c}</div>
+                <input class="peso-input${c==='INDÚSTRIA' ? ' ind' : ''}"
+                    type="number" inputmode="decimal" step="1" min="0"
+                    placeholder="0" value="${val}" data-classe="${c}">
+            `;
+            row.querySelector('input').addEventListener('change', e => {
+                pesos[c] = e.target.value==='' ? '' : String(Math.max(0, Math.round(parseFloat(e.target.value)||0)));
+                e.target.value = pesos[c];
+                renderPesos();
+            });
+            pesoList.appendChild(row);
+        });
+
+        const total = CLASSES_CLASSIFICACAO.reduce((s,c)=>s+(parseFloat(pesos[c])||0),0);
+        const tot = document.createElement('div');
+        tot.className = 'total-bloco simples';
+        tot.innerHTML = `<span>🔹 TOTAL</span><span>${total.toLocaleString('pt-BR')} kg</span>`;
+        pesoList.appendChild(tot);
+        return;
+    }
+
+    /* ════ BANCA / TOLETAGEM ════════════════════════ */
+    /*
+     * Lógica do fluxo:
+     *   Origem tinha X kg
+     *   → Saem: classes (TIPO 2…7) + Indústria + Quebra/Sujeira
+     *   → Total saindo = soma(classes) + indústria + quebra
+     *   → Total saindo deve ser <= saldo disponível na origem
+     *
+     *   Indústria → entra no estoque do destino como classe "Indústria"
+     *   Quebra    → sai da origem e é registrada na tabela `perdas` (não entra no destino)
+     */
+
+    const temInd = (saldos['INDÚSTRIA']||0) > 0;
+    if (classesComSaldo.length === 0 && !temInd) {
         pesoList.innerHTML = '<div class="sem-estoque">🔍 Nenhuma classe com estoque disponível.<br>Selecione um produtor e origem com saldo.</div>';
         return;
     }
 
-    const classes = ROLE === 'classificacao' ? TODAS_CLASSES : classesAtivas;
+    const hdr = document.createElement('div');
+    hdr.className = 'peso-header';
+    hdr.innerHTML = '<span>Classe</span><span>Peso (kg)</span>';
+    pesoList.appendChild(hdr);
 
-    // Cabeçalho
-    const header = document.createElement('div');
-    header.className = 'peso-header';
-    if (ROLE !== 'classificacao') {
-        header.innerHTML = `<span>Classe</span><span>Peso (kg)</span><span>Quebra (kg)</span>`;
-    } else {
-        header.innerHTML = `<span>Classe</span><span style="grid-column:2/-1;text-align:right">Peso (kg)</span>`;
-        header.style.gridTemplateColumns = '1fr 100px';
-    }
-    pesoList.appendChild(header);
-
-    classes.forEach(c => {
-        const saldo  = saldos[c] ?? null;
-        const valP   = pesos[c]   || '';
-        const valQ   = quebras[c] || '';
-        const excede = saldo !== null && valP !== '' &&
-                       (parseFloat(valP) + (parseFloat(valQ) || 0)) > saldo;
+    // Classes TIPO 2…7
+    classesComSaldo.forEach(c => {
+        const saldo = saldos[c] || 0;
+        const val   = pesos[c] || '';
+        const v     = parseFloat(val) || 0;
+        const exc   = val !== '' && v > saldo;
 
         const row = document.createElement('div');
-        row.className = `peso-row${excede ? ' excede' : ''}`;
-
-        if (ROLE !== 'classificacao') {
-            row.style.gridTemplateColumns = '1fr 100px 100px';
-            row.innerHTML = `
-                <div class="peso-classe">
-                    ${c}
-                    ${saldo !== null
-                        ? `<div class="peso-saldo">disp: ${saldo.toLocaleString('pt-BR')} kg</div>`
-                        : ''}
-                </div>
-                <input class="peso-input" type="number" inputmode="decimal"
-                    step="1" min="0" placeholder="0"
-                    value="${valP}" data-classe="${c}" data-tipo="peso">
-                <input class="quebra-input" type="number" inputmode="decimal"
-                    step="0.1" min="0" placeholder="0"
-                    value="${valQ}" data-classe="${c}" data-tipo="quebra"
-                    title="Quebra para ${c}">
-            `;
-        } else {
-            row.style.gridTemplateColumns = '1fr 100px';
-            row.innerHTML = `
-                <div class="peso-classe">${c}</div>
-                <input class="peso-input" type="number" inputmode="decimal"
-                    step="1" min="0" placeholder="0"
-                    value="${valP}" data-classe="${c}" data-tipo="peso">
-            `;
-        }
-
-        // Eventos
-        row.querySelectorAll('input').forEach(inp => {
-            inp.addEventListener('change', e => {
-                const cls  = e.target.dataset.classe;
-                const tipo = e.target.dataset.tipo;
-                const val  = e.target.value === '' ? ''
-                    : String(Math.max(0, parseFloat(e.target.value) || 0));
-                e.target.value = val;
-                if (tipo === 'peso')   pesos[cls]   = val;
-                if (tipo === 'quebra') quebras[cls] = val;
-                renderPesos();
-            });
+        row.className = `peso-row${exc ? ' excede' : ''}`;
+        row.innerHTML = `
+            <div class="peso-classe">
+                ${c}
+                <div class="peso-saldo">disp: ${saldo.toLocaleString('pt-BR')} kg</div>
+            </div>
+            <input class="peso-input" type="number" inputmode="decimal"
+                step="1" min="0" placeholder="0"
+                value="${val}" data-classe="${c}">
+        `;
+        row.querySelector('input').addEventListener('change', e => {
+            pesos[c] = e.target.value==='' ? '' : String(Math.max(0, Math.round(parseFloat(e.target.value)||0)));
+            e.target.value = pesos[c];
+            renderPesos();
         });
-
         pesoList.appendChild(row);
     });
 
-    // Totais
-    const totalPeso   = classes.reduce((s, c) => s + (parseFloat(pesos[c])   || 0), 0);
-    const totalQuebra = classes.reduce((s, c) => s + (parseFloat(quebras[c]) || 0), 0);
-    const totalLiquido = totalPeso - totalQuebra;
-
-    const div = document.createElement('div');
-    div.className = 'total-row';
-    if (ROLE !== 'classificacao') {
-        div.innerHTML = `
-            <span>🔹 TOTAL</span>
-            <div class="totals-group">
-                <span>Bruto: <strong>${totalPeso.toLocaleString('pt-BR')} kg</strong></span>
-                <span class="t-quebra">Quebra: <strong>${totalQuebra.toLocaleString('pt-BR')} kg</strong></span>
-                <span>Líquido: <strong>${totalLiquido.toLocaleString('pt-BR')} kg</strong></span>
+    // Indústria (campo próprio — vai para o estoque do destino)
+    if (temInd) {
+        const saldoInd = saldos['INDÚSTRIA'] || 0;
+        const exc = pesoIndustria !== '' && parseFloat(pesoIndustria) > saldoInd;
+        const rowI = document.createElement('div');
+        rowI.className = `peso-row industria-row${exc ? ' excede' : ''}`;
+        rowI.innerHTML = `
+            <div class="peso-classe">
+                🏭 INDÚSTRIA
+                <div class="peso-saldo">disp: ${saldoInd.toLocaleString('pt-BR')} kg → vai para o destino</div>
             </div>
+            <input class="peso-input ind" type="number" inputmode="decimal"
+                step="1" min="0" placeholder="0"
+                value="${pesoIndustria}" id="inputIndustria">
         `;
-    } else {
-        div.innerHTML = `
-            <span>🔹 TOTAL GERAL</span>
-            <span>${totalPeso.toLocaleString('pt-BR')} kg</span>
-        `;
+        rowI.querySelector('input').addEventListener('change', e => {
+            pesoIndustria = e.target.value==='' ? '' : String(Math.max(0, Math.round(parseFloat(e.target.value)||0)));
+            e.target.value = pesoIndustria;
+            renderPesos();
+        });
+        pesoList.appendChild(rowI);
     }
-    pesoList.appendChild(div);
+
+    // Separador visual antes da quebra
+    pesoList.appendChild(Object.assign(document.createElement('div'), {className:'peso-separator'}));
+
+    // Quebra / Sujeira — sai da origem e vai para tabela perdas (NÃO entra no destino)
+    const rowQ = document.createElement('div');
+    rowQ.className = 'peso-row quebra-row';
+    rowQ.title = 'Peso de sujeiras e alhos ruins — são removidos do estoque de origem e registrados como perda';
+    rowQ.innerHTML = `
+        <div class="peso-classe" style="color:var(--danger)">
+            ⚠️ QUEBRA / SUJEIRA
+            <div class="peso-saldo" style="color:#c03">Removido da origem → registrado como perda</div>
+        </div>
+        <input class="peso-input qbr" type="number" inputmode="decimal"
+            step="0.1" min="0" placeholder="0"
+            value="${pesoQuebra}" id="inputQuebra">
+    `;
+    rowQ.querySelector('input').addEventListener('change', e => {
+        pesoQuebra = e.target.value==='' ? '' : String(Math.max(0, parseFloat(e.target.value)||0));
+        e.target.value = pesoQuebra;
+        renderPesos();
+    });
+    pesoList.appendChild(rowQ);
+
+    // ── Bloco de totais ───────────────────────────────
+    const totClasses  = classesComSaldo.reduce((s,c) => s+(parseFloat(pesos[c])||0), 0);
+    const totInd      = parseFloat(pesoIndustria) || 0;
+    const totQuebra   = parseFloat(pesoQuebra)    || 0;
+    const totSaindo   = totClasses + totInd + totQuebra;   // bruto que sai da origem
+    const excede      = totSaindo > saldoTotal + 0.001;
+
+    const bloco = document.createElement('div');
+    bloco.className = 'total-bloco';
+    bloco.style.background = excede ? 'var(--danger-bg)' : 'var(--verde-light)';
+    bloco.style.border     = `2px solid ${excede ? 'var(--danger-border)' : '#b8d9b5'}`;
+    bloco.style.borderRadius = '10px';
+
+    bloco.innerHTML = `
+        <div class="tl">
+            <span class="lbl">Classes (TIPO 2…7) → entram no destino</span>
+            <span class="verde">${totClasses.toLocaleString('pt-BR')} kg</span>
+        </div>
+        ${totInd > 0 ? `
+        <div class="tl">
+            <span class="lbl">🏭 Indústria → entra no destino</span>
+            <span class="amarelo">${totInd.toLocaleString('pt-BR')} kg</span>
+        </div>` : ''}
+        ${totQuebra > 0 ? `
+        <div class="tl">
+            <span class="lbl">⚠️ Quebra / Sujeira → perda na origem</span>
+            <span class="vermelho">− ${totQuebra.toLocaleString('pt-BR')} kg</span>
+        </div>` : ''}
+        <div class="tl destaque">
+            <span class="lbl">🔹 Total saindo da origem</span>
+            <span class="${excede ? 'vermelho' : 'verde'} grande">${totSaindo.toLocaleString('pt-BR')} kg</span>
+        </div>
+        <div class="tl" style="font-size:.8rem;color:var(--muted)">
+            <span>Saldo disponível na origem</span>
+            <span>${saldoTotal.toLocaleString('pt-BR')} kg</span>
+        </div>
+        ${excede ? `<div class="alerta-excede">❌ Total excede o saldo em ${(totSaindo-saldoTotal).toLocaleString('pt-BR')} kg</div>` : ''}
+    `;
+    pesoList.appendChild(bloco);
 }
 
 // ── LIMPAR ────────────────────────────────────────────
-function limpar() {
-    resetPesos();
-    renderPesos();
-    showStatus('✅ Pesos e quebras limpos.', 'success', 2500);
-}
+function limpar() { resetPesos(); renderPesos(); showStatus('✅ Formulário limpo.','success',2500); }
 
 // ── EXEMPLO ───────────────────────────────────────────
 function carregarExemplo() {
-    if (ROLE !== 'classificacao' && classesAtivas.length === 0) {
-        showStatus('⚠️ Selecione produtor e origem primeiro.', 'warning'); return;
+    if (ROLE !== 'classificacao' && classesComSaldo.length===0 && !(saldos['INDÚSTRIA']>0)) {
+        showStatus('⚠️ Selecione produtor e origem primeiro.','warning'); return;
     }
-    const ex = {
-        'São Valentim': {INDÚSTRIA:850,'TIPO 2':512,'TIPO 3':870,'TIPO 4':1269,'TIPO 5':579,'TIPO 6':199,'TIPO 7':45},
-        'Ito':          {INDÚSTRIA:1200,'TIPO 2':780,'TIPO 3':1250,'TIPO 4':890,'TIPO 5':445,'TIPO 6':267,'TIPO 7':89},
-        'Chonan':       {INDÚSTRIA:950,'TIPO 2':650,'TIPO 3':980,'TIPO 4':1540,'TIPO 5':720,'TIPO 6':310,'TIPO 7':125}
-    }[variedade] || {};
-
-    const classes = ROLE === 'classificacao' ? TODAS_CLASSES : classesAtivas;
-    classes.forEach(c => {
-        if (ex[c] !== undefined) {
-            pesos[c]   = String(ex[c]);
-            quebras[c] = '';
-        }
-    });
+    if (ROLE === 'classificacao') {
+        const ex = {
+            'São Valentim':{'INDÚSTRIA':150,'TIPO 2':512,'TIPO 3':870,'TIPO 4':1269,'TIPO 5':579,'TIPO 6':199,'TIPO 7':45},
+            'Ito':         {'INDÚSTRIA':200,'TIPO 2':780,'TIPO 3':1250,'TIPO 4':890,'TIPO 5':445,'TIPO 6':267,'TIPO 7':89},
+            'Chonan':      {'INDÚSTRIA':180,'TIPO 2':650,'TIPO 3':980,'TIPO 4':1540,'TIPO 5':720,'TIPO 6':310,'TIPO 7':125},
+        }[variedade] || {};
+        CLASSES_CLASSIFICACAO.forEach(c => { if (ex[c]!==undefined) pesos[c]=String(ex[c]); });
+    } else {
+        classesComSaldo.forEach((c,i) => { pesos[c] = String(100*(i+2)); });
+        if ((saldos['INDÚSTRIA']||0) > 0) pesoIndustria = '50';
+        pesoQuebra = '2';
+    }
     renderPesos();
-    showStatus(`📋 Exemplo ${variedade} carregado.`, 'info', 2500);
+    showStatus(`📋 Exemplo ${variedade} carregado.`,'info',2500);
 }
 
 // ── SALVAR ────────────────────────────────────────────
 async function salvar() {
-    if (carregandoSaldos) {
-        showStatus('⏳ Aguarde o carregamento dos saldos.', 'warning'); return;
-    }
+    if (carregando) { showStatus('⏳ Aguarde o carregamento dos saldos.','warning'); return; }
 
     const pid    = produtorIdInput.value;
     const pnome  = produtorInput.value.trim();
@@ -806,59 +867,79 @@ async function salvar() {
     const origem = origemSelect?.value ?? null;
     const horas  = parseFloat(horasInput?.value) || 0;
 
-    if (!pid || !pnome) { showStatus('❌ Selecione um produtor na lista.', 'error'); return; }
-    if (ROLE !== 'classificacao' && !origem) { showStatus('❌ Selecione a origem do estoque.', 'error'); return; }
+    if (!pid||!pnome) { showStatus('❌ Selecione um produtor.','error'); return; }
+    if (ROLE!=='classificacao'&&!origem) { showStatus('❌ Selecione a origem.','error'); return; }
 
-    const classes = ROLE === 'classificacao' ? TODAS_CLASSES : classesAtivas;
     const detalhes = [];
-    let totalPeso   = 0;
-    let totalQuebra = 0;
-    let temErro     = false;
+    let totSaindo  = 0;
 
-    for (const c of classes) {
-        const p = parseFloat(pesos[c])   || 0;
-        const q = parseFloat(quebras[c]) || 0;
-        if (p <= 0) continue;
-
-        // Validação: quebra não pode ser maior que peso da classe
-        if (q > p) {
-            showStatus(`❌ ${c}: quebra (${q} kg) maior que o peso (${p} kg).`, 'error');
-            temErro = true; break;
+    if (ROLE === 'classificacao') {
+        for (const c of CLASSES_CLASSIFICACAO) {
+            const p = parseFloat(pesos[c])||0;
+            if (p<=0) continue;
+            detalhes.push({classe:c, peso:p, tipo:'classe'});
+            totSaindo += p;
         }
-
-        // Validação: peso + quebra não pode exceder saldo disponível
-        if (ROLE !== 'classificacao' && saldos[c] !== undefined && (p + q) > saldos[c]) {
-            showStatus(`❌ ${c}: peso+quebra (${p+q} kg) excede saldo (${saldos[c]} kg).`, 'error');
-            temErro = true; break;
+    } else {
+        // Classes TIPO 2…7 — entram no destino
+        for (const c of classesComSaldo) {
+            const p = parseFloat(pesos[c])||0;
+            if (p<=0) continue;
+            if (p > (saldos[c]||0)) {
+                showStatus(`❌ ${c}: peso (${p} kg) excede saldo (${saldos[c]} kg).`,'error'); return;
+            }
+            detalhes.push({classe:c, peso:p, tipo:'classe'});
+            totSaindo += p;
         }
-
-        detalhes.push({ classe: c, peso: p, quebra: q });
-        totalPeso   += p;
-        totalQuebra += q;
+        // Indústria — entra no destino
+        const indP = parseFloat(pesoIndustria)||0;
+        if (indP > 0) {
+            if (indP > (saldos['INDÚSTRIA']||0)) {
+                showStatus(`❌ INDÚSTRIA: peso (${indP} kg) excede saldo (${saldos['INDÚSTRIA']} kg).`,'error'); return;
+            }
+            detalhes.push({classe:'INDÚSTRIA', peso:indP, tipo:'industria'});
+            totSaindo += indP;
+        }
+        // Quebra/Sujeira — removida da origem, registrada como perda
+        const qP = parseFloat(pesoQuebra)||0;
+        if (qP > 0) {
+            detalhes.push({classe:'__QUEBRA__', peso:qP, tipo:'quebra'});
+            totSaindo += qP;
+        }
     }
 
-    if (temErro) return;
-    if (!detalhes.length) { showStatus('⚠️ Preencha pelo menos um peso.', 'warning'); return; }
+    if (detalhes.filter(d=>d.tipo!=='quebra').length===0) {
+        showStatus('⚠️ Preencha pelo menos um peso.','warning'); return;
+    }
+    if (ROLE!=='classificacao' && totSaindo > saldoTotal+0.001) {
+        showStatus(`❌ Total (${totSaindo.toLocaleString('pt-BR')} kg) excede saldo disponível (${saldoTotal.toLocaleString('pt-BR')} kg).`,'error');
+        return;
+    }
 
-    const destLabel = local === 'Classificação' ? 'Classificação' : local === 'banca' ? 'Banca' : 'Toletagem';
-    let conf = `Confirmar ${ROLE === 'classificacao' ? 'entrada' : 'transferência'}?\n\n`
+    const destLabel = local==='Classificação'?'Classificação':local==='banca'?'Banca':'Toletagem';
+    const qP  = parseFloat(pesoQuebra)||0;
+    const indP = parseFloat(pesoIndustria)||0;
+    let conf = `Confirmar ${ROLE==='classificacao'?'entrada':'transferência'}?\n\n`
              + `Produtor: ${pnome}\nVariedade: ${variedade}\nDestino: ${destLabel}\n`
-             + `Peso bruto: ${totalPeso} kg`;
-    if (ROLE !== 'classificacao') conf += `\nOrigem: ${origem}`;
-    if (totalQuebra > 0) conf += `\nQuebra total: ${totalQuebra} kg\nPeso líquido: ${totalPeso - totalQuebra} kg`;
-    if (horas > 0) conf += `\nHoras banca: ${horas}`;
+             + `Total saindo da origem: ${totSaindo.toLocaleString('pt-BR')} kg`;
+    if (ROLE!=='classificacao') {
+        conf += `\nOrigem: ${origem}`;
+        if (indP>0) conf += `\n🏭 Indústria: ${indP} kg → entra em ${destLabel}`;
+        if (qP>0)   conf += `\n⚠️ Quebra/Sujeira: ${qP} kg → perda (removida da ${origem})`;
+    }
+    if (horas>0) conf += `\nHoras de banca: ${horas}`;
     if (!confirm(conf)) return;
 
     const btn = $('salvarBtn');
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span>Salvando…';
 
-    const result = await fetchJSON('/api/salvar-entrada', 'POST', {
-        produtor_id: parseInt(pid),
-        tipo_alho:   variedade,
+    const result = await fetchJSON('/api/salvar-entrada','POST',{
+        produtor_id:  parseInt(pid),
+        tipo_alho:    variedade,
         local,
         local_origem: origem,
-        detalhes,           // cada item já tem { classe, peso, quebra }
+        detalhes,
         horas_banca:  horas,
     });
 
@@ -866,53 +947,42 @@ async function salvar() {
     btn.innerHTML = '💾 Registrar';
 
     if (result?.sucesso) {
-        showStatus(`✅ ${result.mensagem}`, 'success', 7000);
+        showStatus(`✅ ${result.mensagem}`,'success',7000);
         resetPesos();
         if (horasInput) horasInput.value = 0;
-        // Recarregar saldos após salvar
-        if (ROLE !== 'classificacao' && produtorIdInput.value) {
-            atualizarSaldos('Atualizando saldos...');
-        } else {
-            renderPesos();
-        }
+        if (ROLE!=='classificacao'&&produtorIdInput.value) atualizarSaldos('Atualizando saldos...');
+        else renderPesos();
         setTimeout(() => {
             if (confirm('Registro salvo! Registrar outro produtor?')) {
-                matriculaInput.value = '';
-                produtorInput.value  = '';
-                produtorIdInput.value = '';
-                produtorAtual = null;
-                saldos = {};
-                classesAtivas = ROLE === 'classificacao' ? [...TODAS_CLASSES] : [];
-                renderPesos();
-                matriculaInput.focus();
+                matriculaInput.value = produtorInput.value = produtorIdInput.value = '';
+                produtorAtual=null; saldos={}; saldoTotal=0; classesComSaldo=[];
+                resetPesos(); renderPesos(); matriculaInput.focus();
             }
         }, 700);
     } else {
-        showStatus(`❌ ${result?.mensagem || 'Erro ao salvar.'}`, 'error');
+        showStatus(`❌ ${result?.mensagem||'Erro ao salvar.'}`,'error');
     }
 }
 
-// ── FETCH HELPER ──────────────────────────────────────
-async function fetchJSON(url, method = 'GET', body = null) {
+// ── FETCH ─────────────────────────────────────────────
+async function fetchJSON(url, method='GET', body=null) {
     try {
-        const opts = { method, headers: { 'Content-Type': 'application/json' } };
+        const opts = {method, headers:{'Content-Type':'application/json'}};
         if (body) opts.body = JSON.stringify(body);
         const r = await fetch(url, opts);
         return await r.json();
-    } catch (e) { console.error(e); return null; }
+    } catch(e) { console.error(e); return null; }
 }
 
 // ── INIT ──────────────────────────────────────────────
 function init() {
-    // Na classificação: todas as classes abertas desde o início
-    classesAtivas = ROLE === 'classificacao' ? [...TODAS_CLASSES] : [];
     renderPesos();
     atualizarData();
     setInterval(atualizarData, 60000);
     $('limparBtn').onclick  = limpar;
     $('exemploBtn').onclick = carregarExemplo;
     $('salvarBtn').onclick  = salvar;
-    showStatus('📝 Digite a matrícula e selecione o produtor.', 'info', 4000);
+    showStatus('📝 Digite a matrícula e selecione o produtor.','info',4000);
 }
 init();
 </script>
