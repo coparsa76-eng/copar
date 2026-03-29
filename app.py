@@ -9,6 +9,7 @@ import psycopg
 import os
 import logging
 from datetime import datetime, timedelta
+from decimal import Decimal
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -69,7 +70,7 @@ def criar_tabela_perdas():
         logger.error(f"Erro ao criar tabela perdas: {e}")
 
 def obter_valor_hora_banca():
-    return 16.00  # Valor fixo R$ 16,00
+    return 16.00
 
 # ========== AUTENTICAÇÃO ==========
 
@@ -307,40 +308,81 @@ def obter_saldo_estoque(produtor_id, tipo_alho, classe, local):
 # ========== FUNÇÕES PARA O GERENTE (CORRIGIDAS) ==========
 
 def obter_estatisticas_gerais():
+    """Retorna estatísticas para o dashboard do gerente"""
     conn = conectar_banco()
     if not conn:
-        return {'total_produtores': 0, 'total_estoque_kg': 0, 'vendas_mes': 0, 'pagamentos_mes': 0, 'saldo_total': 0, 'perdas_mes': 0}
+        return {
+            'total_produtores': 0,
+            'total_estoque_kg': 0,
+            'estoque_classificacao': 0,
+            'estoque_banca': 0,
+            'estoque_toletagem': 0,
+            'vendas_mes': 0,
+            'pagamentos_mes': 0,
+            'saldo_total': 0,
+            'perdas_mes': 0
+        }
     try:
         cursor = conn.cursor()
+        
+        # Total de produtores
         cursor.execute("SELECT COUNT(*) FROM produtores")
         total_produtores = cursor.fetchone()[0]
+        
+        # Total em estoque (Kg)
         cursor.execute("SELECT COALESCE(SUM(peso), 0) FROM estoque WHERE peso > 0")
         total_estoque_kg = float(cursor.fetchone()[0])
+        
+        # Estoque por local
+        cursor.execute("SELECT COALESCE(SUM(peso), 0) FROM estoque WHERE local_estoque = 'Classificação' AND peso > 0")
+        estoque_classificacao = float(cursor.fetchone()[0])
+        
+        cursor.execute("SELECT COALESCE(SUM(peso), 0) FROM estoque WHERE local_estoque = 'Banca' AND peso > 0")
+        estoque_banca = float(cursor.fetchone()[0])
+        
+        cursor.execute("SELECT COALESCE(SUM(peso), 0) FROM estoque WHERE local_estoque = 'Toletagem' AND peso > 0")
+        estoque_toletagem = float(cursor.fetchone()[0])
+        
+        # Vendas do MÊS ATUAL
         cursor.execute("""
-            SELECT COALESCE(SUM(valor_total), 0) FROM vendas 
+            SELECT COALESCE(SUM(valor_total), 0) 
+            FROM vendas 
             WHERE EXTRACT(YEAR FROM data_venda) = EXTRACT(YEAR FROM CURRENT_DATE)
             AND EXTRACT(MONTH FROM data_venda) = EXTRACT(MONTH FROM CURRENT_DATE)
         """)
         vendas_mes = float(cursor.fetchone()[0])
+        
+        # Pagamentos do MÊS ATUAL
         cursor.execute("""
-            SELECT COALESCE(SUM(valor_total), 0) FROM pagamentos 
+            SELECT COALESCE(SUM(valor_total), 0) 
+            FROM pagamentos 
             WHERE EXTRACT(YEAR FROM data_pagamento) = EXTRACT(YEAR FROM CURRENT_DATE)
             AND EXTRACT(MONTH FROM data_pagamento) = EXTRACT(MONTH FROM CURRENT_DATE)
         """)
         pagamentos_mes = float(cursor.fetchone()[0])
+        
+        # Saldo total a pagar
         cursor.execute("SELECT COALESCE(SUM(saldo), 0) FROM creditos_produtor")
         saldo_total = float(cursor.fetchone()[0])
+        
+        # Perdas do mês
         cursor.execute("""
-            SELECT COALESCE(SUM(peso_kg), 0) FROM perdas 
+            SELECT COALESCE(SUM(peso_kg), 0) 
+            FROM perdas 
             WHERE EXTRACT(YEAR FROM data_perda) = EXTRACT(YEAR FROM CURRENT_DATE)
             AND EXTRACT(MONTH FROM data_perda) = EXTRACT(MONTH FROM CURRENT_DATE)
         """)
         perdas_mes = float(cursor.fetchone()[0])
+        
         cursor.close()
         conn.close()
+        
         return {
             'total_produtores': total_produtores,
             'total_estoque_kg': total_estoque_kg,
+            'estoque_classificacao': estoque_classificacao,
+            'estoque_banca': estoque_banca,
+            'estoque_toletagem': estoque_toletagem,
             'vendas_mes': vendas_mes,
             'pagamentos_mes': pagamentos_mes,
             'saldo_total': saldo_total,
@@ -348,28 +390,88 @@ def obter_estatisticas_gerais():
         }
     except Exception as e:
         logger.error(f"Erro ao obter estatísticas: {e}")
-        return {'total_produtores': 0, 'total_estoque_kg': 0, 'vendas_mes': 0, 'pagamentos_mes': 0, 'saldo_total': 0, 'perdas_mes': 0}
+        return {
+            'total_produtores': 0,
+            'total_estoque_kg': 0,
+            'estoque_classificacao': 0,
+            'estoque_banca': 0,
+            'estoque_toletagem': 0,
+            'vendas_mes': 0,
+            'pagamentos_mes': 0,
+            'saldo_total': 0,
+            'perdas_mes': 0
+        }
 
-def obter_estoque_por_produtor():
+def obter_estoque_hierarquico():
+    """Retorna estoque hierárquico: Local -> Tipo -> Classe -> Produtor"""
     conn = conectar_banco()
     if not conn:
         return []
     try:
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT p.nome as produtor, e.tipo_alho, e.classe, SUM(e.peso) as total_peso, e.local_estoque
+            SELECT 
+                e.local_estoque,
+                e.tipo_alho,
+                e.classe,
+                p.nome as produtor,
+                SUM(e.peso) as total_peso,
+                SUM(e.horas_banca) as total_horas
             FROM estoque e
             JOIN produtores p ON e.produtor_id = p.id
             WHERE e.peso > 0
-            GROUP BY p.nome, e.tipo_alho, e.classe, e.local_estoque
-            ORDER BY p.nome, e.tipo_alho, e.classe
+            GROUP BY e.local_estoque, e.tipo_alho, e.classe, p.nome
+            ORDER BY e.local_estoque, e.tipo_alho, e.classe, p.nome
         """)
-        estoque = [{'produtor': r[0], 'tipo_alho': r[1], 'classe': r[2], 'peso': float(r[3]), 'local': r[4]} for r in cursor.fetchall()]
+        
+        # Organizar em estrutura hierárquica
+        hierarquia = {}
+        for row in cursor.fetchall():
+            local = row[0]
+            tipo = row[1]
+            classe = row[2]
+            produtor = row[3]
+            peso = float(row[4])
+            horas = float(row[5])
+            
+            if local not in hierarquia:
+                hierarquia[local] = {}
+            if tipo not in hierarquia[local]:
+                hierarquia[local][tipo] = {}
+            if classe not in hierarquia[local][tipo]:
+                hierarquia[local][tipo][classe] = []
+            
+            hierarquia[local][tipo][classe].append({
+                'produtor': produtor,
+                'peso': peso,
+                'horas': horas
+            })
+        
         cursor.close()
         conn.close()
-        return estoque
+        
+        # Converter para formato serializável
+        resultado = []
+        for local, tipos in hierarquia.items():
+            local_item = {'local': local, 'tipos': []}
+            for tipo, classes in tipos.items():
+                tipo_item = {'tipo': tipo, 'classes': []}
+                for classe, produtores in classes.items():
+                    total_peso = sum(p['peso'] for p in produtores)
+                    total_horas = sum(p['horas'] for p in produtores)
+                    classe_item = {
+                        'classe': classe,
+                        'total_peso': total_peso,
+                        'total_horas': total_horas,
+                        'produtores': produtores
+                    }
+                    tipo_item['classes'].append(classe_item)
+                local_item['tipos'].append(tipo_item)
+            resultado.append(local_item)
+        
+        return resultado
     except Exception as e:
-        logger.error(f"Erro ao buscar estoque por produtor: {e}")
+        logger.error(f"Erro ao buscar estoque hierárquico: {e}")
         return []
 
 def obter_vendas_recentes(limite=50):
@@ -574,15 +676,6 @@ def gerente():
         return redirect(url_for('login'))
     return render_template('gerente.html')
 
-@app.route('/configuracoes')
-def configuracoes():
-    if 'produtor_id' not in session:
-        return redirect(url_for('login'))
-    tipo = session.get('tipo')
-    if tipo not in ['gerente', 'superadmin']:
-        return redirect(url_for('produtor'))
-    return render_template('configuracoes.html', valor_hora_banca=16.00)
-
 # ========== APIS ==========
 
 @app.route('/api/buscar-produtor', methods=['POST'])
@@ -724,9 +817,9 @@ def api_salvar_entrada():
 def api_gerente_estatisticas():
     return jsonify(obter_estatisticas_gerais())
 
-@app.route('/api/gerente/estoque-produtor')
-def api_gerente_estoque_produtor():
-    return jsonify(obter_estoque_por_produtor())
+@app.route('/api/gerente/estoque-hierarquico')
+def api_gerente_estoque_hierarquico():
+    return jsonify(obter_estoque_hierarquico())
 
 @app.route('/api/gerente/vendas-recentes')
 def api_gerente_vendas_recentes():
