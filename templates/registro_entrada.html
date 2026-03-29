@@ -25,6 +25,7 @@
             --border:      #dde8db;
             --white:       #ffffff;
             --danger:      #c0392b;
+            --danger-bg:   #fdecea;
             --warning:     #e67e22;
             --radius:      12px;
             --shadow:      0 4px 20px rgba(42,92,40,.1);
@@ -49,16 +50,8 @@
             top: 0;
             z-index: 200;
         }
-        .nav-brand {
-            font-family: 'DM Serif Display', serif;
-            color: var(--white);
-            font-size: 1.2rem;
-        }
-        .nav-title {
-            color: rgba(255,255,255,.8);
-            font-size: .78rem;
-            margin-top: .1rem;
-        }
+        .nav-brand { font-family: 'DM Serif Display', serif; color: var(--white); font-size: 1.2rem; }
+        .nav-title  { color: rgba(255,255,255,.8); font-size: .78rem; margin-top: .1rem; }
         .btn-sair {
             background: rgba(255,255,255,.15);
             border: 1px solid rgba(255,255,255,.3);
@@ -71,7 +64,7 @@
 
         main { max-width: 700px; margin: 0 auto; padding: 1rem; }
 
-        /* CARD GENÉRICO */
+        /* CARD */
         .card {
             background: var(--white);
             border-radius: var(--radius);
@@ -91,12 +84,8 @@
         }
         .card-body { padding: 1rem 1.1rem; }
 
-        /* PRODUTOR */
-        .produtor-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: .75rem;
-        }
+        /* GRID PRODUTOR */
+        .produtor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
         @media (max-width: 480px) { .produtor-grid { grid-template-columns: 1fr; } }
 
         .field { display: flex; flex-direction: column; gap: .3rem; }
@@ -123,10 +112,7 @@
             border-color: var(--verde);
             box-shadow: 0 0 0 3px rgba(42,92,40,.1);
         }
-        .field input[readonly] {
-            background: #f0f0f0;
-            color: var(--muted);
-        }
+        .field input[readonly] { background: #f0f0f0; color: var(--muted); }
         .field-full { grid-column: 1 / -1; }
 
         /* AUTOCOMPLETE */
@@ -151,10 +137,10 @@
             font-size: .9rem;
         }
         .autocomplete-item:last-child { border-bottom: none; }
-        .autocomplete-item:hover, .autocomplete-item:active { background: var(--verde-light); }
+        .autocomplete-item:hover { background: var(--verde-light); }
         .autocomplete-item strong { color: var(--verde); }
 
-        /* BANNER PRODUTOR SELECIONADO */
+        /* BANNER PRODUTOR */
         .produtor-banner {
             background: var(--verde-light);
             border: 1.5px solid #b8d9b5;
@@ -170,7 +156,7 @@
         }
         .produtor-banner.show { display: flex; }
 
-        /* VARIEDADE PILLS */
+        /* PILLS */
         .pills { display: flex; gap: .5rem; flex-wrap: wrap; }
         .pill {
             padding: .55rem 1.1rem;
@@ -184,33 +170,63 @@
             font-weight: 500;
             -webkit-tap-highlight-color: transparent;
         }
-        .pill.active {
-            background: var(--verde);
-            border-color: var(--verde);
-            color: var(--white);
-        }
+        .pill.active { background: var(--verde); border-color: var(--verde); color: var(--white); }
 
-        /* CAMPOS EXTRAS */
-        .extras-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: .75rem;
-        }
+        /* EXTRAS */
+        .extras-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
         @media (max-width: 480px) { .extras-grid { grid-template-columns: 1fr; } }
 
-        .saldo-tag {
-            font-size: .75rem;
-            color: var(--verde-mid);
-            margin-top: .25rem;
-            font-weight: 500;
-        }
+        .saldo-tag { font-size: .75rem; color: var(--verde-mid); margin-top: .25rem; font-weight: 500; }
 
-        /* TABELA PESAGEM */
-        .peso-list { display: flex; flex-direction: column; gap: .5rem; }
-        .peso-row {
-            display: flex;
+        /* ── LOADING OVERLAY ────────────────────────────── */
+        .loading-overlay {
+            display: none;
             align-items: center;
-            gap: .75rem;
+            justify-content: center;
+            gap: .6rem;
+            padding: 1.5rem;
+            background: rgba(244,249,243,.92);
+            border-radius: 10px;
+            font-size: .9rem;
+            color: var(--verde);
+            font-weight: 600;
+            border: 1.5px dashed #b8d9b5;
+        }
+        .loading-overlay.show { display: flex; }
+        .loader-spin {
+            width: 20px; height: 20px;
+            border: 2.5px solid #b8d9b5;
+            border-top-color: var(--verde);
+            border-radius: 50%;
+            animation: spin .75s linear infinite;
+            flex-shrink: 0;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── TABELA PESOS ────────────────────────────────── */
+        .peso-list { display: flex; flex-direction: column; gap: .5rem; }
+
+        /* Cabeçalho das colunas */
+        .peso-header {
+            display: grid;
+            grid-template-columns: 1fr 100px 100px;
+            gap: .5rem;
+            padding: .3rem .85rem;
+            font-size: .72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            color: var(--muted);
+        }
+        .peso-header span:last-child { text-align: right; }
+        .peso-header span:nth-child(2) { text-align: right; }
+
+        /* Row de cada classe */
+        .peso-row {
+            display: grid;
+            grid-template-columns: 1fr 100px 100px;
+            align-items: center;
+            gap: .5rem;
             padding: .6rem .85rem;
             border-radius: 10px;
             border: 1.5px solid var(--border);
@@ -218,34 +234,34 @@
             transition: border-color .2s;
         }
         .peso-row:focus-within { border-color: var(--verde); }
-        .peso-row.excede { border-color: var(--danger); background: #fef0ef; }
+        .peso-row.excede       { border-color: var(--danger); background: var(--danger-bg); }
 
         .peso-classe {
-            flex: 1;
             font-size: .9rem;
             font-weight: 600;
             min-width: 0;
         }
-        .peso-saldo {
-            font-size: .72rem;
-            color: var(--muted);
-            white-space: nowrap;
-        }
-        .peso-input {
-            width: 110px;
-            padding: .55rem .75rem;
+        .peso-saldo { font-size: .72rem; color: var(--muted); white-space: nowrap; }
+
+        /* input de peso e quebra compartilham mesmo estilo */
+        .peso-input, .quebra-input {
+            width: 100%;
+            padding: .55rem .65rem;
             border: 1.5px solid var(--border);
             border-radius: 8px;
             font-family: 'DM Sans', sans-serif;
-            font-size: .95rem;
+            font-size: .93rem;
             text-align: right;
             background: var(--white);
             color: var(--text);
             -webkit-appearance: none;
-            flex-shrink: 0;
         }
-        .peso-input:focus { outline: none; border-color: var(--verde); }
+        .peso-input:focus, .quebra-input:focus { outline: none; border-color: var(--verde); }
+        .quebra-input { border-color: #f5c6c2; background: #fff9f9; color: var(--danger); }
+        .quebra-input:focus { border-color: var(--danger); }
+        .quebra-input::placeholder { color: #e0a0a0; }
 
+        /* Total row */
         .total-row {
             display: flex;
             align-items: center;
@@ -257,6 +273,16 @@
             font-weight: 700;
             font-size: 1rem;
             margin-top: .25rem;
+        }
+        .total-row .totals-group { display: flex; gap: 1.5rem; font-size: .88rem; }
+        .total-row .t-quebra { color: var(--danger); }
+
+        /* Sem estoque */
+        .sem-estoque {
+            text-align: center;
+            padding: 1.5rem;
+            color: var(--muted);
+            font-size: .9rem;
         }
 
         /* BOTÕES */
@@ -282,11 +308,11 @@
             transition: opacity .2s, transform .1s;
             -webkit-tap-highlight-color: transparent;
         }
-        .btn:active { transform: scale(.97); }
+        .btn:active  { transform: scale(.97); }
         .btn-primary { background: var(--verde); color: var(--white); }
         .btn-secondary { background: var(--verde-light); color: var(--verde); border: 1.5px solid #b8d9b5; }
-        .btn-danger  { background: #fdecea; color: var(--danger); border: 1.5px solid #f5c6c2; }
-        .btn:disabled { opacity: .55; }
+        .btn-danger    { background: #fdecea; color: var(--danger); border: 1.5px solid #f5c6c2; }
+        .btn:disabled  { opacity: .55; cursor: not-allowed; }
 
         /* STATUS */
         .status-bar {
@@ -301,11 +327,12 @@
             animation: slideIn .25s ease;
         }
         @keyframes slideIn { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:none; } }
-        .status-bar.show { display: flex; }
+        .status-bar.show    { display: flex; }
         .status-bar.success { background: #d5f0de; color: #1a6b35; }
         .status-bar.error   { background: #fdecea; color: var(--danger); }
         .status-bar.info    { background: #e3ecf7; color: #1a5276; }
         .status-bar.warning { background: #fef5e7; color: #7d5a00; }
+        .status-bar.loading { background: var(--verde-light); color: var(--verde); }
 
         .spinner {
             width: 18px; height: 18px;
@@ -317,7 +344,6 @@
             vertical-align: middle;
             margin-right: 6px;
         }
-        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
@@ -333,9 +359,8 @@
     <a href="/logout" class="btn-sair">Sair</a>
 </nav>
 
-<!-- STATUS (fica abaixo do nav) -->
 <div style="max-width:700px;margin:.75rem auto 0;padding:0 1rem;">
-    <div id="statusMsg" class="status-bar" style="margin:0;"></div>
+    <div id="statusMsg" class="status-bar"></div>
 </div>
 
 <main>
@@ -345,7 +370,7 @@
         <div class="card-body">
             <div class="produtor-grid">
                 <div class="field autocomplete-wrap">
-                    <label>Matrícula</label>
+                    <label>Matrícula / Nome</label>
                     <input type="text" id="matriculaInput" placeholder="Buscar por matrícula ou nome"
                         autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
                     <div id="autocompleteList" class="autocomplete-list"></div>
@@ -376,7 +401,7 @@
         </div>
     </div>
 
-    <!-- CAMPOS EXTRAS (banca / toletagem) -->
+    <!-- MOVIMENTAÇÃO (apenas banca / toletagem) -->
     {% if role != 'classificacao' %}
     <div class="card">
         <div class="card-header">⚙️ Movimentação</div>
@@ -399,10 +424,6 @@
                     <label>⏱️ Horas de Banca</label>
                     <input type="number" id="horasBanca" step="0.5" value="0" min="0">
                 </div>
-                <div class="field">
-                    <label>⚠️ Quebra (kg)</label>
-                    <input type="number" id="quebra" step="0.1" value="0" min="0">
-                </div>
             </div>
         </div>
     </div>
@@ -410,82 +431,119 @@
 
     <!-- TABELA PESOS -->
     <div class="card">
-        <div class="card-header">⚖️ Pesos por Classe</div>
+        <div class="card-header">
+            ⚖️ Pesos por Classe
+            {% if role != 'classificacao' %}
+            <span style="font-size:.75rem;font-weight:500;color:var(--muted);margin-left:auto;">
+                Quebra é por classe
+            </span>
+            {% endif %}
+        </div>
         <div class="card-body">
+            <!-- Loading -->
+            <div id="pesoLoading" class="loading-overlay">
+                <div class="loader-spin"></div>
+                <span id="pesoLoadingMsg">Aguardando dados do banco...</span>
+            </div>
+            <!-- Lista -->
             <div class="peso-list" id="pesoList"></div>
         </div>
     </div>
 </main>
 
-<!-- BOTÕES STICKY -->
 <div class="botoes">
-    <button class="btn btn-danger" id="limparBtn">🗑️ Limpar</button>
+    <button class="btn btn-danger"    id="limparBtn">🗑️ Limpar</button>
     <button class="btn btn-secondary" id="exemploBtn">📋 Exemplo</button>
-    <button class="btn btn-primary" id="salvarBtn">💾 Registrar</button>
+    <button class="btn btn-primary"   id="salvarBtn">💾 Registrar</button>
 </div>
 
-<!-- HIDDEN -->
-<input type="hidden" id="localDestino" value="{{ 'Classificação' if role == 'classificacao' else 'banca' if role == 'banca' else 'toletagem' }}">
+<input type="hidden" id="localDestino"
+    value="{{ 'Classificação' if role == 'classificacao' else 'banca' if role == 'banca' else 'toletagem' }}">
 
 <script>
-const ROLE = "{{ role }}";
+const ROLE       = "{{ role }}";
 const VALOR_HORA = {{ valor_hora_banca }};
-const CLASSES = ["INDÚSTRIA","TIPO 2","TIPO 3","TIPO 4","TIPO 5","TIPO 6","TIPO 7"];
+
+// Todas as classes possíveis (usadas na Classificação)
+const TODAS_CLASSES = ["INDÚSTRIA","TIPO 2","TIPO 3","TIPO 4","TIPO 5","TIPO 6","TIPO 7"];
+
+// Mapeamento interface → banco
 const CLASSE_MAP = {
     "INDÚSTRIA":"Indústria","TIPO 2":"Classe 2","TIPO 3":"Classe 3",
     "TIPO 4":"Classe 4","TIPO 5":"Classe 5","TIPO 6":"Classe 6","TIPO 7":"Classe 7"
 };
 
-let pesos = Object.fromEntries(CLASSES.map(c => [c, '']));
-let saldos = {};
+// Estado
+let pesos   = {};   // { "TIPO 2": "500", ... }
+let quebras = {};   // { "TIPO 2": "10", ... }  — por classe
+let saldos  = {};   // { "TIPO 2": 800, ... }
+let classesAtivas = [...TODAS_CLASSES];  // quais classes exibir
 let produtorAtual = null;
-let buscaTimeout = null;
+let variedade     = 'São Valentim';
+let carregandoSaldos = false;
+let buscaTimeout;
 
-// ─── ELEMENTOS ───────────────────────────────────────
+// ── ELEMENTOS ────────────────────────────────────────
 const $ = id => document.getElementById(id);
-const matriculaInput  = $('matriculaInput');
-const produtorInput   = $('produtorInput');
-const produtorIdInput = $('produtorId');
-const produtorBanner  = $('produtorBanner');
-const autocompleteList= $('autocompleteList');
-const dataRegistro    = $('dataRegistro');
-const pesoList        = $('pesoList');
-const statusMsg       = $('statusMsg');
-const localDestino    = $('localDestino');
-const origemSelect    = ROLE !== 'classificacao' ? $('origemSelect') : null;
-const horasInput      = ROLE !== 'classificacao' ? $('horasBanca') : null;
-const quebraInput     = ROLE !== 'classificacao' ? $('quebra') : null;
-const saldoTag        = $('saldoOrigemTag');
+const matriculaInput   = $('matriculaInput');
+const produtorInput    = $('produtorInput');
+const produtorIdInput  = $('produtorId');
+const produtorBanner   = $('produtorBanner');
+const autocompleteList = $('autocompleteList');
+const dataRegistro     = $('dataRegistro');
+const pesoList         = $('pesoList');
+const pesoLoading      = $('pesoLoading');
+const pesoLoadingMsg   = $('pesoLoadingMsg');
+const statusMsg        = $('statusMsg');
+const localDestino     = $('localDestino');
+const origemSelect     = ROLE !== 'classificacao' ? $('origemSelect') : null;
+const horasInput       = ROLE !== 'classificacao' ? $('horasBanca')   : null;
+const saldoTag         = $('saldoOrigemTag');
 
-// ─── STATUS ───────────────────────────────────────────
-function showStatus(msg, tipo, duração = 5000) {
+// ── STATUS ───────────────────────────────────────────
+function showStatus(msg, tipo, dur = 5000) {
     statusMsg.textContent = msg;
-    statusMsg.className = `status-bar show ${tipo}`;
+    statusMsg.className   = `status-bar show ${tipo}`;
     clearTimeout(statusMsg._t);
-    statusMsg._t = setTimeout(() => statusMsg.classList.remove('show'), duração);
+    if (dur > 0) statusMsg._t = setTimeout(() => statusMsg.classList.remove('show'), dur);
 }
+function hideStatus() { statusMsg.classList.remove('show'); }
 
-// ─── DATA ─────────────────────────────────────────────
+// ── DATA ─────────────────────────────────────────────
 function atualizarData() {
     dataRegistro.value = new Date().toLocaleString('pt-BR',
         {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
 }
 
-// ─── VARIEDADE PILLS ──────────────────────────────────
-let variedade = 'São Valentim';
+// ── LOADING PESOS ────────────────────────────────────
+function mostrarLoadingPesos(msg) {
+    pesoLoadingMsg.textContent = msg || 'Aguardando dados do banco...';
+    pesoLoading.classList.add('show');
+    pesoList.style.opacity = '.25';
+    pesoList.style.pointerEvents = 'none';
+}
+function ocultarLoadingPesos() {
+    pesoLoading.classList.remove('show');
+    pesoList.style.opacity = '';
+    pesoList.style.pointerEvents = '';
+}
+
+// ── VARIEDADE PILLS ───────────────────────────────────
 document.querySelectorAll('.pill').forEach(p => {
     p.addEventListener('click', () => {
         document.querySelectorAll('.pill').forEach(x => x.classList.remove('active'));
         p.classList.add('active');
         variedade = p.dataset.value;
-        if (ROLE !== 'classificacao' && produtorIdInput.value) atualizarSaldos();
+        if (ROLE !== 'classificacao' && produtorIdInput.value) {
+            atualizarSaldos('Atualizando classes para ' + variedade + '...');
+        }
     });
 });
 
-// ─── AUTOCOMPLETE ─────────────────────────────────────
+// ── AUTOCOMPLETE ──────────────────────────────────────
 matriculaInput.addEventListener('input', e => {
     const t = e.target.value.trim();
-    if (!t) { autocompleteList.style.display='none'; limparProdutor(); return; }
+    if (!t) { autocompleteList.style.display = 'none'; limparProdutor(); return; }
     clearTimeout(buscaTimeout);
     buscaTimeout = setTimeout(async () => {
         const lista = await fetchJSON(`/api/buscar-produtores?termo=${encodeURIComponent(t)}`);
@@ -498,7 +556,7 @@ matriculaInput.addEventListener('blur', () => {
 });
 
 function renderAutocomplete(lista) {
-    if (!lista.length) { autocompleteList.style.display='none'; return; }
+    if (!lista.length) { autocompleteList.style.display = 'none'; return; }
     autocompleteList.innerHTML = lista.map(p =>
         `<div class="autocomplete-item" data-id="${p.id}" data-mat="${p.matricula}" data-nome="${p.nome}">
             <strong>${p.matricula}</strong> – ${p.nome}
@@ -513,16 +571,19 @@ function renderAutocomplete(lista) {
 }
 
 function selecionarProdutor(p) {
-    matriculaInput.value = p.matricula;
-    produtorInput.value  = p.nome;
+    matriculaInput.value  = p.matricula;
+    produtorInput.value   = p.nome;
     produtorIdInput.value = p.id;
     produtorAtual = p;
     autocompleteList.style.display = 'none';
     produtorBanner.innerHTML = `✅ <strong>${p.nome}</strong> (Matrícula: ${p.matricula})`;
     produtorBanner.classList.add('show');
-    setTimeout(() => produtorBanner.classList.remove('show'), 3000);
+    setTimeout(() => produtorBanner.classList.remove('show'), 3500);
     showStatus(`✅ Produtor selecionado: ${p.nome}`, 'success', 3000);
-    if (ROLE !== 'classificacao') atualizarSaldos();
+
+    if (ROLE !== 'classificacao') {
+        atualizarSaldos('Buscando estoque de ' + p.nome + '...');
+    }
 }
 
 function limparProdutor() {
@@ -530,129 +591,262 @@ function limparProdutor() {
     produtorIdInput.value = '';
     produtorAtual = null;
     produtorBanner.classList.remove('show');
+    saldos = {};
+    classesAtivas = ROLE === 'classificacao' ? [...TODAS_CLASSES] : [];
+    resetPesos();
+    renderPesos();
 }
 
-// ─── SALDOS ───────────────────────────────────────────
-async function atualizarSaldos() {
-    const pid = produtorIdInput.value;
+// ── SALDOS ────────────────────────────────────────────
+async function atualizarSaldos(msgLoading) {
+    const pid    = produtorIdInput.value;
     const origem = origemSelect?.value;
     if (!pid || !origem) return;
 
-    saldos = {};
-    let total = 0;
+    carregandoSaldos = true;
+    mostrarLoadingPesos(msgLoading || 'Aguardando dados do banco...');
+    showStatus('⏳ ' + (msgLoading || 'Buscando saldos...'), 'loading', 0);
 
-    for (const classe of CLASSES) {
-        const classeBanco = CLASSE_MAP[classe];
-        const data = await fetchJSON('/api/obter-saldo', 'POST', {
-            produtor_id: parseInt(pid), tipo_alho: variedade, classe: classeBanco, local: origem
-        });
-        if (data?.sucesso) { saldos[classe] = data.saldo; total += data.saldo; }
+    saldos = {};
+
+    const data = await fetchJSON('/api/obter-saldos-todos', 'POST', {
+        produtor_id: parseInt(pid),
+        tipo_alho:   variedade,
+        local:       origem
+    });
+
+    if (data?.sucesso) {
+        saldos = data.saldos || {};
     }
 
-    if (saldoTag) saldoTag.textContent = `Disponível em ${origem}: ${total.toLocaleString('pt-BR')} kg`;
+    // Calcular total disponível
+    const totalDisp = Object.values(saldos).reduce((s, v) => s + v, 0);
+    if (saldoTag) {
+        saldoTag.textContent = totalDisp > 0
+            ? `Disponível em ${origem}: ${totalDisp.toLocaleString('pt-BR')} kg`
+            : `Sem estoque em ${origem} para ${variedade}`;
+    }
+
+    // Só exibir classes que têm saldo > 0
+    classesAtivas = TODAS_CLASSES.filter(c => (saldos[c] || 0) > 0);
+
+    // Limpar pesos/quebras de classes que não existem mais
+    for (const c of TODAS_CLASSES) {
+        if (!classesAtivas.includes(c)) {
+            delete pesos[c];
+            delete quebras[c];
+        }
+    }
+
+    carregandoSaldos = false;
+    ocultarLoadingPesos();
+
+    if (classesAtivas.length === 0) {
+        showStatus(`⚠️ Nenhum estoque encontrado em ${origem} para ${variedade}.`, 'warning', 6000);
+    } else {
+        hideStatus();
+    }
+
     renderPesos();
 }
 
 if (origemSelect) {
     origemSelect.addEventListener('change', () => {
-        if (produtorIdInput.value) atualizarSaldos();
+        if (produtorIdInput.value) {
+            atualizarSaldos('Buscando saldos em ' + origemSelect.value + '...');
+        }
     });
 }
 
-// ─── RENDER PESOS ─────────────────────────────────────
+// ── RESET PESOS ───────────────────────────────────────
+function resetPesos() {
+    pesos   = {};
+    quebras = {};
+}
+
+// ── RENDER PESOS ─────────────────────────────────────
 function renderPesos() {
     pesoList.innerHTML = '';
-    CLASSES.forEach(c => {
-        const saldo = saldos[c] ?? null;
-        const val   = pesos[c];
-        const excede = saldo !== null && val !== '' && parseFloat(val) > saldo;
+
+    if (classesAtivas.length === 0 && ROLE !== 'classificacao') {
+        pesoList.innerHTML = '<div class="sem-estoque">🔍 Nenhuma classe com estoque disponível.<br>Selecione um produtor e origem com saldo.</div>';
+        return;
+    }
+
+    const classes = ROLE === 'classificacao' ? TODAS_CLASSES : classesAtivas;
+
+    // Cabeçalho
+    const header = document.createElement('div');
+    header.className = 'peso-header';
+    if (ROLE !== 'classificacao') {
+        header.innerHTML = `<span>Classe</span><span>Peso (kg)</span><span>Quebra (kg)</span>`;
+    } else {
+        header.innerHTML = `<span>Classe</span><span style="grid-column:2/-1;text-align:right">Peso (kg)</span>`;
+        header.style.gridTemplateColumns = '1fr 100px';
+    }
+    pesoList.appendChild(header);
+
+    classes.forEach(c => {
+        const saldo  = saldos[c] ?? null;
+        const valP   = pesos[c]   || '';
+        const valQ   = quebras[c] || '';
+        const excede = saldo !== null && valP !== '' &&
+                       (parseFloat(valP) + (parseFloat(valQ) || 0)) > saldo;
+
         const row = document.createElement('div');
         row.className = `peso-row${excede ? ' excede' : ''}`;
-        row.innerHTML = `
-            <div class="peso-classe">
-                ${c}
-                ${saldo !== null ? `<div class="peso-saldo">disp: ${saldo.toLocaleString('pt-BR')} kg</div>` : ''}
-            </div>
-            <input class="peso-input" type="number" inputmode="decimal"
-                step="1" min="0" placeholder="0"
-                value="${val}" data-classe="${c}">
-        `;
-        row.querySelector('input').addEventListener('change', e => {
-            const v = e.target.value;
-            pesos[c] = v === '' ? '' : String(Math.max(0, Math.round(parseFloat(v) || 0)));
-            e.target.value = pesos[c];
-            renderPesos();
+
+        if (ROLE !== 'classificacao') {
+            row.style.gridTemplateColumns = '1fr 100px 100px';
+            row.innerHTML = `
+                <div class="peso-classe">
+                    ${c}
+                    ${saldo !== null
+                        ? `<div class="peso-saldo">disp: ${saldo.toLocaleString('pt-BR')} kg</div>`
+                        : ''}
+                </div>
+                <input class="peso-input" type="number" inputmode="decimal"
+                    step="1" min="0" placeholder="0"
+                    value="${valP}" data-classe="${c}" data-tipo="peso">
+                <input class="quebra-input" type="number" inputmode="decimal"
+                    step="0.1" min="0" placeholder="0"
+                    value="${valQ}" data-classe="${c}" data-tipo="quebra"
+                    title="Quebra para ${c}">
+            `;
+        } else {
+            row.style.gridTemplateColumns = '1fr 100px';
+            row.innerHTML = `
+                <div class="peso-classe">${c}</div>
+                <input class="peso-input" type="number" inputmode="decimal"
+                    step="1" min="0" placeholder="0"
+                    value="${valP}" data-classe="${c}" data-tipo="peso">
+            `;
+        }
+
+        // Eventos
+        row.querySelectorAll('input').forEach(inp => {
+            inp.addEventListener('change', e => {
+                const cls  = e.target.dataset.classe;
+                const tipo = e.target.dataset.tipo;
+                const val  = e.target.value === '' ? ''
+                    : String(Math.max(0, parseFloat(e.target.value) || 0));
+                e.target.value = val;
+                if (tipo === 'peso')   pesos[cls]   = val;
+                if (tipo === 'quebra') quebras[cls] = val;
+                renderPesos();
+            });
         });
+
         pesoList.appendChild(row);
     });
 
-    // Total
-    const total = CLASSES.reduce((s,c) => s + (parseFloat(pesos[c]) || 0), 0);
+    // Totais
+    const totalPeso   = classes.reduce((s, c) => s + (parseFloat(pesos[c])   || 0), 0);
+    const totalQuebra = classes.reduce((s, c) => s + (parseFloat(quebras[c]) || 0), 0);
+    const totalLiquido = totalPeso - totalQuebra;
+
     const div = document.createElement('div');
     div.className = 'total-row';
-    div.innerHTML = `<span>🔹 TOTAL GERAL</span><span>${total.toLocaleString('pt-BR')} kg</span>`;
+    if (ROLE !== 'classificacao') {
+        div.innerHTML = `
+            <span>🔹 TOTAL</span>
+            <div class="totals-group">
+                <span>Bruto: <strong>${totalPeso.toLocaleString('pt-BR')} kg</strong></span>
+                <span class="t-quebra">Quebra: <strong>${totalQuebra.toLocaleString('pt-BR')} kg</strong></span>
+                <span>Líquido: <strong>${totalLiquido.toLocaleString('pt-BR')} kg</strong></span>
+            </div>
+        `;
+    } else {
+        div.innerHTML = `
+            <span>🔹 TOTAL GERAL</span>
+            <span>${totalPeso.toLocaleString('pt-BR')} kg</span>
+        `;
+    }
     pesoList.appendChild(div);
 }
 
-// ─── LIMPAR ───────────────────────────────────────────
+// ── LIMPAR ────────────────────────────────────────────
 function limpar() {
-    pesos = Object.fromEntries(CLASSES.map(c => [c, '']));
+    resetPesos();
     renderPesos();
-    showStatus('✅ Pesos limpos.', 'success', 2500);
+    showStatus('✅ Pesos e quebras limpos.', 'success', 2500);
 }
 
-// ─── EXEMPLO ──────────────────────────────────────────
+// ── EXEMPLO ───────────────────────────────────────────
 function carregarExemplo() {
+    if (ROLE !== 'classificacao' && classesAtivas.length === 0) {
+        showStatus('⚠️ Selecione produtor e origem primeiro.', 'warning'); return;
+    }
     const ex = {
         'São Valentim': {INDÚSTRIA:850,'TIPO 2':512,'TIPO 3':870,'TIPO 4':1269,'TIPO 5':579,'TIPO 6':199,'TIPO 7':45},
         'Ito':          {INDÚSTRIA:1200,'TIPO 2':780,'TIPO 3':1250,'TIPO 4':890,'TIPO 5':445,'TIPO 6':267,'TIPO 7':89},
         'Chonan':       {INDÚSTRIA:950,'TIPO 2':650,'TIPO 3':980,'TIPO 4':1540,'TIPO 5':720,'TIPO 6':310,'TIPO 7':125}
     }[variedade] || {};
-    CLASSES.forEach(c => { if (ex[c] !== undefined) pesos[c] = String(ex[c]); });
+
+    const classes = ROLE === 'classificacao' ? TODAS_CLASSES : classesAtivas;
+    classes.forEach(c => {
+        if (ex[c] !== undefined) {
+            pesos[c]   = String(ex[c]);
+            quebras[c] = '';
+        }
+    });
     renderPesos();
     showStatus(`📋 Exemplo ${variedade} carregado.`, 'info', 2500);
 }
 
-// ─── SALVAR ───────────────────────────────────────────
+// ── SALVAR ────────────────────────────────────────────
 async function salvar() {
+    if (carregandoSaldos) {
+        showStatus('⏳ Aguarde o carregamento dos saldos.', 'warning'); return;
+    }
+
     const pid    = produtorIdInput.value;
     const pnome  = produtorInput.value.trim();
     const local  = localDestino.value;
     const origem = origemSelect?.value ?? null;
     const horas  = parseFloat(horasInput?.value) || 0;
-    const quebra = parseFloat(quebraInput?.value) || 0;
 
-    if (!pid || !pnome) {
-        showStatus('❌ Selecione um produtor na lista.', 'error'); return;
-    }
-    if (ROLE !== 'classificacao' && !origem) {
-        showStatus('❌ Selecione a origem do estoque.', 'error'); return;
-    }
+    if (!pid || !pnome) { showStatus('❌ Selecione um produtor na lista.', 'error'); return; }
+    if (ROLE !== 'classificacao' && !origem) { showStatus('❌ Selecione a origem do estoque.', 'error'); return; }
 
+    const classes = ROLE === 'classificacao' ? TODAS_CLASSES : classesAtivas;
     const detalhes = [];
-    let totalPeso = 0;
-    let temExcesso = false;
+    let totalPeso   = 0;
+    let totalQuebra = 0;
+    let temErro     = false;
 
-    for (const c of CLASSES) {
-        const p = parseFloat(pesos[c]) || 0;
+    for (const c of classes) {
+        const p = parseFloat(pesos[c])   || 0;
+        const q = parseFloat(quebras[c]) || 0;
         if (p <= 0) continue;
-        if (ROLE !== 'classificacao' && saldos[c] !== undefined && p > saldos[c]) {
-            showStatus(`❌ ${c}: peso (${p} kg) excede saldo (${saldos[c]} kg).`, 'error');
-            temExcesso = true; break;
+
+        // Validação: quebra não pode ser maior que peso da classe
+        if (q > p) {
+            showStatus(`❌ ${c}: quebra (${q} kg) maior que o peso (${p} kg).`, 'error');
+            temErro = true; break;
         }
-        detalhes.push({ classe: c, peso: p });
-        totalPeso += p;
+
+        // Validação: peso + quebra não pode exceder saldo disponível
+        if (ROLE !== 'classificacao' && saldos[c] !== undefined && (p + q) > saldos[c]) {
+            showStatus(`❌ ${c}: peso+quebra (${p+q} kg) excede saldo (${saldos[c]} kg).`, 'error');
+            temErro = true; break;
+        }
+
+        detalhes.push({ classe: c, peso: p, quebra: q });
+        totalPeso   += p;
+        totalQuebra += q;
     }
 
-    if (temExcesso) return;
+    if (temErro) return;
     if (!detalhes.length) { showStatus('⚠️ Preencha pelo menos um peso.', 'warning'); return; }
-    if (quebra > totalPeso) { showStatus(`⚠️ Quebra (${quebra} kg) maior que total (${totalPeso} kg).`, 'warning'); return; }
 
     const destLabel = local === 'Classificação' ? 'Classificação' : local === 'banca' ? 'Banca' : 'Toletagem';
-    let conf = `Confirmar ${ROLE === 'classificacao' ? 'entrada' : 'transferência'}?\n\nProdutor: ${pnome}\nVariedade: ${variedade}\nDestino: ${destLabel}\nTotal: ${totalPeso} kg`;
+    let conf = `Confirmar ${ROLE === 'classificacao' ? 'entrada' : 'transferência'}?\n\n`
+             + `Produtor: ${pnome}\nVariedade: ${variedade}\nDestino: ${destLabel}\n`
+             + `Peso bruto: ${totalPeso} kg`;
     if (ROLE !== 'classificacao') conf += `\nOrigem: ${origem}`;
+    if (totalQuebra > 0) conf += `\nQuebra total: ${totalQuebra} kg\nPeso líquido: ${totalPeso - totalQuebra} kg`;
     if (horas > 0) conf += `\nHoras banca: ${horas}`;
-    if (quebra > 0) conf += `\nQuebra: ${quebra} kg`;
     if (!confirm(conf)) return;
 
     const btn = $('salvarBtn');
@@ -660,29 +854,45 @@ async function salvar() {
     btn.innerHTML = '<span class="spinner"></span>Salvando…';
 
     const result = await fetchJSON('/api/salvar-entrada', 'POST', {
-        produtor_id: parseInt(pid), tipo_alho: variedade, local,
-        local_origem: origem, detalhes, horas_banca: horas, quebra
+        produtor_id: parseInt(pid),
+        tipo_alho:   variedade,
+        local,
+        local_origem: origem,
+        detalhes,           // cada item já tem { classe, peso, quebra }
+        horas_banca:  horas,
     });
 
     btn.disabled = false;
     btn.innerHTML = '💾 Registrar';
 
     if (result?.sucesso) {
-        showStatus(`✅ ${result.mensagem}`, 'success', 6000);
-        limpar();
+        showStatus(`✅ ${result.mensagem}`, 'success', 7000);
+        resetPesos();
         if (horasInput) horasInput.value = 0;
-        if (quebraInput) quebraInput.value = 0;
+        // Recarregar saldos após salvar
+        if (ROLE !== 'classificacao' && produtorIdInput.value) {
+            atualizarSaldos('Atualizando saldos...');
+        } else {
+            renderPesos();
+        }
         setTimeout(() => {
-            if (confirm('Registro salvo! Registrar outro?')) {
-                matriculaInput.focus(); matriculaInput.select();
+            if (confirm('Registro salvo! Registrar outro produtor?')) {
+                matriculaInput.value = '';
+                produtorInput.value  = '';
+                produtorIdInput.value = '';
+                produtorAtual = null;
+                saldos = {};
+                classesAtivas = ROLE === 'classificacao' ? [...TODAS_CLASSES] : [];
+                renderPesos();
+                matriculaInput.focus();
             }
-        }, 600);
+        }, 700);
     } else {
         showStatus(`❌ ${result?.mensagem || 'Erro ao salvar.'}`, 'error');
     }
 }
 
-// ─── FETCH HELPER ─────────────────────────────────────
+// ── FETCH HELPER ──────────────────────────────────────
 async function fetchJSON(url, method = 'GET', body = null) {
     try {
         const opts = { method, headers: { 'Content-Type': 'application/json' } };
@@ -692,14 +902,16 @@ async function fetchJSON(url, method = 'GET', body = null) {
     } catch (e) { console.error(e); return null; }
 }
 
-// ─── INIT ─────────────────────────────────────────────
+// ── INIT ──────────────────────────────────────────────
 function init() {
+    // Na classificação: todas as classes abertas desde o início
+    classesAtivas = ROLE === 'classificacao' ? [...TODAS_CLASSES] : [];
     renderPesos();
     atualizarData();
     setInterval(atualizarData, 60000);
-    $('limparBtn').onclick = limpar;
+    $('limparBtn').onclick  = limpar;
     $('exemploBtn').onclick = carregarExemplo;
-    $('salvarBtn').onclick = salvar;
+    $('salvarBtn').onclick  = salvar;
     showStatus('📝 Digite a matrícula e selecione o produtor.', 'info', 4000);
 }
 init();
