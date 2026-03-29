@@ -682,6 +682,63 @@ def api_obter_saldo():
     return jsonify({'sucesso': True, 'saldo': saldo})
 
 
+@app.route('/api/obter-saldos-todos', methods=['POST'])
+def api_obter_saldos_todos():
+    """Retorna saldos de TODAS as classes em 1 único request — evita 7 chamadas sequenciais."""
+    data = request.get_json(silent=True) or {}
+    produtor_id = data.get('produtor_id')
+    tipo_alho   = data.get('tipo_alho')
+    local       = data.get('local')
+
+    if not all([produtor_id, tipo_alho, local]):
+        return jsonify({'sucesso': False, 'mensagem': 'Parâmetros incompletos', 'saldos': {}})
+
+    local_banco = MAPEAMENTO_LOCAL.get(local, local)
+
+    conn = conectar_banco()
+    if not conn:
+        return jsonify({'sucesso': False, 'mensagem': 'Erro de conexão', 'saldos': {}})
+
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT classe, COALESCE(SUM(peso), 0)
+            FROM estoque
+            WHERE produtor_id = %s
+              AND tipo_alho   = %s
+              AND local_estoque = %s
+              AND peso > 0
+            GROUP BY classe
+        """, (produtor_id, tipo_alho, local_banco))
+
+        # Mapeamento inverso banco → interface
+        CLASSES_MAP_INV = {
+            "Indústria": "INDÚSTRIA",
+            "Classe 2":  "TIPO 2",
+            "Classe 3":  "TIPO 3",
+            "Classe 4":  "TIPO 4",
+            "Classe 5":  "TIPO 5",
+            "Classe 6":  "TIPO 6",
+            "Classe 7":  "TIPO 7",
+        }
+
+        saldos = {}
+        for row in cursor.fetchall():
+            classe_ui = CLASSES_MAP_INV.get(row[0])
+            if classe_ui:
+                saldos[classe_ui] = float(row[1])
+
+        cursor.close()
+        conn.close()
+        return jsonify({'sucesso': True, 'saldos': saldos})
+
+    except Exception as e:
+        logger.error(f"Erro ao buscar saldos em lote: {e}")
+        if conn:
+            conn.close()
+        return jsonify({'sucesso': False, 'mensagem': str(e), 'saldos': {}})
+
+
 @app.route('/api/salvar-entrada', methods=['POST'])
 def api_salvar_entrada():
     data = request.get_json(silent=True)
