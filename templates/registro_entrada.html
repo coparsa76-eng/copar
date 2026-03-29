@@ -2,535 +2,707 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>COPAR - {{ 'Entrada na Classificação' if role == 'classificacao' else 'Transferência para Banca' if role == 'banca' else 'Transferência para Toletagem' }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>COPAR –
+        {% if role == 'classificacao' %}Entrada na Classificação
+        {% elif role == 'banca' %}Transferência para Banca
+        {% else %}Transferência para Toletagem{% endif %}
+    </title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: linear-gradient(135deg, #e8f0e5 0%, #c8d9bf 100%); min-height: 100vh; font-family: 'Segoe UI', system-ui, sans-serif; padding: 2rem; }
-        .container { max-width: 1200px; margin: 0 auto; }
-        .header { background: #2c5e2a; border-radius: 16px 16px 0 0; padding: 1.5rem 2rem; color: white; display: flex; justify-content: space-between; align-items: center; }
-        .header h1 { font-size: 1.8rem; display: flex; align-items: center; gap: 0.75rem; }
-        .header h1::before { content: "🧄"; font-size: 2rem; }
-        .header a { background: #e74c3c; color: white; padding: 8px 20px; text-decoration: none; border-radius: 8px; font-weight: bold; }
-        .header a:hover { background: #c0392b; }
-        .content { background: white; border-radius: 0 0 16px 16px; padding: 2rem; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-        .registry-area { background: #f8fbf4; border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
-        .field-group { display: flex; flex-direction: column; gap: 0.5rem; position: relative; }
-        .field-group label { font-weight: 600; color: #2c5e2a; font-size: 0.85rem; text-transform: uppercase; }
-        .field-group input, .field-group select { padding: 0.75rem 1rem; border: 2px solid #e2e8d5; border-radius: 10px; font-size: 1rem; }
-        .field-group input:focus, .field-group select:focus { outline: none; border-color: #2c5e2a; }
-        .autocomplete-list { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ddd; border-radius: 8px; max-height: 200px; overflow-y: auto; z-index: 1000; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .autocomplete-item { padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #eee; }
-        .autocomplete-item:hover { background: #e8f0e5; }
-        .variety-section { background: #fff9ef; border-radius: 12px; padding: 1rem 1.5rem; margin-bottom: 1.5rem; border-left: 5px solid #e6b422; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
-        .variety-selector { display: flex; align-items: center; gap: 1rem; }
-        .variety-selector label { font-weight: 700; color: #b87c2e; }
-        .variety-selector select { padding: 0.6rem 1.5rem; border: 2px solid #e6b422; border-radius: 40px; background: white; font-weight: 600; }
-        .table-section { margin-bottom: 2rem; overflow-x: auto; }
-        .table-section h3 { color: #2c5e2a; margin-bottom: 1rem; }
-        .weights-table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; }
-        .weights-table th { background: #eef5e8; padding: 1rem; text-align: center; font-weight: 700; color: #2c5e2a; border-bottom: 2px solid #cde2be; }
-        .weights-table th:first-child { text-align: left; }
-        .weights-table td { padding: 0.8rem 1rem; text-align: center; border-bottom: 1px solid #eef2e8; }
-        .weights-table td:first-child { text-align: left; font-weight: 500; }
-        .weights-table input { width: 140px; padding: 0.6rem; text-align: center; border: 1.5px solid #e2e8d5; border-radius: 8px; font-size: 0.95rem; }
-        .weights-table input:focus { outline: none; border-color: #2c5e2a; }
-        .total-row { background: #f0f7ea; font-weight: 800; }
-        .total-row td { font-weight: 800; background: #eef3e7; }
-        .extra-fields { background: #eef5e8; border-radius: 12px; padding: 1rem 1.5rem; margin-bottom: 1.5rem; display: flex; gap: 2rem; flex-wrap: wrap; align-items: center; }
-        .extra-fields .field { display: flex; align-items: center; gap: 1rem; }
-        .extra-fields label { font-weight: 600; color: #2c5e2a; }
-        .extra-fields input, .extra-fields select { padding: 0.5rem 1rem; border: 2px solid #cde2be; border-radius: 8px; }
-        .extra-fields select { background: white; cursor: pointer; min-width: 150px; }
-        .action-buttons { display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem; }
-        .btn { padding: 0.8rem 1.8rem; border: none; border-radius: 40px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
-        .btn-primary { background: #2c5e2a; color: white; }
-        .btn-primary:hover { background: #1e461c; transform: translateY(-1px); }
-        .btn-secondary { background: #eef2e8; color: #2c5e2a; border: 1px solid #cde2be; }
-        .btn-secondary:hover { background: #e2e9d8; }
-        .btn-warning { background: #fff3e0; color: #b85c1a; border: 1px solid #ffd9a5; }
-        .btn-warning:hover { background: #ffe6cc; }
-        .status-message { margin-top: 1rem; padding: 1rem; border-radius: 12px; text-align: center; display: none; }
-        .status-message.show { display: block; animation: fadeIn 0.3s; }
-        .status-message.success { background: #d4edda; color: #155724; }
-        .status-message.error { background: #f8d7da; color: #721c24; }
-        .status-message.info { background: #e2e3e5; color: #383d41; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
-        .loading { display: inline-block; width: 20px; height: 20px; border: 2px solid #f3f3f3; border-top: 2px solid #2c5e2a; border-radius: 50%; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .produtor-info { background: #e8f0e5; padding: 10px; border-radius: 8px; margin-top: 10px; text-align: center; display: none; }
-        .produtor-info.show { display: block; }
-        .saldo-info { font-size: 0.8rem; color: #2c5e2a; margin-left: 10px; }
-        @media (max-width: 800px) { .registry-area { grid-template-columns: 1fr; } .content { padding: 1rem; } }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --verde:       #2a5c28;
+            --verde-mid:   #3d7a3a;
+            --verde-light: #e8f2e7;
+            --verde-pale:  #f4f9f3;
+            --dourado:     #c8a94a;
+            --bg:          #f2f5f0;
+            --text:        #1a2e19;
+            --muted:       #6b7c6a;
+            --border:      #dde8db;
+            --white:       #ffffff;
+            --danger:      #c0392b;
+            --warning:     #e67e22;
+            --radius:      12px;
+            --shadow:      0 4px 20px rgba(42,92,40,.1);
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100dvh;
+            padding-bottom: 5rem;
+        }
+
+        /* NAV */
+        nav {
+            background: var(--verde);
+            padding: .85rem 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 200;
+        }
+        .nav-brand {
+            font-family: 'DM Serif Display', serif;
+            color: var(--white);
+            font-size: 1.2rem;
+        }
+        .nav-title {
+            color: rgba(255,255,255,.8);
+            font-size: .78rem;
+            margin-top: .1rem;
+        }
+        .btn-sair {
+            background: rgba(255,255,255,.15);
+            border: 1px solid rgba(255,255,255,.3);
+            color: var(--white);
+            padding: .4rem .85rem;
+            border-radius: 8px;
+            font-size: .82rem;
+            text-decoration: none;
+        }
+
+        main { max-width: 700px; margin: 0 auto; padding: 1rem; }
+
+        /* CARD GENÉRICO */
+        .card {
+            background: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 1rem;
+            overflow: visible;
+        }
+        .card-header {
+            padding: .85rem 1.1rem;
+            border-bottom: 1px solid var(--border);
+            font-weight: 700;
+            font-size: .9rem;
+            color: var(--verde);
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+        }
+        .card-body { padding: 1rem 1.1rem; }
+
+        /* PRODUTOR */
+        .produtor-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: .75rem;
+        }
+        @media (max-width: 480px) { .produtor-grid { grid-template-columns: 1fr; } }
+
+        .field { display: flex; flex-direction: column; gap: .3rem; }
+        .field label {
+            font-size: .75rem;
+            font-weight: 600;
+            color: var(--verde);
+            text-transform: uppercase;
+            letter-spacing: .05em;
+        }
+        .field input, .field select {
+            padding: .75rem 1rem;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: .95rem;
+            color: var(--text);
+            background: var(--verde-pale);
+            transition: border .2s;
+            -webkit-appearance: none;
+        }
+        .field input:focus, .field select:focus {
+            outline: none;
+            border-color: var(--verde);
+            box-shadow: 0 0 0 3px rgba(42,92,40,.1);
+        }
+        .field input[readonly] {
+            background: #f0f0f0;
+            color: var(--muted);
+        }
+        .field-full { grid-column: 1 / -1; }
+
+        /* AUTOCOMPLETE */
+        .autocomplete-wrap { position: relative; }
+        .autocomplete-list {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0; right: 0;
+            background: var(--white);
+            border: 1.5px solid var(--verde);
+            border-radius: 10px;
+            box-shadow: 0 8px 24px rgba(0,0,0,.12);
+            max-height: 220px;
+            overflow-y: auto;
+            z-index: 500;
+            display: none;
+        }
+        .autocomplete-item {
+            padding: .75rem 1rem;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border);
+            font-size: .9rem;
+        }
+        .autocomplete-item:last-child { border-bottom: none; }
+        .autocomplete-item:hover, .autocomplete-item:active { background: var(--verde-light); }
+        .autocomplete-item strong { color: var(--verde); }
+
+        /* BANNER PRODUTOR SELECIONADO */
+        .produtor-banner {
+            background: var(--verde-light);
+            border: 1.5px solid #b8d9b5;
+            border-radius: 10px;
+            padding: .65rem 1rem;
+            font-size: .88rem;
+            color: var(--verde);
+            font-weight: 600;
+            margin-top: .5rem;
+            display: none;
+            align-items: center;
+            gap: .5rem;
+        }
+        .produtor-banner.show { display: flex; }
+
+        /* VARIEDADE PILLS */
+        .pills { display: flex; gap: .5rem; flex-wrap: wrap; }
+        .pill {
+            padding: .55rem 1.1rem;
+            border-radius: 30px;
+            border: 2px solid var(--border);
+            background: var(--white);
+            font-family: 'DM Sans', sans-serif;
+            font-size: .88rem;
+            cursor: pointer;
+            transition: all .2s;
+            font-weight: 500;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .pill.active {
+            background: var(--verde);
+            border-color: var(--verde);
+            color: var(--white);
+        }
+
+        /* CAMPOS EXTRAS */
+        .extras-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: .75rem;
+        }
+        @media (max-width: 480px) { .extras-grid { grid-template-columns: 1fr; } }
+
+        .saldo-tag {
+            font-size: .75rem;
+            color: var(--verde-mid);
+            margin-top: .25rem;
+            font-weight: 500;
+        }
+
+        /* TABELA PESAGEM */
+        .peso-list { display: flex; flex-direction: column; gap: .5rem; }
+        .peso-row {
+            display: flex;
+            align-items: center;
+            gap: .75rem;
+            padding: .6rem .85rem;
+            border-radius: 10px;
+            border: 1.5px solid var(--border);
+            background: var(--verde-pale);
+            transition: border-color .2s;
+        }
+        .peso-row:focus-within { border-color: var(--verde); }
+        .peso-row.excede { border-color: var(--danger); background: #fef0ef; }
+
+        .peso-classe {
+            flex: 1;
+            font-size: .9rem;
+            font-weight: 600;
+            min-width: 0;
+        }
+        .peso-saldo {
+            font-size: .72rem;
+            color: var(--muted);
+            white-space: nowrap;
+        }
+        .peso-input {
+            width: 110px;
+            padding: .55rem .75rem;
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: .95rem;
+            text-align: right;
+            background: var(--white);
+            color: var(--text);
+            -webkit-appearance: none;
+            flex-shrink: 0;
+        }
+        .peso-input:focus { outline: none; border-color: var(--verde); }
+
+        .total-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: .75rem .85rem;
+            background: var(--verde-light);
+            border-radius: 10px;
+            border: 2px solid #b8d9b5;
+            font-weight: 700;
+            font-size: 1rem;
+            margin-top: .25rem;
+        }
+
+        /* BOTÕES */
+        .botoes {
+            position: sticky;
+            bottom: 0;
+            background: rgba(242,245,240,.95);
+            backdrop-filter: blur(8px);
+            padding: .85rem 1rem;
+            display: flex;
+            gap: .6rem;
+            border-top: 1px solid var(--border);
+        }
+        .btn {
+            flex: 1;
+            padding: .85rem .5rem;
+            border: none;
+            border-radius: var(--radius);
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 700;
+            font-size: .9rem;
+            cursor: pointer;
+            transition: opacity .2s, transform .1s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .btn:active { transform: scale(.97); }
+        .btn-primary { background: var(--verde); color: var(--white); }
+        .btn-secondary { background: var(--verde-light); color: var(--verde); border: 1.5px solid #b8d9b5; }
+        .btn-danger  { background: #fdecea; color: var(--danger); border: 1.5px solid #f5c6c2; }
+        .btn:disabled { opacity: .55; }
+
+        /* STATUS */
+        .status-bar {
+            margin: 0 1rem;
+            padding: .85rem 1rem;
+            border-radius: var(--radius);
+            font-size: .88rem;
+            font-weight: 500;
+            display: none;
+            align-items: center;
+            gap: .5rem;
+            animation: slideIn .25s ease;
+        }
+        @keyframes slideIn { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:none; } }
+        .status-bar.show { display: flex; }
+        .status-bar.success { background: #d5f0de; color: #1a6b35; }
+        .status-bar.error   { background: #fdecea; color: var(--danger); }
+        .status-bar.info    { background: #e3ecf7; color: #1a5276; }
+        .status-bar.warning { background: #fef5e7; color: #7d5a00; }
+
+        .spinner {
+            width: 18px; height: 18px;
+            border: 2px solid rgba(255,255,255,.4);
+            border-top-color: var(--white);
+            border-radius: 50%;
+            animation: spin .8s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 6px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
-<div class="container">
-    <div class="header">
-        <h1>
-            {% if role == 'classificacao' %}
-                🏭 Entrada na Classificação
-            {% elif role == 'banca' %}
-                📦 Transferência para Banca
-            {% elif role == 'toletagem' %}
-                ✅ Transferência para Toletagem
-            {% else %}
-                Registro de Entrada
-            {% endif %}
-        </h1>
-        <a href="/logout">Sair</a>
+<nav>
+    <div>
+        <div class="nav-brand">🌾 COPAR</div>
+        <div class="nav-title">
+            {% if role == 'classificacao' %}🏭 Entrada – Classificação
+            {% elif role == 'banca' %}📦 Transferência – Banca
+            {% else %}✅ Transferência – Toletagem{% endif %}
+        </div>
     </div>
-    <div class="content">
-        <div class="registry-area">
-            <div class="field-group">
-                <label>🔢 MATRÍCULA DO PRODUTOR</label>
-                <input type="text" id="matriculaInput" placeholder="Digite a matrícula (ex: 283)" autocomplete="off">
-                <div id="autocompleteList" class="autocomplete-list" style="display: none;"></div>
-            </div>
-            <div class="field-group">
-                <label>👨‍🌾 NOME DO PRODUTOR</label>
-                <input type="text" id="produtorInput" readonly placeholder="Aguardando matrícula">
-            </div>
-            <div class="field-group">
-                <label>📅 DATA DO REGISTRO</label>
-                <input type="text" id="dataRegistro" readonly>
-            </div>
-        </div>
-        <div id="produtorInfo" class="produtor-info"></div>
-        <input type="hidden" id="produtorId">
+    <a href="/logout" class="btn-sair">Sair</a>
+</nav>
 
-        <div class="variety-section">
-            <div class="variety-selector">
-                <label>🌾 VARIEDADE DO ALHO:</label>
-                <select id="variedadeSelect">
-                    <option value="São Valentim">🍊 São Valentim</option>
-                    <option value="Ito">🌿 Ito</option>
-                    <option value="Chonan">🧄 Chonan</option>
-                </select>
-            </div>
-            <div class="variety-info">
-                ⚡ Todas as classes pertencem à mesma variedade selecionada
-            </div>
-        </div>
-
-        <!-- Destino fixo por setor -->
-        <input type="hidden" id="localDestino" value="{% if role == 'classificacao' %}Classificação{% elif role == 'banca' %}banca{% elif role == 'toletagem' %}toletagem{% endif %}">
-
-        <!-- Campos extras com seletor de origem -->
-        <div id="camposAdicionais" style="display: none;">
-            <div class="extra-fields">
-                <div class="field">
-                    <label>📌 Origem do Estoque:</label>
-                    <select id="origemSelect">
-                        {% if role == 'banca' %}
-                            <option value="Classificação">Classificação</option>
-                            <option value="Toletagem">Toletagem</option>
-                        {% elif role == 'toletagem' %}
-                            <option value="Classificação">Classificação</option>
-                            <option value="Banca">Banca</option>
-                        {% endif %}
-                    </select>
-                    <span id="saldoOrigem" class="saldo-info"></span>
-                </div>
-                <div class="field" id="campoHoras">
-                    <label>⏱️ Horas de Banca:</label>
-                    <input type="number" id="horasBanca" step="0.5" value="0" min="0">
-                    <span class="info">(R$ <span id="valorHoraDisplay">{{ valor_hora_banca }}</span>/hora)</span>
-                </div>
-                <div class="field">
-                    <label>⚠️ Quebra (kg):</label>
-                    <input type="number" id="quebra" step="0.1" value="0" min="0">
-                    <span class="info">(peso perdido na movimentação)</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="table-section">
-            <h3>📊 Registro de Pesagem por Classe e Tipo</h3>
-            <table class="weights-table" id="tabelaAlho">
-                <thead>
-                    <th style="width: 45%;">CLASSE / TIPO</th>
-                    <th style="width: 55%;">PESO (kg)</th>
-                </thead>
-                <tbody id="tabelaCorpo"></tbody>
-            </table>
-        </div>
-
-        <div class="action-buttons">
-            <button class="btn btn-warning" id="limparBtn">🗑️ Limpar Todos os Pesos</button>
-            <button class="btn btn-secondary" id="exemploBtn">📋 Carregar Exemplo</button>
-            <button class="btn btn-primary" id="salvarBtn">💾 Registrar</button>
-        </div>
-        <div id="statusMsg" class="status-message"></div>
-    </div>
+<!-- STATUS (fica abaixo do nav) -->
+<div style="max-width:700px;margin:.75rem auto 0;padding:0 1rem;">
+    <div id="statusMsg" class="status-bar" style="margin:0;"></div>
 </div>
 
+<main>
+    <!-- PRODUTOR -->
+    <div class="card">
+        <div class="card-header">👤 Produtor</div>
+        <div class="card-body">
+            <div class="produtor-grid">
+                <div class="field autocomplete-wrap">
+                    <label>Matrícula</label>
+                    <input type="text" id="matriculaInput" placeholder="Buscar por matrícula ou nome"
+                        autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+                    <div id="autocompleteList" class="autocomplete-list"></div>
+                </div>
+                <div class="field">
+                    <label>Nome</label>
+                    <input type="text" id="produtorInput" readonly placeholder="—">
+                </div>
+                <div class="field">
+                    <label>📅 Data</label>
+                    <input type="text" id="dataRegistro" readonly>
+                </div>
+            </div>
+            <div id="produtorBanner" class="produtor-banner"></div>
+            <input type="hidden" id="produtorId">
+        </div>
+    </div>
+
+    <!-- VARIEDADE -->
+    <div class="card">
+        <div class="card-header">🌾 Variedade do Alho</div>
+        <div class="card-body">
+            <div class="pills" id="variedadePills">
+                <button class="pill active" data-value="São Valentim">🍊 São Valentim</button>
+                <button class="pill" data-value="Ito">🌿 Ito</button>
+                <button class="pill" data-value="Chonan">🧄 Chonan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CAMPOS EXTRAS (banca / toletagem) -->
+    {% if role != 'classificacao' %}
+    <div class="card">
+        <div class="card-header">⚙️ Movimentação</div>
+        <div class="card-body">
+            <div class="extras-grid">
+                <div class="field">
+                    <label>📌 Origem</label>
+                    <select id="origemSelect">
+                        {% if role == 'banca' %}
+                        <option value="Classificação">Classificação</option>
+                        <option value="Toletagem">Toletagem</option>
+                        {% else %}
+                        <option value="Classificação">Classificação</option>
+                        <option value="Banca">Banca</option>
+                        {% endif %}
+                    </select>
+                    <div id="saldoOrigemTag" class="saldo-tag"></div>
+                </div>
+                <div class="field">
+                    <label>⏱️ Horas de Banca</label>
+                    <input type="number" id="horasBanca" step="0.5" value="0" min="0">
+                </div>
+                <div class="field">
+                    <label>⚠️ Quebra (kg)</label>
+                    <input type="number" id="quebra" step="0.1" value="0" min="0">
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- TABELA PESOS -->
+    <div class="card">
+        <div class="card-header">⚖️ Pesos por Classe</div>
+        <div class="card-body">
+            <div class="peso-list" id="pesoList"></div>
+        </div>
+    </div>
+</main>
+
+<!-- BOTÕES STICKY -->
+<div class="botoes">
+    <button class="btn btn-danger" id="limparBtn">🗑️ Limpar</button>
+    <button class="btn btn-secondary" id="exemploBtn">📋 Exemplo</button>
+    <button class="btn btn-primary" id="salvarBtn">💾 Registrar</button>
+</div>
+
+<!-- HIDDEN -->
+<input type="hidden" id="localDestino" value="{{ 'Classificação' if role == 'classificacao' else 'banca' if role == 'banca' else 'toletagem' }}">
+
 <script>
-    const role = "{{ role }}";
-    const classesTipos = ["INDÚSTRIA", "TIPO 2", "TIPO 3", "TIPO 4", "TIPO 5", "TIPO 6", "TIPO 7"];
-    let dadosTabela = classesTipos.map(classe => ({ classe: classe, peso: null }));
-    let produtorAtual = null;
-    let saldosPorClasse = {};
-    
-    const tbody = document.getElementById('tabelaCorpo');
-    const matriculaInput = document.getElementById('matriculaInput');
-    const produtorInput = document.getElementById('produtorInput');
-    const produtorIdInput = document.getElementById('produtorId');
-    const produtorInfo = document.getElementById('produtorInfo');
-    const variedadeSelect = document.getElementById('variedadeSelect');
-    const limparBtn = document.getElementById('limparBtn');
-    const exemploBtn = document.getElementById('exemploBtn');
-    const salvarBtn = document.getElementById('salvarBtn');
-    const statusMsg = document.getElementById('statusMsg');
-    const dataRegistro = document.getElementById('dataRegistro');
-    const autocompleteList = document.getElementById('autocompleteList');
-    const camposAdicionais = document.getElementById('camposAdicionais');
-    const origemSelect = document.getElementById('origemSelect');
-    const horasBancaInput = document.getElementById('horasBanca');
-    const quebraInput = document.getElementById('quebra');
-    const saldoOrigemSpan = document.getElementById('saldoOrigem');
-    const localDestinoHidden = document.getElementById('localDestino');
-    let buscaTimeout = null;
+const ROLE = "{{ role }}";
+const VALOR_HORA = {{ valor_hora_banca }};
+const CLASSES = ["INDÚSTRIA","TIPO 2","TIPO 3","TIPO 4","TIPO 5","TIPO 6","TIPO 7"];
+const CLASSE_MAP = {
+    "INDÚSTRIA":"Indústria","TIPO 2":"Classe 2","TIPO 3":"Classe 3",
+    "TIPO 4":"Classe 4","TIPO 5":"Classe 5","TIPO 6":"Classe 6","TIPO 7":"Classe 7"
+};
 
-    function configurarPorRole() {
-        if (role === 'classificacao') {
-            camposAdicionais.style.display = 'none';
-        } else if (role === 'banca') {
-            camposAdicionais.style.display = 'block';
-            // Campo de horas sempre visível para Banca
-            document.getElementById('campoHoras').style.display = 'flex';
-            horasBancaInput.disabled = false;
-            origemSelect.addEventListener('change', atualizarSaldosPorClasse);
-        } else if (role === 'toletagem') {
-            camposAdicionais.style.display = 'block';
-            // Campo de horas também visível para Toletagem
-            document.getElementById('campoHoras').style.display = 'flex';
-            horasBancaInput.disabled = false;
-            origemSelect.addEventListener('change', atualizarSaldosPorClasse);
-        }
-    }
+let pesos = Object.fromEntries(CLASSES.map(c => [c, '']));
+let saldos = {};
+let produtorAtual = null;
+let buscaTimeout = null;
 
-    async function atualizarSaldosPorClasse() {
-        const produtorId = produtorIdInput.value;
-        const tipoAlho = variedadeSelect.value;
-        const origem = origemSelect.value;
-        
-        if (!produtorId || !origem) return;
-        
-        // Mapear origem para o nome correto no banco
-        let origemBanco = origem;
-        if (origem === 'Toletagem') origemBanco = 'Toletagem';
-        if (origem === 'Banca') origemBanco = 'Banca';
-        if (origem === 'Classificação') origemBanco = 'Classificação';
-        
-        // Buscar saldo para cada classe
-        for (let i = 0; i < classesTipos.length; i++) {
-            const classe = classesTipos[i];
-            const classeBanco = classe === "INDÚSTRIA" ? "Indústria" : `Classe ${classe.split(' ')[1]}`;
-            
-            try {
-                const response = await fetch('/api/obter-saldo', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        produtor_id: parseInt(produtorId),
-                        tipo_alho: tipoAlho,
-                        classe: classeBanco,
-                        local: origemBanco
-                    })
-                });
-                const data = await response.json();
-                if (data.sucesso) {
-                    saldosPorClasse[classe] = data.saldo;
-                }
-            } catch (e) {
-                console.error('Erro ao buscar saldo:', e);
-            }
-        }
-        
-        // Atualizar saldo total
-        const saldoTotal = Object.values(saldosPorClasse).reduce((a,b) => a + b, 0);
-        saldoOrigemSpan.innerHTML = `(Saldo disponível em ${origem}: ${saldoTotal.toLocaleString('pt-BR')} kg)`;
-        
-        // Atualizar placeholders nos inputs
-        const inputs = document.querySelectorAll('#tabelaCorpo input');
-        inputs.forEach((input, idx) => {
-            const classe = classesTipos[idx];
-            const saldo = saldosPorClasse[classe] || 0;
-            input.placeholder = `0 kg (disp: ${saldo} kg)`;
-        });
-    }
+// ─── ELEMENTOS ───────────────────────────────────────
+const $ = id => document.getElementById(id);
+const matriculaInput  = $('matriculaInput');
+const produtorInput   = $('produtorInput');
+const produtorIdInput = $('produtorId');
+const produtorBanner  = $('produtorBanner');
+const autocompleteList= $('autocompleteList');
+const dataRegistro    = $('dataRegistro');
+const pesoList        = $('pesoList');
+const statusMsg       = $('statusMsg');
+const localDestino    = $('localDestino');
+const origemSelect    = ROLE !== 'classificacao' ? $('origemSelect') : null;
+const horasInput      = ROLE !== 'classificacao' ? $('horasBanca') : null;
+const quebraInput     = ROLE !== 'classificacao' ? $('quebra') : null;
+const saldoTag        = $('saldoOrigemTag');
 
-    function renderizarTabela() {
-        tbody.innerHTML = '';
-        dadosTabela.forEach((item, index) => {
-            const tr = document.createElement('tr');
-            const tdClasse = document.createElement('td');
-            let icone = item.classe === "INDÚSTRIA" ? '🏭 ' : '🔢 ';
-            tdClasse.innerHTML = icone + item.classe;
-            tr.appendChild(tdClasse);
-            const tdPeso = document.createElement('td');
-            const pesoInput = document.createElement('input');
-            pesoInput.type = 'number';
-            pesoInput.step = '1';
-            pesoInput.value = item.peso !== null ? item.peso : '';
-            pesoInput.placeholder = '0 kg';
-            pesoInput.addEventListener('change', (e) => {
-                let valor = e.target.value;
-                if (valor === '') dadosTabela[index].peso = null;
-                else { let num = parseFloat(valor); if (!isNaN(num) && num >= 0) dadosTabela[index].peso = Math.round(num); else dadosTabela[index].peso = null; }
-                renderizarTabela();
-                verificarLimitesPorClasse();
-            });
-            tdPeso.appendChild(pesoInput);
-            tr.appendChild(tdPeso);
-            tbody.appendChild(tr);
-        });
-        const trTotal = document.createElement('tr');
-        trTotal.classList.add('total-row');
-        const tdTotalLabel = document.createElement('td');
-        tdTotalLabel.innerHTML = '<strong>🔹 TOTAL GERAL</strong>';
-        trTotal.appendChild(tdTotalLabel);
-        const tdTotalValor = document.createElement('td');
-        const totalValor = dadosTabela.reduce((s,i)=>s+(i.peso||0),0);
-        const totalInput = document.createElement('input');
-        totalInput.type = 'text';
-        totalInput.value = totalValor > 0 ? totalValor.toLocaleString('pt-BR') + ' kg' : '0 kg';
-        totalInput.disabled = true;
-        totalInput.style.background = '#eef3e7';
-        totalInput.style.fontWeight = 'bold';
-        totalInput.style.textAlign = 'center';
-        totalInput.style.border = 'none';
-        tdTotalValor.appendChild(totalInput);
-        trTotal.appendChild(tdTotalValor);
-        tbody.appendChild(trTotal);
-        
-        // Atualizar placeholders com saldos
-        if (Object.keys(saldosPorClasse).length > 0) {
-            const inputs = document.querySelectorAll('#tabelaCorpo input');
-            inputs.forEach((input, idx) => {
-                const classe = classesTipos[idx];
-                const saldo = saldosPorClasse[classe] || 0;
-                input.placeholder = `0 kg (disp: ${saldo} kg)`;
-            });
-        }
-    }
-    
-    function verificarLimitesPorClasse() {
-        if (Object.keys(saldosPorClasse).length === 0) return;
-        
-        let temExcesso = false;
-        dadosTabela.forEach((item, idx) => {
-            const classe = item.classe;
-            const peso = item.peso || 0;
-            const saldo = saldosPorClasse[classe] || 0;
-            if (peso > saldo && role !== 'classificacao') {
-                temExcesso = true;
-                const input = document.querySelectorAll('#tabelaCorpo input')[idx];
-                input.style.borderColor = '#e74c3c';
-                input.style.backgroundColor = '#ffe6e6';
-            } else {
-                const input = document.querySelectorAll('#tabelaCorpo input')[idx];
-                input.style.borderColor = '#e2e8d5';
-                input.style.backgroundColor = 'white';
-            }
-        });
-        
-        if (temExcesso && role !== 'classificacao') {
-            mostrarStatus("⚠️ Atenção: Alguns pesos excedem o saldo disponível na origem!", "error");
-        }
-    }
+// ─── STATUS ───────────────────────────────────────────
+function showStatus(msg, tipo, duração = 5000) {
+    statusMsg.textContent = msg;
+    statusMsg.className = `status-bar show ${tipo}`;
+    clearTimeout(statusMsg._t);
+    statusMsg._t = setTimeout(() => statusMsg.classList.remove('show'), duração);
+}
 
-    function limparTodosPesos() {
-        dadosTabela.forEach(i=>i.peso=null);
-        renderizarTabela();
-        mostrarStatus("✅ Todos os campos de peso foram limpos.", "success");
-    }
+// ─── DATA ─────────────────────────────────────────────
+function atualizarData() {
+    dataRegistro.value = new Date().toLocaleString('pt-BR',
+        {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+}
 
-    function carregarExemplo() {
-        const variedade = variedadeSelect.value;
-        let ex = {};
-        if(variedade === 'São Valentim') ex = { "INDÚSTRIA":850, "TIPO 2":512, "TIPO 3":870, "TIPO 4":1269, "TIPO 5":579, "TIPO 6":199, "TIPO 7":45 };
-        else if(variedade === 'Ito') ex = { "INDÚSTRIA":1200, "TIPO 2":780, "TIPO 3":1250, "TIPO 4":890, "TIPO 5":445, "TIPO 6":267, "TIPO 7":89 };
-        else ex = { "INDÚSTRIA":950, "TIPO 2":650, "TIPO 3":980, "TIPO 4":1540, "TIPO 5":720, "TIPO 6":310, "TIPO 7":125 };
-        dadosTabela.forEach(i=>{ if(ex[i.classe]!==undefined) i.peso = ex[i.classe]; });
-        renderizarTabela();
-        mostrarStatus(`📋 Exemplo carregado para variedade ${variedade}!`, "info");
-    }
-
-    async function buscarProdutoresPorTermo(termo) {
-        if(termo.length<1) return [];
-        try{
-            const resp = await fetch(`/api/buscar-produtores?termo=${encodeURIComponent(termo)}`);
-            return await resp.json();
-        } catch(e){ return []; }
-    }
-
-    function mostrarAutocomplete(produtores) {
-        if(!produtores.length){ autocompleteList.style.display='none'; return; }
-        autocompleteList.innerHTML='';
-        produtores.forEach(p=>{
-            const div = document.createElement('div');
-            div.className='autocomplete-item';
-            div.innerHTML=`<strong>${p.matricula}</strong> - ${p.nome}`;
-            div.onclick=()=>selecionarProdutor(p);
-            autocompleteList.appendChild(div);
-        });
-        const rect = matriculaInput.getBoundingClientRect();
-        autocompleteList.style.position='absolute';
-        autocompleteList.style.top=rect.bottom+'px';
-        autocompleteList.style.left=rect.left+'px';
-        autocompleteList.style.width=rect.width+'px';
-        autocompleteList.style.display='block';
-    }
-
-    function selecionarProdutor(produtor) {
-        matriculaInput.value = produtor.matricula;
-        produtorInput.value = produtor.nome;
-        produtorIdInput.value = produtor.id;
-        produtorAtual = produtor;
-        autocompleteList.style.display='none';
-        produtorInfo.innerHTML = `✅ Produtor selecionado: <strong>${produtor.nome}</strong> (Matrícula: ${produtor.matricula})`;
-        produtorInfo.classList.add('show');
-        mostrarStatus(`✅ Produtor encontrado: ${produtor.nome}`, "success");
-        setTimeout(()=>produtorInfo.classList.remove('show'),3000);
-        
-        // Atualizar saldos quando produtor é selecionado
-        if (role !== 'classificacao') {
-            atualizarSaldosPorClasse();
-        }
-    }
-
-    matriculaInput.addEventListener('input', async (e) => {
-        const termo = e.target.value.trim();
-        if(termo.length===0){ autocompleteList.style.display='none'; produtorInput.value=''; produtorIdInput.value=''; produtorAtual=null; produtorInfo.classList.remove('show'); return; }
-        if(buscaTimeout) clearTimeout(buscaTimeout);
-        buscaTimeout = setTimeout(async ()=>{
-            const produtores = await buscarProdutoresPorTermo(termo);
-            mostrarAutocomplete(produtores);
-        },300);
+// ─── VARIEDADE PILLS ──────────────────────────────────
+let variedade = 'São Valentim';
+document.querySelectorAll('.pill').forEach(p => {
+    p.addEventListener('click', () => {
+        document.querySelectorAll('.pill').forEach(x => x.classList.remove('active'));
+        p.classList.add('active');
+        variedade = p.dataset.value;
+        if (ROLE !== 'classificacao' && produtorIdInput.value) atualizarSaldos();
     });
-    matriculaInput.addEventListener('blur', ()=>{ setTimeout(()=>{ if(!autocompleteList.matches(':hover')) autocompleteList.style.display='none'; },200); });
-    variedadeSelect.addEventListener('change', () => {
-        if (role !== 'classificacao' && produtorIdInput.value) {
-            atualizarSaldosPorClasse();
-        }
+});
+
+// ─── AUTOCOMPLETE ─────────────────────────────────────
+matriculaInput.addEventListener('input', e => {
+    const t = e.target.value.trim();
+    if (!t) { autocompleteList.style.display='none'; limparProdutor(); return; }
+    clearTimeout(buscaTimeout);
+    buscaTimeout = setTimeout(async () => {
+        const lista = await fetchJSON(`/api/buscar-produtores?termo=${encodeURIComponent(t)}`);
+        renderAutocomplete(lista || []);
+    }, 280);
+});
+
+matriculaInput.addEventListener('blur', () => {
+    setTimeout(() => { autocompleteList.style.display = 'none'; }, 200);
+});
+
+function renderAutocomplete(lista) {
+    if (!lista.length) { autocompleteList.style.display='none'; return; }
+    autocompleteList.innerHTML = lista.map(p =>
+        `<div class="autocomplete-item" data-id="${p.id}" data-mat="${p.matricula}" data-nome="${p.nome}">
+            <strong>${p.matricula}</strong> – ${p.nome}
+         </div>`
+    ).join('');
+    autocompleteList.style.display = 'block';
+    autocompleteList.querySelectorAll('.autocomplete-item').forEach(el => {
+        el.addEventListener('mousedown', () => selecionarProdutor({
+            id: el.dataset.id, matricula: el.dataset.mat, nome: el.dataset.nome
+        }));
+    });
+}
+
+function selecionarProdutor(p) {
+    matriculaInput.value = p.matricula;
+    produtorInput.value  = p.nome;
+    produtorIdInput.value = p.id;
+    produtorAtual = p;
+    autocompleteList.style.display = 'none';
+    produtorBanner.innerHTML = `✅ <strong>${p.nome}</strong> (Matrícula: ${p.matricula})`;
+    produtorBanner.classList.add('show');
+    setTimeout(() => produtorBanner.classList.remove('show'), 3000);
+    showStatus(`✅ Produtor selecionado: ${p.nome}`, 'success', 3000);
+    if (ROLE !== 'classificacao') atualizarSaldos();
+}
+
+function limparProdutor() {
+    produtorInput.value = '';
+    produtorIdInput.value = '';
+    produtorAtual = null;
+    produtorBanner.classList.remove('show');
+}
+
+// ─── SALDOS ───────────────────────────────────────────
+async function atualizarSaldos() {
+    const pid = produtorIdInput.value;
+    const origem = origemSelect?.value;
+    if (!pid || !origem) return;
+
+    saldos = {};
+    let total = 0;
+
+    for (const classe of CLASSES) {
+        const classeBanco = CLASSE_MAP[classe];
+        const data = await fetchJSON('/api/obter-saldo', 'POST', {
+            produtor_id: parseInt(pid), tipo_alho: variedade, classe: classeBanco, local: origem
+        });
+        if (data?.sucesso) { saldos[classe] = data.saldo; total += data.saldo; }
+    }
+
+    if (saldoTag) saldoTag.textContent = `Disponível em ${origem}: ${total.toLocaleString('pt-BR')} kg`;
+    renderPesos();
+}
+
+if (origemSelect) {
+    origemSelect.addEventListener('change', () => {
+        if (produtorIdInput.value) atualizarSaldos();
+    });
+}
+
+// ─── RENDER PESOS ─────────────────────────────────────
+function renderPesos() {
+    pesoList.innerHTML = '';
+    CLASSES.forEach(c => {
+        const saldo = saldos[c] ?? null;
+        const val   = pesos[c];
+        const excede = saldo !== null && val !== '' && parseFloat(val) > saldo;
+        const row = document.createElement('div');
+        row.className = `peso-row${excede ? ' excede' : ''}`;
+        row.innerHTML = `
+            <div class="peso-classe">
+                ${c}
+                ${saldo !== null ? `<div class="peso-saldo">disp: ${saldo.toLocaleString('pt-BR')} kg</div>` : ''}
+            </div>
+            <input class="peso-input" type="number" inputmode="decimal"
+                step="1" min="0" placeholder="0"
+                value="${val}" data-classe="${c}">
+        `;
+        row.querySelector('input').addEventListener('change', e => {
+            const v = e.target.value;
+            pesos[c] = v === '' ? '' : String(Math.max(0, Math.round(parseFloat(v) || 0)));
+            e.target.value = pesos[c];
+            renderPesos();
+        });
+        pesoList.appendChild(row);
     });
 
-    async function salvarRegistro() {
-        const produtorId = produtorIdInput.value;
-        const produtorNome = produtorInput.value.trim();
-        const variedade = variedadeSelect.value;
-        const local = localDestinoHidden.value;
-        const origem = origemSelect ? origemSelect.value : null;
-        const horasBanca = parseFloat(horasBancaInput.value) || 0;
-        const quebra = parseFloat(quebraInput.value) || 0;
+    // Total
+    const total = CLASSES.reduce((s,c) => s + (parseFloat(pesos[c]) || 0), 0);
+    const div = document.createElement('div');
+    div.className = 'total-row';
+    div.innerHTML = `<span>🔹 TOTAL GERAL</span><span>${total.toLocaleString('pt-BR')} kg</span>`;
+    pesoList.appendChild(div);
+}
 
-        if(!produtorId || !produtorNome){
-            mostrarStatus("❌ Informe uma matrícula válida de produtor! Digite a matrícula e selecione um produtor da lista.", "error");
-            matriculaInput.focus();
-            return;
+// ─── LIMPAR ───────────────────────────────────────────
+function limpar() {
+    pesos = Object.fromEntries(CLASSES.map(c => [c, '']));
+    renderPesos();
+    showStatus('✅ Pesos limpos.', 'success', 2500);
+}
+
+// ─── EXEMPLO ──────────────────────────────────────────
+function carregarExemplo() {
+    const ex = {
+        'São Valentim': {INDÚSTRIA:850,'TIPO 2':512,'TIPO 3':870,'TIPO 4':1269,'TIPO 5':579,'TIPO 6':199,'TIPO 7':45},
+        'Ito':          {INDÚSTRIA:1200,'TIPO 2':780,'TIPO 3':1250,'TIPO 4':890,'TIPO 5':445,'TIPO 6':267,'TIPO 7':89},
+        'Chonan':       {INDÚSTRIA:950,'TIPO 2':650,'TIPO 3':980,'TIPO 4':1540,'TIPO 5':720,'TIPO 6':310,'TIPO 7':125}
+    }[variedade] || {};
+    CLASSES.forEach(c => { if (ex[c] !== undefined) pesos[c] = String(ex[c]); });
+    renderPesos();
+    showStatus(`📋 Exemplo ${variedade} carregado.`, 'info', 2500);
+}
+
+// ─── SALVAR ───────────────────────────────────────────
+async function salvar() {
+    const pid    = produtorIdInput.value;
+    const pnome  = produtorInput.value.trim();
+    const local  = localDestino.value;
+    const origem = origemSelect?.value ?? null;
+    const horas  = parseFloat(horasInput?.value) || 0;
+    const quebra = parseFloat(quebraInput?.value) || 0;
+
+    if (!pid || !pnome) {
+        showStatus('❌ Selecione um produtor na lista.', 'error'); return;
+    }
+    if (ROLE !== 'classificacao' && !origem) {
+        showStatus('❌ Selecione a origem do estoque.', 'error'); return;
+    }
+
+    const detalhes = [];
+    let totalPeso = 0;
+    let temExcesso = false;
+
+    for (const c of CLASSES) {
+        const p = parseFloat(pesos[c]) || 0;
+        if (p <= 0) continue;
+        if (ROLE !== 'classificacao' && saldos[c] !== undefined && p > saldos[c]) {
+            showStatus(`❌ ${c}: peso (${p} kg) excede saldo (${saldos[c]} kg).`, 'error');
+            temExcesso = true; break;
         }
-        
-        if (role !== 'classificacao' && !origem) {
-            mostrarStatus("❌ Selecione a origem do estoque.", "error");
-            return;
-        }
-        
-        const detalhes = [];
-        let pesoTotal = 0;
-        let temExcesso = false;
-        
-        dadosTabela.forEach((item, idx) => {
-            if(item.peso && item.peso>0){
-                const classe = item.classe;
-                const saldo = saldosPorClasse[classe] || 0;
-                if (item.peso > saldo && role !== 'classificacao') {
-                    temExcesso = true;
-                    mostrarStatus(`⚠️ Peso da classe ${classe} (${item.peso} kg) excede o saldo disponível (${saldo} kg).`, "error");
-                }
-                detalhes.push({classe: item.classe, peso: item.peso});
-                pesoTotal += item.peso;
+        detalhes.push({ classe: c, peso: p });
+        totalPeso += p;
+    }
+
+    if (temExcesso) return;
+    if (!detalhes.length) { showStatus('⚠️ Preencha pelo menos um peso.', 'warning'); return; }
+    if (quebra > totalPeso) { showStatus(`⚠️ Quebra (${quebra} kg) maior que total (${totalPeso} kg).`, 'warning'); return; }
+
+    const destLabel = local === 'Classificação' ? 'Classificação' : local === 'banca' ? 'Banca' : 'Toletagem';
+    let conf = `Confirmar ${ROLE === 'classificacao' ? 'entrada' : 'transferência'}?\n\nProdutor: ${pnome}\nVariedade: ${variedade}\nDestino: ${destLabel}\nTotal: ${totalPeso} kg`;
+    if (ROLE !== 'classificacao') conf += `\nOrigem: ${origem}`;
+    if (horas > 0) conf += `\nHoras banca: ${horas}`;
+    if (quebra > 0) conf += `\nQuebra: ${quebra} kg`;
+    if (!confirm(conf)) return;
+
+    const btn = $('salvarBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Salvando…';
+
+    const result = await fetchJSON('/api/salvar-entrada', 'POST', {
+        produtor_id: parseInt(pid), tipo_alho: variedade, local,
+        local_origem: origem, detalhes, horas_banca: horas, quebra
+    });
+
+    btn.disabled = false;
+    btn.innerHTML = '💾 Registrar';
+
+    if (result?.sucesso) {
+        showStatus(`✅ ${result.mensagem}`, 'success', 6000);
+        limpar();
+        if (horasInput) horasInput.value = 0;
+        if (quebraInput) quebraInput.value = 0;
+        setTimeout(() => {
+            if (confirm('Registro salvo! Registrar outro?')) {
+                matriculaInput.focus(); matriculaInput.select();
             }
-        });
-        
-        if(temExcesso) return;
-        
-        if(detalhes.length===0){
-            mostrarStatus("⚠️ Nenhum peso foi preenchido! Preencha pelo menos uma classe.", "error");
-            return;
-        }
-        
-        if(quebra > pesoTotal){
-            mostrarStatus(`⚠️ Quebra (${quebra} kg) não pode ser maior que o peso total (${pesoTotal} kg).`, "error");
-            return;
-        }
-        
-        let mensagemConfirmacao = `Confirmar ${role === 'classificacao' ? 'entrada' : 'transferência'}:\n\nProdutor: ${produtorNome}\nVariedade: ${variedade}\nDestino: ${local === 'Classificação' ? 'Classificação' : local === 'banca' ? 'Banca' : 'Toletagem'}\nTotal: ${pesoTotal} Kg`;
-        if(role !== 'classificacao'){
-            mensagemConfirmacao += `\nOrigem: ${origem}`;
-            if(horasBanca > 0) mensagemConfirmacao += `\n⏱️ Horas de Banca: ${horasBanca} (R$ ${horasBanca * {{ valor_hora_banca }}} de desconto futuro)`;
-            if(quebra > 0) mensagemConfirmacao += `\n⚠️ Quebra: ${quebra} Kg`;
-        }
-        mensagemConfirmacao += `\n\nDeseja registrar?`;
-        if(!confirm(mensagemConfirmacao)) return;
+        }, 600);
+    } else {
+        showStatus(`❌ ${result?.mensagem || 'Erro ao salvar.'}`, 'error');
+    }
+}
 
-        salvarBtn.disabled=true;
-        salvarBtn.innerHTML='<span class="loading"></span> Salvando...';
-        try{
-            const resp = await fetch('/api/salvar-entrada',{
-                method:'POST',
-                headers:{'Content-Type':'application/json'},
-                body:JSON.stringify({
-                    produtor_id:parseInt(produtorId),
-                    tipo_alho:variedade,
-                    local:local,
-                    local_origem:origem,
-                    detalhes:detalhes,
-                    horas_banca:horasBanca,
-                    quebra:quebra
-                })
-            });
-            const result = await resp.json();
-            if(result.sucesso){
-                mostrarStatus(`✅ ${result.mensagem}`, "success");
-                limparTodosPesos();
-                horasBancaInput.value = 0;
-                quebraInput.value = 0;
-                setTimeout(()=>{ if(confirm("Registro realizado com sucesso! Deseja registrar outro?")){ matriculaInput.focus(); matriculaInput.select(); } },500);
-            } else {
-                mostrarStatus(`❌ ${result.mensagem}`, "error");
-            }
-        } catch(e){
-            mostrarStatus(`❌ Erro ao salvar: ${e.message}`, "error");
-        } finally {
-            salvarBtn.disabled=false;
-            salvarBtn.innerHTML='💾 Registrar';
-        }
-    }
+// ─── FETCH HELPER ─────────────────────────────────────
+async function fetchJSON(url, method = 'GET', body = null) {
+    try {
+        const opts = { method, headers: { 'Content-Type': 'application/json' } };
+        if (body) opts.body = JSON.stringify(body);
+        const r = await fetch(url, opts);
+        return await r.json();
+    } catch (e) { console.error(e); return null; }
+}
 
-    function mostrarStatus(msg, tipo){
-        statusMsg.textContent=msg;
-        statusMsg.className=`status-message show ${tipo}`;
-        setTimeout(()=>statusMsg.classList.remove('show'),5000);
-    }
-    
-    function atualizarDataAtual(){
-        const agora = new Date();
-        dataRegistro.value = agora.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
-    }
-    
-    function init(){
-        renderizarTabela();
-        atualizarDataAtual();
-        setInterval(atualizarDataAtual,60000);
-        limparBtn.onclick=limparTodosPesos;
-        exemploBtn.onclick=carregarExemplo;
-        salvarBtn.onclick=salvarRegistro;
-        configurarPorRole();
-        mostrarStatus("📝 Formulário pronto. Digite a matrícula do produtor e selecione da lista.", "info");
-    }
-    init();
+// ─── INIT ─────────────────────────────────────────────
+function init() {
+    renderPesos();
+    atualizarData();
+    setInterval(atualizarData, 60000);
+    $('limparBtn').onclick = limpar;
+    $('exemploBtn').onclick = carregarExemplo;
+    $('salvarBtn').onclick = salvar;
+    showStatus('📝 Digite a matrícula e selecione o produtor.', 'info', 4000);
+}
+init();
 </script>
 </body>
 </html>
