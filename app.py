@@ -738,7 +738,6 @@ def api_obter_saldos_todos():
             conn.close()
         return jsonify({'sucesso': False, 'mensagem': str(e), 'saldos': {}})
 
-
 @app.route('/api/salvar-entrada', methods=['POST'])
 def api_salvar_entrada():
     data = request.get_json(silent=True)
@@ -755,9 +754,7 @@ def api_salvar_entrada():
     local_origem  = data.get('local_origem')
     detalhes      = data.get('detalhes', [])
     horas_banca   = float(data.get('horas_banca', 0) or 0)
-    quebra_total  = float(data.get('quebra', 0) or 0)
 
-    # Validações básicas
     if not produtor_id:
         return jsonify({'sucesso': False, 'mensagem': 'Produtor não selecionado'})
     if not tipo_alho:
@@ -765,99 +762,62 @@ def api_salvar_entrada():
     if not detalhes:
         return jsonify({'sucesso': False, 'mensagem': 'Nenhum peso registrado'})
 
-    # Validações por role
-    if role == 'classificacao':
-        if local_destino != 'Classificação':
-            return jsonify({'sucesso': False,
-                            'mensagem': 'Setor Classificação só registra entrada inicial.'})
-        local_origem = None
-        if horas_banca > 0 or quebra_total > 0:
-            return jsonify({'sucesso': False,
-                            'mensagem': 'Classificação não permite horas ou quebra.'})
-
-    elif role == 'banca':
-        if local_destino != 'banca':
-            return jsonify({'sucesso': False,
-                            'mensagem': 'Setor Banca só transfere para Banca.'})
-        if not local_origem or local_origem not in ('Classificação', 'Toletagem'):
-            return jsonify({'sucesso': False,
-                            'mensagem': 'Para Banca, a origem deve ser Classificação ou Toletagem.'})
-
-    elif role == 'toletagem':
-        if local_destino != 'toletagem':
-            return jsonify({'sucesso': False,
-                            'mensagem': 'Setor Toletagem só transfere para Toletagem.'})
-        if not local_origem or local_origem not in ('Classificação', 'Banca'):
-            return jsonify({'sucesso': False,
-                            'mensagem': 'Para Toletagem, a origem deve ser Classificação ou Banca.'})
-
-    # Calcular peso total para distribuir quebra proporcionalmente
-    peso_total_detalhes = sum(
-        float(item.get('peso', 0)) for item in detalhes
-        if float(item.get('peso', 0)) > 0
-    )
-
-    if quebra_total > peso_total_detalhes:
-        return jsonify({'sucesso': False,
-                        'mensagem': f'Quebra ({quebra_total} kg) maior que o peso total ({peso_total_detalhes} kg).'})
-
     resultados = []
-    erros      = []
-    peso_total_movido = 0
+    erros = []
+    peso_total = 0
+    quebra_total = 0
 
     for item in detalhes:
         classe_ui = item.get('classe')
-        peso      = float(item.get('peso', 0))
+
+        try:
+            peso = float(item.get('peso', 0))
+            quebra = float(item.get('quebra', 0))
+        except:
+            continue
+
         if peso <= 0:
+            continue
+
+        if quebra > peso:
+            erros.append({'classe': classe_ui, 'erro': 'Quebra maior que o peso'})
             continue
 
         classe_banco = CLASSES_MAP.get(classe_ui)
         if not classe_banco:
-            erros.append({'classe': classe_ui, 'peso': peso, 'erro': f'Classe "{classe_ui}" não reconhecida'})
+            erros.append({'classe': classe_ui, 'erro': 'Classe inválida'})
             continue
 
-        # Quebra proporcional para esta classe
-        quebra_classe = round(
-            (peso / peso_total_detalhes) * quebra_total, 4
-        ) if peso_total_detalhes > 0 and quebra_total > 0 else 0
+        peso_liquido = peso - quebra
 
-        # Peso líquido que vai ao destino
-        peso_liquido = peso - quebra_classe
-
-        sucesso, resultado = registrar_movimentacao(
-            produtor_id  = produtor_id,
-            tipo_alho    = tipo_alho,
-            classe       = classe_banco,
-            peso_movido  = peso_liquido,
-            local_destino= local_destino,
-            horas_banca  = horas_banca,
-            quebra       = quebra_classe,
-            local_origem = local_origem,
+        sucesso, msg = registrar_movimentacao(
+            produtor_id,
+            tipo_alho,
+            classe_banco,
+            peso_liquido,
+            local_destino,
+            horas_banca,
+            quebra,
+            local_origem
         )
 
         if sucesso:
-            resultados.append({'classe': classe_ui, 'peso': peso, 'entrada_id': resultado})
-            peso_total_movido += peso_liquido
+            peso_total += peso_liquido
+            quebra_total += quebra
         else:
-            erros.append({'classe': classe_ui, 'peso': peso, 'erro': resultado})
+            erros.append({'classe': classe_ui, 'erro': msg})
 
     if erros:
-        return jsonify({
-            'sucesso': False,
-            'mensagem': f'Erro: {erros[0]["erro"]}',
-            'sucessos': resultados,
-            'erros': erros,
-        }), 207
+        return jsonify({'sucesso': False, 'mensagem': erros[0]['erro']}), 207
 
-    msg = f'Registrado com sucesso! Peso líquido: {peso_total_movido:.2f} kg'
-    if quebra_total > 0:
-        msg += f' (Quebra: {quebra_total:.2f} kg)'
-    if horas_banca > 0:
-        msg += f' | Horas: {horas_banca}'
-    if local_origem:
-        msg += f' | Origem: {local_origem}'
+    return jsonify({
+        'sucesso': True,
+        'mensagem': f'Peso: {peso_total:.2f} kg | Quebra: {quebra_total:.2f} kg'
+    })
 
-    return jsonify({'sucesso': True, 'mensagem': msg, 'registros': resultados})
+
+
+
 
 
 # ── APIs Gerente ──────────────────────────────────────
