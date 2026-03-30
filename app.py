@@ -573,15 +573,23 @@ def api_salvar_entrada():
     if not conn:
         return jsonify({'sucesso': False, 'mensagem': 'Erro de conexão'}), 500
 
+    # psycopg3: desligar autocommit garante transação explícita (necessário para FOR UPDATE)
+    conn.autocommit = False
+
     try:
         cur = conn.cursor()
         total_destino = 0
         total_perdas  = 0
 
+        logger.info(
+            f"salvar-entrada: role={role} pid={pid} tipo={tipo_alho} "
+            f"destino={local_destino_banco} origem={local_origem_banco} itens={len(detalhes)}"
+        )
+
         for item in detalhes:
             classe_ui = item.get('classe', '')
             peso      = float(item.get('peso', 0) or 0)
-            tipo_item = item.get('tipo', 'entrada')  # entrada | transferencia | perda | industria
+            tipo_item = item.get('tipo', '')
 
             if peso <= 0.001:
                 continue
@@ -590,36 +598,51 @@ def api_salvar_entrada():
             if not classe_banco:
                 raise ValueError(f'Classe "{classe_ui}" não reconhecida')
 
-            # ── CLASSIFICAÇÃO: entrada direta (sem origem) ──────────────────
-            if role == 'classificacao' or tipo_item == 'entrada':
+            logger.info(f"  item: {classe_ui} ({classe_banco}) {peso} kg tipo={tipo_item}")
+
+            # ── entrada direta na Classificação ─────────────────────────────
+            if tipo_item == 'entrada':
                 _inserir_estoque(cur, pid, tipo_alho, classe_banco,
                                  peso, local_destino_banco, horas_banca)
                 total_destino += peso
+                logger.info(f"    → entrada direta em {local_destino_banco}")
 
-            # ── TRANSFERÊNCIA: retira da origem, insere no destino ──────────
+            # ── transferência: retira da origem + insere no destino ─────────
             elif tipo_item == 'transferencia':
+                if not local_origem_banco:
+                    raise ValueError(f'Origem não informada para transferência de {classe_ui}')
                 _retirar_fifo(cur, pid, tipo_alho, classe_banco,
                               local_origem_banco, peso)
                 _inserir_estoque(cur, pid, tipo_alho, classe_banco,
                                  peso, local_destino_banco, horas_banca)
                 total_destino += peso
+                logger.info(f"    → transferido {local_origem_banco} → {local_destino_banco}")
 
-            # ── PERDA: retira da origem, registra em perdas ─────────────────
+            # ── perda: retira da origem + grava em perdas ───────────────────
             elif tipo_item == 'perda':
+                if not local_origem_banco:
+                    raise ValueError(f'Origem não informada para perda de {classe_ui}')
                 _retirar_fifo(cur, pid, tipo_alho, classe_banco,
                               local_origem_banco, peso)
                 _registrar_perda(cur, pid, tipo_alho, classe_banco,
                                  peso, local_origem_banco, 'Perda/impureza na movimentação')
                 total_perdas += peso
+                logger.info(f"    → perda registrada de {local_origem_banco}")
 
-            # ── INDÚSTRIA sem origem: entrada direta no destino ─────────────
+            # ── indústria: entrada direta no destino sem retirar da origem ──
             elif tipo_item == 'industria':
                 _inserir_estoque(cur, pid, tipo_alho, classe_banco,
                                  peso, local_destino_banco, horas_banca)
                 total_destino += peso
+                logger.info(f"    → indústria direta em {local_destino_banco}")
+
+            else:
+                logger.warning(f"  tipo_item desconhecido ignorado: '{tipo_item}'")
 
         conn.commit()
-        cur.close(); conn.close()
+        cur.close()
+        conn.close()
+        logger.info(f"salvar-entrada: commit OK destino={total_destino:.3f} perdas={total_perdas:.3f}")
 
         msg = f'Registrado! Destino: {total_destino:.2f} kg'
         if total_perdas > 0:
@@ -632,12 +655,14 @@ def api_salvar_entrada():
         return jsonify({'sucesso': True, 'mensagem': msg})
 
     except ValueError as e:
-        conn.rollback(); conn.close()
+        conn.rollback()
+        conn.close()
         logger.warning(f"Validação salvar-entrada: {e}")
         return jsonify({'sucesso': False, 'mensagem': str(e)}), 400
     except Exception as e:
-        conn.rollback(); conn.close()
-        logger.error(f"Erro interno salvar-entrada: {e}")
+        conn.rollback()
+        conn.close()
+        logger.error(f"Erro interno salvar-entrada: {e}", exc_info=True)
         return jsonify({'sucesso': False, 'mensagem': f'Erro interno: {e}'}), 500
 
 
