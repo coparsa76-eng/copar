@@ -38,7 +38,6 @@ MAPEAMENTO_LOCAL = {
     'Toletagem':      'Toletagem',
 }
 
-# Interface (frontend) → banco de dados
 CLASSES_MAP = {
     'INDÚSTRIA': 'Indústria',
     'TIPO 2':    'Classe 2',
@@ -49,12 +48,11 @@ CLASSES_MAP = {
     'TIPO 7':    'Classe 7',
 }
 
-# Banco de dados → interface (inverso, usado em obter-saldos-todos)
 CLASSES_MAP_INV = {v: k for k, v in CLASSES_MAP.items()}
 
 VALOR_HORA_BANCA = 16.00
 
-# ── Usuários especiais (sem banco) ────────────────────────────────────────────
+# ── Usuários especiais ────────────────────────────────────────────────────────
 
 USUARIOS_ESPECIAIS = {
     'copar10entrada':   {'id': 9991, 'nome': 'Setor Classificação',     'tipo': 'classificacao'},
@@ -257,8 +255,7 @@ def registrar_movimentacao(cursor, produtor_id, tipo_alho, classe_banco,
                             local_origem=None):
     """
     Registra UMA classe dentro de uma transação já aberta pelo chamador.
-
-    peso         : kg que VAI ENTRAR no destino
+    peso : kg que VAI ENTRAR no destino
     local_origem : se informado, retira `peso` da origem via FIFO com FOR UPDATE
     """
     local_destino_banco = MAPEAMENTO_LOCAL.get(local_destino, local_destino)
@@ -309,53 +306,50 @@ def registrar_movimentacao(cursor, produtor_id, tipo_alho, classe_banco,
     return entrada_id
 
 
-def registrar_apenas_quebra_na_origem(cursor, produtor_id, tipo_alho,
-                                       peso_quebra, local_origem):
+def registrar_perda_por_classe(cursor, produtor_id, tipo_alho, classe_ui,
+                                peso_perda, local_origem):
     """
-    Remove peso_quebra kg da origem (FIFO global entre classes) e registra
-    cada fatia como perda. Não insere nada no destino.
+    Remove peso_perda kg de uma classe específica da origem (FIFO dentro da classe)
+    e registra como perda na tabela perdas.
     """
     local_banco = MAPEAMENTO_LOCAL.get(local_origem, local_origem)
+    classe_banco = CLASSES_MAP.get(classe_ui, classe_ui)
 
     cursor.execute("""
-        SELECT id, classe, peso FROM estoque
-        WHERE produtor_id = %s AND tipo_alho = %s AND local_estoque = %s AND peso > 0
+        SELECT id, peso FROM estoque
+        WHERE produtor_id = %s AND tipo_alho = %s AND classe = %s
+          AND local_estoque = %s AND peso > 0
         ORDER BY data_registro
         FOR UPDATE
-    """, (produtor_id, tipo_alho, local_banco))
+    """, (produtor_id, tipo_alho, classe_banco, local_banco))
     entradas = cursor.fetchall()
 
-    saldo_total = sum(float(e[2]) for e in entradas)
-    if saldo_total < peso_quebra - 0.001:
+    saldo = sum(float(e[1]) for e in entradas)
+    if saldo < peso_perda - 0.001:
         raise ValueError(
-            f"Saldo insuficiente em {local_banco} para registrar quebra. "
-            f"Disponível: {saldo_total:.3f} kg, quebra: {peso_quebra:.3f} kg"
+            f"Saldo insuficiente em {local_banco} para a classe {classe_ui}. "
+            f"Disponível: {saldo:.3f} kg, perda: {peso_perda:.3f} kg"
         )
 
-    restante          = peso_quebra
-    perdas_por_classe = {}
-
-    for eid, classe, epeso in entradas:
+    restante = peso_perda
+    for eid, epeso in entradas:
         if restante <= 0.001:
             break
-        epeso   = float(epeso)
-        retirar = min(restante, epeso)
-        perdas_por_classe[classe] = perdas_por_classe.get(classe, 0) + retirar
-
-        if retirar >= epeso - 0.001:
+        epeso = float(epeso)
+        if restante >= epeso - 0.001:
             cursor.execute("DELETE FROM estoque WHERE id = %s", (eid,))
+            restante -= epeso
         else:
             cursor.execute("UPDATE estoque SET peso = %s WHERE id = %s",
-                           (round(epeso - retirar, 4), eid))
-        restante -= retirar
+                           (round(epeso - restante, 4), eid))
+            restante = 0
 
-    for classe, peso_p in perdas_por_classe.items():
-        cursor.execute("""
-            INSERT INTO perdas
-                (produtor_id, tipo_alho, classe, peso_kg, local_origem, motivo)
-            VALUES (%s, %s, %s, %s, %s, %s)
-        """, (produtor_id, tipo_alho, classe, round(peso_p, 4),
-              local_banco, 'Quebra/Sujeira na movimentação'))
+    # Registra a perda na tabela perdas
+    cursor.execute("""
+        INSERT INTO perdas (produtor_id, tipo_alho, classe, peso_kg, local_origem, motivo)
+        VALUES (%s, %s, %s, %s, %s, %s)
+    """, (produtor_id, tipo_alho, classe_banco, round(peso_perda, 4),
+          local_banco, 'Perda por classe na movimentação'))
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -381,7 +375,8 @@ def obter_estatisticas_gerais():
             cursor.execute(
                 "SELECT COALESCE(SUM(peso),0) FROM estoque WHERE local_estoque=%s AND peso>0",
                 (local,))
-            locals()[f'estoque_{local.lower().replace("ã","a").replace("ç","c")}'] = float(cursor.fetchone()[0])
+            key = f'estoque_{local.lower().replace("ã","a").replace("ç","c")}'
+            locals()[key] = float(cursor.fetchone()[0])
 
         cursor.execute("""
             SELECT COALESCE(SUM(valor_total),0) FROM vendas
@@ -404,7 +399,7 @@ def obter_estatisticas_gerais():
         """)
         perdas_mes = float(cursor.fetchone()[0])
 
-        # estoque por local com nomes simples
+        # Re‑fetch for explicit variables (avoid locals() confusion)
         cursor.execute(
             "SELECT COALESCE(SUM(peso),0) FROM estoque WHERE local_estoque='Classificação' AND peso>0")
         estoque_classificacao = float(cursor.fetchone()[0])
@@ -759,7 +754,6 @@ def api_obter_saldo():
 
 @app.route('/api/obter-saldos-todos', methods=['POST'])
 def api_obter_saldos_todos():
-    """Retorna saldos de TODAS as classes em 1 request — evita múltiplas chamadas."""
     data        = request.get_json(silent=True) or {}
     produtor_id = data.get('produtor_id')
     tipo_alho   = data.get('tipo_alho')
@@ -785,7 +779,6 @@ def api_obter_saldos_todos():
 
         saldos = {}
         for row in cursor.fetchall():
-            # Tentar mapear do banco para interface
             classe_ui = CLASSES_MAP_INV.get(row[0], row[0])
             saldos[classe_ui] = float(row[1])
 
@@ -803,7 +796,7 @@ def api_obter_saldos_todos():
 @app.route('/api/salvar-entrada', methods=['POST'])
 def api_salvar_entrada():
     """
-    Payload (campos em português, alinhado com o frontend):
+    Payload:
     {
         "produtor_id":  123,
         "tipo_alho":    "São Valentim",
@@ -813,7 +806,7 @@ def api_salvar_entrada():
         "detalhes": [
             { "classe": "TIPO 2",     "peso": 500, "tipo": "classe"    },
             { "classe": "INDÚSTRIA",  "peso":  80, "tipo": "industria" },
-            { "classe": "__QUEBRA__", "peso":   2, "tipo": "quebra"    }
+            { "classe": "TIPO 2",     "peso":   2, "tipo": "perda"     }
         ]
     }
     """
@@ -832,7 +825,7 @@ def api_salvar_entrada():
     detalhes      = data.get('detalhes', [])
     horas_banca   = float(data.get('horas_banca', 0) or 0)
 
-    # ── Validações básicas ────────────────────────────────────────────────────
+    # Validações básicas
     if not produtor_id:
         return jsonify({'sucesso': False, 'mensagem': 'Produtor não selecionado'})
     if not tipo_alho:
@@ -840,48 +833,39 @@ def api_salvar_entrada():
     if not detalhes:
         return jsonify({'sucesso': False, 'mensagem': 'Nenhum peso registrado'})
 
-    # ── Validações por role ───────────────────────────────────────────────────
+    # Validações por role
     if role == 'classificacao':
         if local_destino != 'Classificação':
-            return jsonify({'sucesso': False,
-                            'mensagem': 'Setor Classificação só registra entrada inicial.'})
+            return jsonify({'sucesso': False, 'mensagem': 'Setor Classificação só registra entrada inicial.'})
         local_origem = None
         if horas_banca > 0:
-            return jsonify({'sucesso': False,
-                            'mensagem': 'Classificação não permite horas de banca.'})
-
+            return jsonify({'sucesso': False, 'mensagem': 'Classificação não permite horas de banca.'})
     elif role == 'banca':
         if local_destino != 'banca':
-            return jsonify({'sucesso': False,
-                            'mensagem': 'Setor Banca só transfere para Banca.'})
+            return jsonify({'sucesso': False, 'mensagem': 'Setor Banca só transfere para Banca.'})
         if not local_origem or local_origem not in ('Classificação', 'Toletagem'):
-            return jsonify({'sucesso': False,
-                            'mensagem': 'Para Banca, a origem deve ser Classificação ou Toletagem.'})
-
+            return jsonify({'sucesso': False, 'mensagem': 'Para Banca, a origem deve ser Classificação ou Toletagem.'})
     elif role == 'toletagem':
         if local_destino != 'toletagem':
-            return jsonify({'sucesso': False,
-                            'mensagem': 'Setor Toletagem só transfere para Toletagem.'})
+            return jsonify({'sucesso': False, 'mensagem': 'Setor Toletagem só transfere para Toletagem.'})
         if not local_origem or local_origem not in ('Classificação', 'Banca'):
-            return jsonify({'sucesso': False,
-                            'mensagem': 'Para Toletagem, a origem deve ser Classificação ou Banca.'})
+            return jsonify({'sucesso': False, 'mensagem': 'Para Toletagem, a origem deve ser Classificação ou Banca.'})
 
-    # ── Separar itens ─────────────────────────────────────────────────────────
-    itens_destino     = [d for d in detalhes if d.get('tipo') in ('classe', 'industria')]
-    itens_quebra      = [d for d in detalhes if d.get('tipo') == 'quebra']
-    peso_quebra_total = sum(float(d.get('peso', 0)) for d in itens_quebra)
+    # Separação dos itens
+    itens_destino = [d for d in detalhes if d.get('tipo') in ('classe', 'industria')]
+    itens_perda   = [d for d in detalhes if d.get('tipo') == 'perda']
 
-    # ── Tudo numa única transação ─────────────────────────────────────────────
     conn = conectar_banco()
     if not conn:
         return jsonify({'sucesso': False, 'mensagem': 'Erro de conexão com o banco'}), 500
 
     try:
         cursor = conn.cursor()
-        resultados           = []
+        resultados = []
         total_entrou_destino = 0
         total_saiu_origem    = 0
 
+        # Processar itens que vão para o destino
         for item in itens_destino:
             classe_ui = item.get('classe')
             peso      = float(item.get('peso', 0) or 0)
@@ -892,7 +876,6 @@ def api_salvar_entrada():
                 classe_banco = 'Indústria'
             else:
                 classe_banco = CLASSES_MAP.get(classe_ui)
-
             if not classe_banco:
                 raise ValueError(f'Classe "{classe_ui}" não reconhecida')
 
@@ -910,25 +893,30 @@ def api_salvar_entrada():
             total_entrou_destino += peso
             total_saiu_origem    += peso
 
-        if peso_quebra_total > 0.001 and local_origem:
-            registrar_apenas_quebra_na_origem(
-                cursor       = cursor,
-                produtor_id  = produtor_id,
-                tipo_alho    = tipo_alho,
-                peso_quebra  = peso_quebra_total,
-                local_origem = local_origem,
+        # Processar perdas por classe
+        for item in itens_perda:
+            classe_ui = item.get('classe')
+            peso      = float(item.get('peso', 0) or 0)
+            if peso <= 0:
+                continue
+            registrar_perda_por_classe(
+                cursor        = cursor,
+                produtor_id   = produtor_id,
+                tipo_alho     = tipo_alho,
+                classe_ui     = classe_ui,
+                peso_perda    = peso,
+                local_origem  = local_origem,
             )
-            resultados.append({'classe': 'Quebra/Sujeira', 'peso': peso_quebra_total,
-                               'entrada_id': None, 'tipo': 'perda'})
-            total_saiu_origem += peso_quebra_total
+            resultados.append({'classe': classe_ui, 'peso': peso, 'tipo': 'perda'})
+            total_saiu_origem += peso
 
         conn.commit()
         cursor.close()
         conn.close()
 
         msg = f'Registrado com sucesso! Entrou no destino: {total_entrou_destino:.2f} kg'
-        if peso_quebra_total > 0:
-            msg += f' | Quebra removida da origem: {peso_quebra_total:.2f} kg'
+        if itens_perda:
+            msg += f' | Perdas registradas: {sum(p["peso"] for p in itens_perda):.2f} kg'
         if horas_banca > 0:
             msg += f' | Horas: {horas_banca}'
         if local_origem:
@@ -950,7 +938,7 @@ def api_salvar_entrada():
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  APIs — GERENTE  (todas protegidas por sessão)
+#  APIs — GERENTE
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _requer_gerente():
