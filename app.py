@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-COPAR Web — app.py definitivo
+COPAR Web — app.py corrigido
 """
 
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
@@ -30,19 +30,24 @@ DATABASE_URL = os.environ.get(
 # ── Mapeamentos ──────────────────────────────────────────────────────────────
 
 MAPEAMENTO_LOCAL = {
-    'Classificação': 'Classificação', 'classificacao': 'Classificação',
-    'banca':         'Banca',         'Banca':         'Banca',
-    'toletagem':     'Toletagem',     'Toletagem':     'Toletagem',
+    'Classificação': 'Classificação',
+    'classificacao': 'Classificação',
+    'banca':         'Banca',
+    'Banca':         'Banca',
+    'toletagem':     'Toletagem',
+    'Toletagem':     'Toletagem',
 }
 
-# Interface → banco
 CLASSES_MAP = {
     'INDÚSTRIA': 'Indústria',
-    'TIPO 2': 'Classe 2', 'TIPO 3': 'Classe 3', 'TIPO 4': 'Classe 4',
-    'TIPO 5': 'Classe 5', 'TIPO 6': 'Classe 6', 'TIPO 7': 'Classe 7',
+    'TIPO 2': 'Classe 2',
+    'TIPO 3': 'Classe 3',
+    'TIPO 4': 'Classe 4',
+    'TIPO 5': 'Classe 5',
+    'TIPO 6': 'Classe 6',
+    'TIPO 7': 'Classe 7',
 }
 
-# Banco → interface
 CLASSES_MAP_INV = {v: k for k, v in CLASSES_MAP.items()}
 
 VALOR_HORA_BANCA = 16.00
@@ -64,31 +69,85 @@ def conectar_banco():
         logger.error(f"Erro de conexão: {e}")
         return None
 
-
-def criar_tabela_perdas():
+def criar_tabelas():
+    """Cria todas as tabelas necessárias se não existirem."""
     conn = conectar_banco()
     if not conn:
         return
     try:
         cur = conn.cursor()
+        # Tabela produtores
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS produtores (
+                id SERIAL PRIMARY KEY,
+                matricula VARCHAR(20) UNIQUE NOT NULL,
+                nome VARCHAR(100) NOT NULL
+            )
+        """)
+        # Tabela estoque (com data_registro)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS estoque (
+                id SERIAL PRIMARY KEY,
+                produtor_id INTEGER REFERENCES produtores(id),
+                tipo_alho VARCHAR(50),
+                classe VARCHAR(20),
+                peso DECIMAL(10,4),
+                local_estoque VARCHAR(30),
+                horas_banca DECIMAL(10,2) DEFAULT 0,
+                data_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        # Tabela vendas
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS vendas (
+                id SERIAL PRIMARY KEY,
+                produtor_id INTEGER REFERENCES produtores(id),
+                data_venda TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                tipo_alho VARCHAR(50),
+                classe VARCHAR(20),
+                peso DECIMAL(10,4),
+                valor_total DECIMAL(10,2),
+                valor_produtor DECIMAL(10,2),
+                status_pagamento VARCHAR(20) DEFAULT 'Pendente'
+            )
+        """)
+        # Tabela pagamentos
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS pagamentos (
+                id SERIAL PRIMARY KEY,
+                produtor_id INTEGER REFERENCES produtores(id),
+                valor_total DECIMAL(10,2),
+                forma_pagamento VARCHAR(50),
+                data_pagamento TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        # Tabela creditos_produtor
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS creditos_produtor (
+                id SERIAL PRIMARY KEY,
+                venda_id INTEGER REFERENCES vendas(id),
+                saldo DECIMAL(10,2) DEFAULT 0
+            )
+        """)
+        # Tabela perdas
         cur.execute("""
             CREATE TABLE IF NOT EXISTS perdas (
-                id           SERIAL PRIMARY KEY,
-                produtor_id  INTEGER REFERENCES produtores(id),
-                tipo_alho    VARCHAR(50),
-                classe       VARCHAR(20),
-                peso_kg      DECIMAL(10,4),
+                id SERIAL PRIMARY KEY,
+                produtor_id INTEGER REFERENCES produtores(id),
+                tipo_alho VARCHAR(50),
+                classe VARCHAR(20),
+                peso_kg DECIMAL(10,4),
                 local_origem VARCHAR(30),
-                data_perda   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                motivo       TEXT
+                data_perda TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                motivo TEXT
             )
         """)
         conn.commit()
         cur.close()
         conn.close()
+        logger.info("Tabelas verificadas/criadas com sucesso.")
     except Exception as e:
-        logger.error(f"Erro ao criar tabela perdas: {e}")
-
+        logger.error(f"Erro ao criar tabelas: {e}")
 
 # ── Autenticação ─────────────────────────────────────────────────────────────
 
@@ -106,7 +165,8 @@ def buscar_produtor_por_matricula(matricula: str):
         cur.execute("SELECT id, nome, matricula FROM produtores WHERE matricula = %s",
                     (matricula.strip(),))
         row = cur.fetchone()
-        cur.close(); conn.close()
+        cur.close()
+        conn.close()
         if row:
             return {'id': row[0], 'nome': row[1], 'matricula': row[2],
                     'especial': False, 'tipo': 'produtor'}
@@ -114,7 +174,6 @@ def buscar_produtor_por_matricula(matricula: str):
     except Exception as e:
         logger.error(f"Erro ao buscar produtor: {e}")
         return None
-
 
 # ── Consultas produtor ───────────────────────────────────────────────────────
 
@@ -129,11 +188,12 @@ def buscar_estoque(produtor_id):
             GROUP BY tipo_alho, classe ORDER BY tipo_alho, classe
         """, (produtor_id,))
         result = [{'tipo': r[0], 'classe': r[1], 'peso': float(r[2])} for r in cur.fetchall()]
-        cur.close(); conn.close()
+        cur.close()
+        conn.close()
         return result
     except Exception as e:
-        logger.error(f"Erro ao buscar estoque: {e}"); return []
-
+        logger.error(f"Erro ao buscar estoque: {e}")
+        return []
 
 def buscar_vendas(produtor_id):
     conn = conectar_banco()
@@ -156,18 +216,18 @@ def buscar_vendas(produtor_id):
                            'peso': float(r[4]), 'valor_total': float(r[5]),
                            'valor_produtor': float(r[6]), 'status': r[7],
                            'saldo': float(r[8])})
-        cur.close(); conn.close()
+        cur.close()
+        conn.close()
         return vendas
     except Exception as e:
-        logger.error(f"Erro ao buscar vendas: {e}"); return []
-
+        logger.error(f"Erro ao buscar vendas: {e}")
+        return []
 
 def calcular_saldos(vendas):
     return (
         sum(v['valor_produtor'] for v in vendas if v['status'] == 'Pago'),
         sum(v['saldo']          for v in vendas if v['status'] != 'Pago'),
     )
-
 
 def buscar_produtores_por_termo(termo):
     conn = conectar_banco()
@@ -179,11 +239,12 @@ def buscar_produtores_por_termo(termo):
             WHERE matricula ILIKE %s OR nome ILIKE %s ORDER BY nome LIMIT 20
         """, (f'%{termo}%', f'%{termo}%'))
         result = [{'matricula': r[0], 'nome': r[1], 'id': r[2]} for r in cur.fetchall()]
-        cur.close(); conn.close()
+        cur.close()
+        conn.close()
         return result
     except Exception as e:
-        logger.error(f"Erro ao buscar produtores: {e}"); return []
-
+        logger.error(f"Erro ao buscar produtores: {e}")
+        return []
 
 # ── Núcleo de movimentação (opera dentro de uma transação já aberta) ─────────
 
@@ -193,11 +254,12 @@ def _retirar_fifo(cur, produtor_id, tipo_alho, classe_banco, local_banco, quanti
     Lança ValueError se saldo insuficiente.
     Deve ser chamado dentro de uma transação já iniciada (conn.autocommit = False).
     """
+    # Usa data_registro (ou id como fallback) para FIFO
     cur.execute("""
         SELECT id, peso FROM estoque
         WHERE produtor_id = %s AND tipo_alho = %s AND classe = %s
           AND local_estoque = %s AND peso > 0
-        ORDER BY data_registro
+        ORDER BY data_registro, id
         FOR UPDATE
     """, (produtor_id, tipo_alho, classe_banco, local_banco))
     rows = cur.fetchall()
@@ -209,7 +271,8 @@ def _retirar_fifo(cur, produtor_id, tipo_alho, classe_banco, local_banco, quanti
         )
     restante = quantidade
     for eid, epeso in rows:
-        if restante <= 0.001: break
+        if restante <= 0.001:
+            break
         epeso = float(epeso)
         if restante >= epeso - 0.001:
             cur.execute("DELETE FROM estoque WHERE id = %s", (eid,))
@@ -219,7 +282,6 @@ def _retirar_fifo(cur, produtor_id, tipo_alho, classe_banco, local_banco, quanti
                         (round(epeso - restante, 4), eid))
             restante = 0
 
-
 def _inserir_estoque(cur, produtor_id, tipo_alho, classe_banco, peso, local_banco, horas=0):
     """Insere uma linha de estoque. Retorna o id gerado."""
     cur.execute("""
@@ -228,13 +290,11 @@ def _inserir_estoque(cur, produtor_id, tipo_alho, classe_banco, peso, local_banc
     """, (produtor_id, tipo_alho, classe_banco, round(peso, 4), local_banco, horas))
     return cur.fetchone()[0]
 
-
 def _registrar_perda(cur, produtor_id, tipo_alho, classe_banco, peso, local_banco, motivo):
     cur.execute("""
         INSERT INTO perdas (produtor_id, tipo_alho, classe, peso_kg, local_origem, motivo)
         VALUES (%s, %s, %s, %s, %s, %s)
     """, (produtor_id, tipo_alho, classe_banco, round(peso, 4), local_banco, motivo))
-
 
 # ── Consultas gerente ────────────────────────────────────────────────────────
 
@@ -243,7 +303,8 @@ def obter_estatisticas_gerais():
                  estoque_classificacao=0, estoque_banca=0, estoque_toletagem=0,
                  vendas_mes=0, pagamentos_mes=0, perdas_mes=0)
     conn = conectar_banco()
-    if not conn: return stats
+    if not conn:
+        return stats
     try:
         queries = {
             'total_produtores':     ("SELECT COUNT(*) FROM produtores", False),
@@ -269,7 +330,6 @@ def obter_estatisticas_gerais():
         logger.error(f"Erro estatísticas: {e}")
     return stats
 
-
 def obter_estoque_hierarquico():
     conn = conectar_banco()
     if not conn: return []
@@ -289,7 +349,8 @@ def obter_estoque_hierarquico():
             peso, horas = float(row[4]), float(row[5])
             hier.setdefault(local, {}).setdefault(tipo, {}).setdefault(classe, [])
             hier[local][tipo][classe].append({'produtor': prod, 'peso': peso, 'horas': horas})
-        cur.close(); conn.close()
+        cur.close()
+        conn.close()
         result = []
         for local, tipos in hier.items():
             li = {'local': local, 'tipos': []}
@@ -306,8 +367,8 @@ def obter_estoque_hierarquico():
             result.append(li)
         return result
     except Exception as e:
-        logger.error(f"Erro estoque hierárquico: {e}"); return []
-
+        logger.error(f"Erro estoque hierárquico: {e}")
+        return []
 
 def _vendas_query(conn, limite, extra_where=""):
     try:
@@ -326,15 +387,15 @@ def _vendas_query(conn, limite, extra_where=""):
         cur.close()
         return rows
     except Exception as e:
-        logger.error(f"Erro vendas: {e}"); return []
-
+        logger.error(f"Erro vendas: {e}")
+        return []
 
 def obter_vendas_recentes(limite=50):
     conn = conectar_banco()
     if not conn: return []
     r = _vendas_query(conn, limite)
-    conn.close(); return r
-
+    conn.close()
+    return r
 
 def obter_pagamentos_recentes(limite=50):
     conn = conectar_banco()
@@ -350,10 +411,12 @@ def obter_pagamentos_recentes(limite=50):
         rows = [{'id': r[0], 'produtor': r[1], 'valor': float(r[2]),
                  'forma': r[3], 'data': r[4].strftime("%d/%m/%Y") if r[4] else ""}
                 for r in cur.fetchall()]
-        cur.close(); conn.close(); return rows
+        cur.close()
+        conn.close()
+        return rows
     except Exception as e:
-        logger.error(f"Erro pagamentos: {e}"); return []
-
+        logger.error(f"Erro pagamentos: {e}")
+        return []
 
 def obter_estoque_por_tipo():
     conn = conectar_banco()
@@ -362,10 +425,12 @@ def obter_estoque_por_tipo():
         cur = conn.cursor()
         cur.execute("SELECT tipo_alho, COALESCE(SUM(peso),0) FROM estoque WHERE peso>0 GROUP BY tipo_alho ORDER BY 2 DESC")
         r = [{'tipo': row[0], 'peso': float(row[1])} for row in cur.fetchall()]
-        cur.close(); conn.close(); return r
+        cur.close()
+        conn.close()
+        return r
     except Exception as e:
-        logger.error(f"Erro estoque tipo: {e}"); return []
-
+        logger.error(f"Erro estoque tipo: {e}")
+        return []
 
 def obter_vendas_por_mes():
     conn = conectar_banco()
@@ -380,10 +445,12 @@ def obter_vendas_por_mes():
             ORDER BY DATE_TRUNC('month',data_venda)
         """)
         r = [{'mes': row[0], 'total': float(row[1])} for row in cur.fetchall()]
-        cur.close(); conn.close(); return r
+        cur.close()
+        conn.close()
+        return r
     except Exception as e:
-        logger.error(f"Erro vendas mês: {e}"); return []
-
+        logger.error(f"Erro vendas mês: {e}")
+        return []
 
 def obter_perdas_recentes(limite=50):
     conn = conectar_banco()
@@ -401,32 +468,36 @@ def obter_perdas_recentes(limite=50):
                  'peso': float(r[4]), 'local_origem': r[5],
                  'data': r[6].strftime("%d/%m/%Y") if r[6] else "", 'motivo': r[7] or ''}
                 for r in cur.fetchall()]
-        cur.close(); conn.close(); return rows
+        cur.close()
+        conn.close()
+        return rows
     except Exception as e:
-        logger.error(f"Erro perdas: {e}"); return []
-
+        logger.error(f"Erro perdas: {e}")
+        return []
 
 # ── Rotas ────────────────────────────────────────────────────────────────────
 
 def _redirecionar(tipo):
-    if tipo == 'gerente':           return redirect(url_for('gerente'))
+    if tipo == 'gerente':
+        return redirect(url_for('gerente'))
     if tipo in ('classificacao','banca','toletagem','superadmin'):
         return redirect(url_for('registro_entrada'))
     return redirect(url_for('produtor'))
 
-
 @app.route('/')
 def index():
-    if 'produtor_id' not in session: return redirect(url_for('login'))
+    if 'produtor_id' not in session:
+        return redirect(url_for('login'))
     return _redirecionar(session.get('tipo'))
-
 
 @app.route('/login', methods=['GET','POST'])
 def login():
-    if 'produtor_id' in session: return _redirecionar(session.get('tipo'))
+    if 'produtor_id' in session:
+        return _redirecionar(session.get('tipo'))
     if request.method == 'POST':
         mat = request.form.get('matricula','').strip()
-        if not mat: return render_template('login.html', erro='Digite sua matrícula')
+        if not mat:
+            return render_template('login.html', erro='Digite sua matrícula')
         prod = buscar_produtor_por_matricula(mat)
         if prod:
             session.permanent = True
@@ -437,7 +508,6 @@ def login():
             return _redirecionar(session['tipo'])
         return render_template('login.html', erro='Matrícula não encontrada')
     return render_template('login.html', erro=None)
-
 
 @app.route('/produtor')
 def produtor():
@@ -451,16 +521,15 @@ def produtor():
                            estoque=estoque, vendas=vendas,
                            total_recebido=tr, total_a_receber=ta)
 
-
 @app.route('/registro-entrada')
 def registro_entrada():
-    if 'produtor_id' not in session: return redirect(url_for('login'))
+    if 'produtor_id' not in session:
+        return redirect(url_for('login'))
     tipo = session.get('tipo')
     if tipo not in ('classificacao','banca','toletagem','superadmin'):
         return redirect(url_for('produtor'))
     return render_template('registro_entrada.html', role=tipo,
                            valor_hora_banca=VALOR_HORA_BANCA)
-
 
 @app.route('/gerente')
 def gerente():
@@ -468,12 +537,10 @@ def gerente():
         return redirect(url_for('login'))
     return render_template('gerente.html')
 
-
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('login'))
-
 
 # ── APIs ─────────────────────────────────────────────────────────────────────
 
@@ -482,10 +549,8 @@ def api_buscar_produtores():
     termo = request.args.get('termo','').strip()
     return jsonify(buscar_produtores_por_termo(termo) if len(termo) >= 1 else [])
 
-
 @app.route('/api/obter-saldos-todos', methods=['POST'])
 def api_obter_saldos_todos():
-    """Retorna saldos de TODAS as classes em 1 request (muito mais rápido que 7 chamadas)."""
     d = request.get_json(silent=True) or {}
     pid       = d.get('produtor_id')
     tipo_alho = d.get('tipo_alho')
@@ -507,29 +572,18 @@ def api_obter_saldos_todos():
         saldos = {}
         for row in cur.fetchall():
             ui = CLASSES_MAP_INV.get(row[0])
-            if ui: saldos[ui] = float(row[1])
-        cur.close(); conn.close()
+            if ui:
+                saldos[ui] = float(row[1])
+        cur.close()
+        conn.close()
         return jsonify({'sucesso': True, 'saldos': saldos})
     except Exception as e:
         logger.error(f"Erro saldos todos: {e}")
         conn.close()
         return jsonify({'sucesso': False, 'mensagem': str(e), 'saldos': {}})
 
-
 @app.route('/api/salvar-entrada', methods=['POST'])
 def api_salvar_entrada():
-    """
-    Protocolo de itens recebidos do front-end (campo `detalhes`):
-
-    Para classificacao:
-        { classe: "TIPO 2",     peso: 500, tipo: "entrada" }  — entra na classificação
-        { classe: "INDÚSTRIA",  peso: 100, tipo: "entrada" }  — idem
-
-    Para banca / toletagem:
-        { classe: "TIPO 2",     peso: 500, tipo: "transferencia" }  — retira da origem, insere no destino
-        { classe: "TIPO 2",     peso: 20,  tipo: "perda"         }  — retira da origem, registra em perdas
-        { classe: "INDÚSTRIA",  peso: 80,  tipo: "industria"     }  — insere no destino SEM retirar da origem
-    """
     data = request.get_json(silent=True)
     if not data:
         return jsonify({'sucesso': False, 'mensagem': 'Dados inválidos'}), 400
@@ -548,33 +602,32 @@ def api_salvar_entrada():
     if not pid or not tipo_alho or not detalhes:
         return jsonify({'sucesso': False, 'mensagem': 'Dados incompletos'}), 400
 
+    # Mapeia os locais para os nomes usados no banco
     local_destino_banco = MAPEAMENTO_LOCAL.get(local_destino, local_destino)
     local_origem_banco  = MAPEAMENTO_LOCAL.get(local_origem, local_origem) if local_origem else None
 
-    # Validações de role
+    # Validações de acordo com o papel
     if role == 'classificacao':
-        if local_destino != 'Classificação':
+        if local_destino_banco != 'Classificação':
             return jsonify({'sucesso': False, 'mensagem': 'Classificação só registra entrada inicial.'})
-        local_origem_banco = None
-
+        local_origem_banco = None  # Não há origem
     elif role == 'banca':
-        if local_destino != 'banca':
+        if local_destino_banco != 'Banca':
             return jsonify({'sucesso': False, 'mensagem': 'Banca só transfere para Banca.'})
-        if not local_origem_banco or local_origem not in ('Classificação','Toletagem'):
+        # A origem pode ser Classificação ou Toletagem
+        if not local_origem_banco or local_origem_banco not in ('Classificação','Toletagem'):
             return jsonify({'sucesso': False, 'mensagem': 'Origem deve ser Classificação ou Toletagem.'})
-
     elif role == 'toletagem':
-        if local_destino != 'toletagem':
+        if local_destino_banco != 'Toletagem':
             return jsonify({'sucesso': False, 'mensagem': 'Toletagem só transfere para Toletagem.'})
-        if not local_origem_banco or local_origem not in ('Classificação','Banca'):
+        if not local_origem_banco or local_origem_banco not in ('Classificação','Banca'):
             return jsonify({'sucesso': False, 'mensagem': 'Origem deve ser Classificação ou Banca.'})
 
     conn = conectar_banco()
     if not conn:
         return jsonify({'sucesso': False, 'mensagem': 'Erro de conexão'}), 500
 
-    # psycopg3: desligar autocommit garante transação explícita (necessário para FOR UPDATE)
-    conn.autocommit = False
+    conn.autocommit = False  # inicia transação explícita
 
     try:
         cur = conn.cursor()
@@ -600,15 +653,15 @@ def api_salvar_entrada():
 
             logger.info(f"  item: {classe_ui} ({classe_banco}) {peso} kg tipo={tipo_item}")
 
-            # ── entrada direta na Classificação ─────────────────────────────
             if tipo_item == 'entrada':
+                # Entrada direta (apenas Classificação)
                 _inserir_estoque(cur, pid, tipo_alho, classe_banco,
                                  peso, local_destino_banco, horas_banca)
                 total_destino += peso
                 logger.info(f"    → entrada direta em {local_destino_banco}")
 
-            # ── transferência: retira da origem + insere no destino ─────────
             elif tipo_item == 'transferencia':
+                # Transferência: retira da origem, insere no destino
                 if not local_origem_banco:
                     raise ValueError(f'Origem não informada para transferência de {classe_ui}')
                 _retirar_fifo(cur, pid, tipo_alho, classe_banco,
@@ -618,8 +671,8 @@ def api_salvar_entrada():
                 total_destino += peso
                 logger.info(f"    → transferido {local_origem_banco} → {local_destino_banco}")
 
-            # ── perda: retira da origem + grava em perdas ───────────────────
             elif tipo_item == 'perda':
+                # Perda: retira da origem, registra em perdas
                 if not local_origem_banco:
                     raise ValueError(f'Origem não informada para perda de {classe_ui}')
                 _retirar_fifo(cur, pid, tipo_alho, classe_banco,
@@ -629,8 +682,8 @@ def api_salvar_entrada():
                 total_perdas += peso
                 logger.info(f"    → perda registrada de {local_origem_banco}")
 
-            # ── indústria: entrada direta no destino sem retirar da origem ──
             elif tipo_item == 'industria':
+                # Entrada para indústria (não retira da origem)
                 _inserir_estoque(cur, pid, tipo_alho, classe_banco,
                                  peso, local_destino_banco, horas_banca)
                 total_destino += peso
@@ -665,58 +718,56 @@ def api_salvar_entrada():
         logger.error(f"Erro interno salvar-entrada: {e}", exc_info=True)
         return jsonify({'sucesso': False, 'mensagem': f'Erro interno: {e}'}), 500
 
-
 # ── APIs Gerente ─────────────────────────────────────────────────────────────
 
 def _check_gerente():
     return 'produtor_id' not in session or session.get('tipo') != 'gerente'
 
-
 @app.route('/api/gerente/estatisticas')
 def api_gerente_estatisticas():
-    if _check_gerente(): return jsonify({}), 403
+    if _check_gerente():
+        return jsonify({}), 403
     return jsonify(obter_estatisticas_gerais())
-
 
 @app.route('/api/gerente/estoque-hierarquico')
 def api_gerente_estoque_hierarquico():
-    if _check_gerente(): return jsonify([]), 403
+    if _check_gerente():
+        return jsonify([]), 403
     return jsonify(obter_estoque_hierarquico())
-
 
 @app.route('/api/gerente/vendas-recentes')
 def api_gerente_vendas_recentes():
-    if _check_gerente(): return jsonify([]), 403
+    if _check_gerente():
+        return jsonify([]), 403
     return jsonify(obter_vendas_recentes(request.args.get('limite',50,type=int)))
-
 
 @app.route('/api/gerente/pagamentos-recentes')
 def api_gerente_pagamentos_recentes():
-    if _check_gerente(): return jsonify([]), 403
+    if _check_gerente():
+        return jsonify([]), 403
     return jsonify(obter_pagamentos_recentes(request.args.get('limite',50,type=int)))
-
 
 @app.route('/api/gerente/estoque-por-tipo')
 def api_gerente_estoque_por_tipo():
-    if _check_gerente(): return jsonify([]), 403
+    if _check_gerente():
+        return jsonify([]), 403
     return jsonify(obter_estoque_por_tipo())
-
 
 @app.route('/api/gerente/vendas-por-mes')
 def api_gerente_vendas_por_mes():
-    if _check_gerente(): return jsonify([]), 403
+    if _check_gerente():
+        return jsonify([]), 403
     return jsonify(obter_vendas_por_mes())
-
 
 @app.route('/api/gerente/perdas-recentes')
 def api_gerente_perdas_recentes():
-    if _check_gerente(): return jsonify([]), 403
+    if _check_gerente():
+        return jsonify([]), 403
     return jsonify(obter_perdas_recentes(request.args.get('limite',50,type=int)))
-
 
 # ── Entrypoint ───────────────────────────────────────────────────────────────
 
 if __name__ == '__main__':
-    criar_tabela_perdas()
+    criar_tabelas()  # Garante que todas as tabelas existam
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
