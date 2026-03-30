@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-    <title>COPAR – 
+    <title>COPAR –
         {% if role == 'classificacao' %}Entrada na Classificação
         {% elif role == 'banca' %}Transferência para Banca
         {% else %}Transferência para Toletagem{% endif %}
@@ -11,11 +11,177 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
     <style>
-        /* (estilos completos como nas versões anteriores - omitidos para brevidade, mas devem ser incluídos) */
-        /* Copie os estilos da versão anterior que funcionava */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --verde:        #2a5c28;
+            --verde-mid:    #3d7a3a;
+            --verde-light:  #e8f2e7;
+            --verde-pale:   #f4f9f3;
+            --bg:           #f2f5f0;
+            --text:         #1a2e19;
+            --muted:        #6b7c6a;
+            --border:       #dde8db;
+            --white:        #ffffff;
+            --danger:       #c0392b;
+            --danger-bg:    #fdecea;
+            --danger-bord:  #f5c6c2;
+            --ouro:         #c8a94a;
+            --ouro-bg:      #fffbec;
+            --ouro-bord:    #e8d78a;
+            --radius:       12px;
+            --shadow:       0 4px 20px rgba(42,92,40,.1);
+        }
+
+        body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100dvh; padding-bottom:5.5rem; }
+
+        /* NAV */
+        nav { background:var(--verde); padding:.85rem 1.25rem; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:200; }
+        .nav-brand { font-family:'DM Serif Display',serif; color:var(--white); font-size:1.2rem; }
+        .nav-title  { color:rgba(255,255,255,.8); font-size:.75rem; margin-top:.1rem; }
+        .btn-sair { background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.3); color:var(--white); padding:.4rem .85rem; border-radius:8px; font-size:.82rem; text-decoration:none; white-space:nowrap; }
+
+        /* STATUS */
+        .status-wrap { max-width:700px; margin:.75rem auto 0; padding:0 1rem; }
+        .status-bar { padding:.8rem 1rem; border-radius:var(--radius); font-size:.88rem; font-weight:500; display:none; align-items:center; gap:.5rem; animation:slideIn .2s ease; }
+        .status-bar.show { display:flex; }
+        @keyframes slideIn { from{opacity:0;transform:translateY(-5px)} to{opacity:1;transform:none} }
+        .status-bar.success { background:#d5f0de; color:#1a6b35; }
+        .status-bar.error   { background:var(--danger-bg); color:var(--danger); }
+        .status-bar.info    { background:#e3ecf7; color:#1a5276; }
+        .status-bar.warning { background:#fef5e7; color:#7d5a00; }
+        .status-bar.loading { background:var(--verde-light); color:var(--verde); }
+
+        main { max-width:700px; margin:0 auto; padding:1rem; }
+
+        /* CARD */
+        .card { background:var(--white); border-radius:var(--radius); box-shadow:var(--shadow); margin-bottom:1rem; overflow:visible; }
+        .card-header { padding:.8rem 1.1rem; border-bottom:1px solid var(--border); font-weight:700; font-size:.88rem; color:var(--verde); display:flex; align-items:center; gap:.5rem; }
+        .card-body { padding:1rem 1.1rem; }
+
+        /* CAMPOS */
+        .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:.75rem; }
+        @media(max-width:480px) { .grid2 { grid-template-columns:1fr; } }
+
+        .field { display:flex; flex-direction:column; gap:.3rem; }
+        .field label { font-size:.72rem; font-weight:700; color:var(--verde); text-transform:uppercase; letter-spacing:.06em; }
+        .field input, .field select { padding:.75rem 1rem; border:2px solid var(--border); border-radius:10px; font-family:'DM Sans',sans-serif; font-size:.95rem; color:var(--text); background:var(--verde-pale); transition:border .15s; -webkit-appearance:none; }
+        .field input:focus, .field select:focus { outline:none; border-color:var(--verde); box-shadow:0 0 0 3px rgba(42,92,40,.1); }
+        .field input[readonly] { background:#f0f0f0; color:var(--muted); cursor:default; }
+
+        /* AUTOCOMPLETE */
+        .ac-wrap { position:relative; }
+        .ac-list { position:absolute; top:calc(100% + 4px); left:0; right:0; background:var(--white); border:1.5px solid var(--verde); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.13); max-height:230px; overflow-y:auto; z-index:500; display:none; }
+        .ac-item { padding:.75rem 1rem; cursor:pointer; border-bottom:1px solid var(--border); font-size:.9rem; }
+        .ac-item:last-child { border-bottom:none; }
+        .ac-item:hover,.ac-item:active { background:var(--verde-light); }
+        .ac-item strong { color:var(--verde); }
+
+        /* BANNER */
+        .prod-banner { background:var(--verde-light); border:1.5px solid #b8d9b5; border-radius:10px; padding:.6rem 1rem; font-size:.86rem; color:var(--verde); font-weight:600; margin-top:.5rem; display:none; align-items:center; gap:.5rem; }
+        .prod-banner.show { display:flex; }
+
+        /* PILLS */
+        .pills { display:flex; gap:.5rem; flex-wrap:wrap; }
+        .pill { padding:.55rem 1.1rem; border-radius:30px; border:2px solid var(--border); background:var(--white); font-family:'DM Sans',sans-serif; font-size:.88rem; cursor:pointer; transition:all .15s; font-weight:600; -webkit-tap-highlight-color:transparent; }
+        .pill.active { background:var(--verde); border-color:var(--verde); color:var(--white); }
+
+        /* SALDO TAG + LOADING */
+        .saldo-tag { font-size:.74rem; color:var(--verde-mid); margin-top:.25rem; font-weight:600; min-height:1.1rem; }
+        .saldo-loading { display:none; align-items:center; gap:.5rem; font-size:.82rem; color:var(--muted); padding:.4rem 0; }
+        .saldo-loading.show { display:flex; }
+        .mini-spin { width:16px; height:16px; border:2px solid #cde2be; border-top-color:var(--verde); border-radius:50%; animation:spin .7s linear infinite; flex-shrink:0; }
+        @keyframes spin { to{transform:rotate(360deg)} }
+
+        /* ════════════════════════════════════════════════
+           TABELA DE PESAGEM
+        ════════════════════════════════════════════════ */
+        .peso-list { display:flex; flex-direction:column; gap:.4rem; }
+
+        /* Cabeçalho da tabela */
+        .peso-thead {
+            display:grid;
+            gap:.5rem;
+            padding:.3rem .85rem;
+            font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--muted);
+        }
+        /* Classificação: 2 colunas */
+        .peso-thead.modo-class { grid-template-columns: 1fr 120px; }
+        /* Banca/Toletagem: 3 colunas (classe | peso→destino | perda→removida) */
+        .peso-thead.modo-setor { grid-template-columns: 1fr 105px 105px; }
+
+        /* Linha de peso */
+        .peso-row {
+            display:grid;
+            gap:.5rem;
+            align-items:center;
+            padding:.6rem .85rem;
+            border-radius:10px;
+            border:1.5px solid var(--border);
+            background:var(--verde-pale);
+            transition:border-color .15s, background .15s;
+        }
+        .peso-row:focus-within { border-color:var(--verde); }
+        .peso-row.modo-class { grid-template-columns: 1fr 120px; }
+        .peso-row.modo-setor { grid-template-columns: 1fr 105px 105px; }
+
+        /* Linha da Indústria (dourado) */
+        .peso-row.ind-row { background:var(--ouro-bg); border-color:var(--ouro-bord); }
+        .peso-row.ind-row:focus-within { border-color:var(--ouro); }
+
+        /* Excede saldo */
+        .peso-row.excede { border-color:var(--danger) !important; background:var(--danger-bg) !important; }
+
+        .peso-classe { font-size:.88rem; font-weight:700; min-width:0; }
+        .peso-saldo  { font-size:.7rem; color:var(--muted); margin-top:.1rem; display:block; }
+
+        /* Inputs de peso e perda */
+        .peso-inp, .perda-inp {
+            width:100%; padding:.55rem .65rem; border:1.5px solid var(--border);
+            border-radius:8px; font-family:'DM Sans',sans-serif; font-size:.92rem;
+            text-align:right; background:var(--white); color:var(--text); -webkit-appearance:none;
+        }
+        .peso-inp:focus, .perda-inp:focus { outline:none; border-color:var(--verde); }
+
+        /* Perda com cor aviso */
+        .perda-inp { border-color:#f0c080; }
+        .perda-inp:focus { border-color:var(--ouro); box-shadow:0 0 0 3px rgba(200,169,74,.15); }
+        .perda-inp:not(:placeholder-shown):not([value=""]) { background:#fffbec; }
+
+        /* Linha de total */
+        .total-row { display:flex; align-items:center; justify-content:space-between; padding:.75rem .85rem; background:var(--verde-light); border-radius:10px; border:2px solid #b8d9b5; font-weight:700; font-size:.95rem; margin-top:.1rem; }
+
+        /* Sem estoque */
+        .sem-estoque { text-align:center; padding:2rem 1rem; color:var(--muted); font-size:.88rem; }
+
+        /* Seção Indústria separada */
+        .industria-sep { font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--ouro); padding:.6rem .85rem .2rem; }
+
+        /* BOTÕES FIXOS */
+        .botoes { position:fixed; bottom:0; left:0; right:0; background:rgba(242,245,240,.97); backdrop-filter:blur(8px); padding:.8rem 1rem; display:flex; gap:.6rem; border-top:1px solid var(--border); z-index:100; }
+        .btn { flex:1; padding:.85rem .5rem; border:none; border-radius:var(--radius); font-family:'DM Sans',sans-serif; font-weight:700; font-size:.9rem; cursor:pointer; transition:opacity .15s,transform .1s; -webkit-tap-highlight-color:transparent; }
+        .btn:active { transform:scale(.97); }
+        .btn-primary   { background:var(--verde); color:var(--white); }
+        .btn-primary:hover { background:var(--verde-mid); }
+        .btn-secondary { background:var(--verde-light); color:var(--verde); border:1.5px solid #b8d9b5; }
+        .btn-danger    { background:var(--danger-bg); color:var(--danger); border:1.5px solid var(--danger-bord); }
+        .btn:disabled  { opacity:.5; pointer-events:none; }
+
+        .spinner { display:inline-block; width:16px; height:16px; border:2px solid rgba(255,255,255,.4); border-top-color:var(--white); border-radius:50%; animation:spin .8s linear infinite; vertical-align:middle; margin-right:6px; }
+
+        /* OVERLAY SUCESSO */
+        .suc-overlay { position:fixed; inset:0; background:rgba(30,68,28,.93); display:none; flex-direction:column; align-items:center; justify-content:center; z-index:999; text-align:center; padding:2rem; }
+        .suc-overlay.show { display:flex; animation:fadeIn .25s ease; }
+        @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+        .suc-icon  { font-size:4rem; margin-bottom:1rem; }
+        .suc-title { font-size:1.5rem; font-weight:700; color:var(--white); margin-bottom:.4rem; font-family:'DM Serif Display',serif; }
+        .suc-msg   { color:rgba(255,255,255,.85); font-size:.9rem; margin-bottom:2rem; max-width:360px; line-height:1.55; }
+        .suc-btn   { background:var(--white); color:var(--verde); border:none; border-radius:40px; padding:.9rem 2.5rem; font-family:'DM Sans',sans-serif; font-weight:700; font-size:1rem; cursor:pointer; }
+        .suc-btn:active { opacity:.85; }
     </style>
 </head>
 <body>
+
 <nav>
     <div>
         <div class="nav-brand">🌾 COPAR</div>
@@ -28,57 +194,56 @@
     <a href="/logout" class="btn-sair">Sair</a>
 </nav>
 
-<div style="max-width:700px;margin:.75rem auto 0;padding:0 1rem;">
-    <div id="statusMsg" class="status-bar"></div>
-</div>
+<div class="status-wrap"><div id="statusMsg" class="status-bar"></div></div>
 
 <main>
+
     <!-- PRODUTOR -->
     <div class="card">
         <div class="card-header">👤 Produtor</div>
         <div class="card-body">
-            <div class="produtor-grid">
-                <div class="field autocomplete-wrap">
+            <div class="grid2">
+                <div class="field ac-wrap">
                     <label>Matrícula / Nome</label>
-                    <input type="text" id="matriculaInput" placeholder="Buscar…"
+                    <input id="matInput" type="text" placeholder="Buscar…"
                         autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
-                    <div id="autocompleteList" class="autocomplete-list"></div>
+                    <div id="acList" class="ac-list"></div>
                 </div>
                 <div class="field">
                     <label>Nome</label>
-                    <input type="text" id="produtorInput" readonly placeholder="—">
+                    <input id="nomInput" type="text" readonly placeholder="—">
                 </div>
                 <div class="field">
-                    <label>📅 Data</label>
-                    <input type="text" id="dataRegistro" readonly>
+                    <label>📅 Data / Hora</label>
+                    <input id="dataInput" type="text" readonly>
                 </div>
             </div>
-            <div id="produtorBanner" class="produtor-banner"></div>
-            <input type="hidden" id="produtorId">
+            <div id="prodBanner" class="prod-banner"></div>
+            <input type="hidden" id="pidInput">
         </div>
     </div>
 
     <!-- VARIEDADE -->
     <div class="card">
-        <div class="card-header">🌾 Variedade do Alho</div>
+        <div class="card-header">🌾 Variedade</div>
         <div class="card-body">
-            <div class="pills" id="variedadePills">
-                <button class="pill active" data-value="São Valentim">🍊 São Valentim</button>
-                <button class="pill" data-value="Ito">🌿 Ito</button>
-                <button class="pill" data-value="Chonan">🧄 Chonan</button>
+            <div class="pills" id="pillsVar">
+                <button class="pill active" data-v="São Valentim">🍊 São Valentim</button>
+                <button class="pill" data-v="Ito">🌿 Ito</button>
+                <button class="pill" data-v="Chonan">🧄 Chonan</button>
             </div>
         </div>
     </div>
 
-    <!-- MOVIMENTAÇÃO — banca / toletagem apenas -->
+    <!-- MOVIMENTAÇÃO (banca / toletagem) -->
     {% if role != 'classificacao' %}
     <div class="card">
         <div class="card-header">⚙️ Movimentação</div>
         <div class="card-body">
-            <div class="extras-grid">
+            <div class="grid2">
                 <div class="field">
                     <label>📌 Origem</label>
-                    <select id="origemSelect">
+                    <select id="origemSel">
                         {% if role == 'banca' %}
                         <option value="Classificação">Classificação</option>
                         <option value="Toletagem">Toletagem</option>
@@ -87,12 +252,16 @@
                         <option value="Banca">Banca</option>
                         {% endif %}
                     </select>
-                    <div id="saldoOrigemTag" class="saldo-tag"></div>
+                    <div id="saldoTag" class="saldo-tag">—</div>
                 </div>
                 <div class="field">
                     <label>⏱️ Horas de Banca</label>
-                    <input type="number" id="horasBanca" step="0.5" value="0" min="0">
+                    <input id="horasInput" type="number" step="0.5" value="0" min="0" inputmode="decimal">
                 </div>
+            </div>
+            <div id="saldoLoading" class="saldo-loading">
+                <div class="mini-spin"></div>
+                <span>Buscando saldos…</span>
             </div>
         </div>
     </div>
@@ -100,27 +269,539 @@
 
     <!-- PESAGEM -->
     <div class="card">
-        <div class="card-header">⚖️ Pesagem</div>
+        <div class="card-header" id="pesoHeader">
+            ⚖️ Pesagem
+            {% if role != 'classificacao' %}
+            <span style="font-size:.72rem;font-weight:500;color:var(--muted);margin-left:auto;">
+                ⚠️ Coluna "Perda" = kg impuros removidos da origem (não vão ao destino)
+            </span>
+            {% endif %}
+        </div>
         <div class="card-body">
-            <div id="pesoLoading" class="loading-overlay">
-                <div class="loader-spin"></div>
-                <span id="pesoLoadingMsg">Aguardando dados do banco...</span>
-            </div>
             <div id="pesoList" class="peso-list"></div>
         </div>
     </div>
+
 </main>
 
 <div class="botoes">
-    <button class="btn btn-danger"    id="limparBtn">🗑️ Limpar</button>
-    <button class="btn btn-primary"   id="salvarBtn">💾 Registrar</button>
+    <button class="btn btn-danger"    id="btnLimpar">🗑️ Limpar</button>
+    <button class="btn btn-secondary" id="btnExemplo">📋 Exemplo</button>
+    <button class="btn btn-primary"   id="btnSalvar">💾 Registrar</button>
 </div>
 
-<input type="hidden" id="localDestino"
+<!-- OVERLAY SUCESSO -->
+<div id="sucOverlay" class="suc-overlay">
+    <div class="suc-icon">✅</div>
+    <div class="suc-title">Registrado!</div>
+    <div class="suc-msg" id="sucMsg"></div>
+    <button class="suc-btn" id="btnNovo">+ Novo Registro</button>
+</div>
+
+<input type="hidden" id="localDest"
     value="{{ 'Classificação' if role == 'classificacao' else 'banca' if role == 'banca' else 'toletagem' }}">
 
+<!-- ══════════════════════════════════════════════════════════════════════ -->
 <script>
-// (script completo da versão anterior que funcionava)
+// ── CONSTANTES ────────────────────────────────────────────────────────────
+const ROLE    = "{{ role }}";
+const IS_CLAS = ROLE === 'classificacao';
+
+// Classes para classificação (entrada direta)
+const CLASSES_CLAS = ["INDÚSTRIA","TIPO 2","TIPO 3","TIPO 4","TIPO 5","TIPO 6","TIPO 7"];
+
+// Classes transferíveis (têm saldo na origem)
+const CLASSES_TRANS = ["TIPO 2","TIPO 3","TIPO 4","TIPO 5","TIPO 6","TIPO 7"];
+
+// ── ESTADO ────────────────────────────────────────────────────────────────
+// pesos[c]  = kg que vão para o destino  (string ou '')
+// perdas[c] = kg de perda/impureza a remover da origem (string ou '')
+// indPeso   = kg de Indústria que entram no destino (banca/toletagem)
+const st = {
+    pesos:       {},   // TIPO 2..7
+    perdas:      {},   // TIPO 2..7
+    indPeso:     '',   // INDÚSTRIA (banca/toletagem: entra sem retirar da origem)
+    saldos:      {},   // { "TIPO 2": 800, "INDÚSTRIA": 150 }
+    comSaldo:    [],   // subset de CLASSES_TRANS com saldo>0
+    variedade:   'São Valentim',
+    busy:        false,
+};
+
+// ── DOM ───────────────────────────────────────────────────────────────────
+const $      = id => document.getElementById(id);
+const matInp = $('matInput');
+const nomInp = $('nomInput');
+const pidInp = $('pidInput');
+const banner = $('prodBanner');
+const acList = $('acList');
+const datInp = $('dataInput');
+const pesoEl = $('pesoList');
+const stMsg  = $('statusMsg');
+const ldest  = $('localDest');
+
+const origemSel   = $('origemSel');
+const horasInp    = $('horasInput');
+const saldoTagEl  = $('saldoTag');
+const saldoLoadEl = $('saldoLoading');
+
+// ── UTILITÁRIOS ───────────────────────────────────────────────────────────
+function status(msg, tipo, ms=5000) {
+    stMsg.textContent = msg;
+    stMsg.className   = `status-bar show ${tipo}`;
+    clearTimeout(stMsg._t);
+    if (ms>0) stMsg._t = setTimeout(()=>stMsg.classList.remove('show'), ms);
+}
+
+async function apiPost(url, body) {
+    try {
+        const r = await fetch(url, {method:'POST',
+            headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+        return await r.json().catch(()=>({sucesso:false, mensagem:`HTTP ${r.status}`}));
+    } catch(e) { return {sucesso:false, mensagem:'Falha de rede.'}; }
+}
+async function apiGet(url) {
+    try { const r=await fetch(url); return await r.json(); }
+    catch(e) { return null; }
+}
+
+function atualizarData() {
+    datInp.value = new Date().toLocaleString('pt-BR',
+        {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+
+// ── VARIEDADE ─────────────────────────────────────────────────────────────
+document.querySelectorAll('#pillsVar .pill').forEach(p => {
+    p.addEventListener('click', () => {
+        document.querySelectorAll('#pillsVar .pill').forEach(x=>x.classList.remove('active'));
+        p.classList.add('active');
+        st.variedade = p.dataset.v;
+        if (!IS_CLAS && pidInp.value) buscarSaldos();
+    });
+});
+
+// ── AUTOCOMPLETE ──────────────────────────────────────────────────────────
+let busca_t;
+matInp.addEventListener('input', e => {
+    const t = e.target.value.trim();
+    if (!t) { acList.style.display='none'; limparProd(); return; }
+    clearTimeout(busca_t);
+    busca_t = setTimeout(async () => {
+        const r = await apiGet(`/api/buscar-produtores?termo=${encodeURIComponent(t)}`);
+        renderAC(Array.isArray(r) ? r : []);
+    }, 300);
+});
+
+document.addEventListener('pointerdown', e => {
+    if (!matInp.contains(e.target) && !acList.contains(e.target))
+        acList.style.display='none';
+});
+
+function renderAC(lista) {
+    if (!lista.length) { acList.style.display='none'; return; }
+    acList.innerHTML = lista.map(p =>
+        `<div class="ac-item" data-id="${p.id}" data-mat="${p.matricula}" data-nome="${p.nome}">
+            <strong>${p.matricula}</strong> – ${p.nome}
+         </div>`).join('');
+    acList.style.display = 'block';
+    acList.querySelectorAll('.ac-item').forEach(el => {
+        el.addEventListener('pointerdown', e => {
+            e.preventDefault();
+            selProd({id:el.dataset.id, matricula:el.dataset.mat, nome:el.dataset.nome});
+        });
+    });
+}
+
+function selProd(p) {
+    matInp.value = p.matricula;
+    nomInp.value = p.nome;
+    pidInp.value = p.id;
+    acList.style.display = 'none';
+    banner.innerHTML = `✅ <strong>${p.nome}</strong> (Mat.: ${p.matricula})`;
+    banner.classList.add('show');
+    setTimeout(()=>banner.classList.remove('show'), 3500);
+    status(`✅ Produtor: ${p.nome}`, 'success', 3000);
+    if (!IS_CLAS) buscarSaldos();
+}
+
+function limparProd() {
+    nomInp.value = pidInp.value = '';
+    banner.classList.remove('show');
+    st.saldos = {}; st.comSaldo = [];
+    if (saldoTagEl) saldoTagEl.textContent = '—';
+    renderPesos();
+}
+
+// ── SALDOS (1 request único) ──────────────────────────────────────────────
+async function buscarSaldos() {
+    if (!pidInp.value || !origemSel) return;
+    if (st.busy) return;
+    st.busy = true;
+
+    if (saldoLoadEl) saldoLoadEl.classList.add('show');
+    if (saldoTagEl)  saldoTagEl.textContent = '⏳ Buscando…';
+
+    const res = await apiPost('/api/obter-saldos-todos', {
+        produtor_id: parseInt(pidInp.value),
+        tipo_alho:   st.variedade,
+        local:       origemSel.value,
+    });
+
+    st.busy = false;
+    if (saldoLoadEl) saldoLoadEl.classList.remove('show');
+
+    if (res?.sucesso) {
+        st.saldos = res.saldos || {};
+        const total = Object.values(st.saldos).reduce((a,b)=>a+b, 0);
+        if (saldoTagEl) saldoTagEl.textContent =
+            total > 0
+                ? `Disponível em ${origemSel.value}: ${total.toLocaleString('pt-BR')} kg`
+                : `Sem estoque em ${origemSel.value} para ${st.variedade}`;
+    } else {
+        st.saldos = {};
+        if (saldoTagEl) saldoTagEl.textContent = '⚠️ ' + (res?.mensagem || 'Erro');
+        status(`⚠️ ${res?.mensagem||'Erro ao buscar saldos'}`, 'warning');
+    }
+
+    // Filtra apenas classes com saldo > 0 (TIPO 2..7)
+    st.comSaldo = CLASSES_TRANS.filter(c => (st.saldos[c]||0) > 0);
+    // Limpa pesos de classes que saíram do saldo
+    for (const c of CLASSES_TRANS) {
+        if (!st.comSaldo.includes(c)) { delete st.pesos[c]; delete st.perdas[c]; }
+    }
+    renderPesos();
+}
+
+if (origemSel) {
+    origemSel.addEventListener('change', () => {
+        st.saldos = {}; st.comSaldo = [];
+        renderPesos();
+        if (pidInp.value) buscarSaldos();
+    });
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────
+/**
+ * Classificação: tabela simples 2 colunas (Classe | Peso)
+ *                inclui INDÚSTRIA na lista normal
+ *
+ * Banca/Toletagem: tabela 3 colunas (Classe | Peso→destino | Perda→removida)
+ *                  apenas classes com saldo > 0
+ *                  + seção especial para INDÚSTRIA (entrada direta, sem limite de saldo)
+ *
+ * IMPORTANTE: inputs são criados UMA VEZ — não recriados ao digitar.
+ * Saldos/bordas vermelhas são atualizados via updateRowState().
+ */
+function renderPesos() {
+    pesoEl.innerHTML = '';
+
+    if (IS_CLAS) {
+        // ── Classificação ─────────────────────────────────────────────────
+        const thead = el('div', 'peso-thead modo-class',
+            '<span>Classe</span><span style="text-align:right">Peso (kg)</span>');
+        pesoEl.appendChild(thead);
+
+        CLASSES_CLAS.forEach(c => {
+            const row = el('div', `peso-row modo-class${c==='INDÚSTRIA' ? ' ind-row' : ''}`);
+            row.dataset.classe = c;
+            row.innerHTML = `
+                <div class="peso-classe">${c==='INDÚSTRIA' ? '🏭 INDÚSTRIA' : c}</div>
+                <input class="peso-inp" type="number" inputmode="decimal"
+                    step="1" min="0" placeholder="0"
+                    value="${st.pesos[c]||''}" data-c="${c}">
+            `;
+            row.querySelector('input').addEventListener('input', () => atualizarTotal());
+            row.querySelector('input').addEventListener('blur', e => arredondar(e, c, 'peso'));
+            pesoEl.appendChild(row);
+        });
+
+    } else {
+        // ── Banca / Toletagem ─────────────────────────────────────────────
+        if (st.comSaldo.length === 0) {
+            pesoEl.innerHTML = `<div class="sem-estoque">
+                🔍 Nenhuma classe disponível.<br>
+                Selecione um produtor com estoque na origem selecionada.
+            </div>`;
+            // Ainda mostra a seção Indústria mesmo sem saldo de classes
+        }
+
+        if (st.comSaldo.length > 0) {
+            const thead = el('div', 'peso-thead modo-setor');
+            thead.innerHTML = '<span>Classe</span>'
+                + '<span style="text-align:right">Peso → Destino (kg)</span>'
+                + '<span style="text-align:right;color:#b87c2e">⚠️ Perda (kg)</span>';
+            pesoEl.appendChild(thead);
+
+            st.comSaldo.forEach(c => {
+                const saldo = st.saldos[c] || 0;
+                const row = el('div', 'peso-row modo-setor');
+                row.dataset.classe = c;
+                row.innerHTML = `
+                    <div class="peso-classe">
+                        ${c}
+                        <span class="peso-saldo" data-saldo="${c}">disp: ${saldo.toLocaleString('pt-BR')} kg</span>
+                    </div>
+                    <input class="peso-inp" type="number" inputmode="decimal"
+                        step="1" min="0" placeholder="0"
+                        value="${st.pesos[c]||''}" data-c="${c}" data-t="peso">
+                    <input class="perda-inp" type="number" inputmode="decimal"
+                        step="0.1" min="0" placeholder="0"
+                        value="${st.perdas[c]||''}" data-c="${c}" data-t="perda">
+                `;
+                row.querySelector('[data-t="peso"]').addEventListener('input',  ()=>{atualizarTotal(); updateRowState(c);});
+                row.querySelector('[data-t="perda"]').addEventListener('input', ()=>{atualizarTotal(); updateRowState(c);});
+                row.querySelector('[data-t="peso"]').addEventListener('blur',  e=>arredondar(e,c,'peso'));
+                row.querySelector('[data-t="perda"]').addEventListener('blur', e=>arredondar(e,c,'perda'));
+                pesoEl.appendChild(row);
+            });
+        }
+
+        // ── Seção Indústria (sempre visível para banca/toletagem) ────────
+        const indSaldo = st.saldos['INDÚSTRIA'] || 0;
+        const sepInd = el('div', 'industria-sep',
+            '🏭 INDÚSTRIA — entrada direta no destino (sem desconto da origem)');
+        pesoEl.appendChild(sepInd);
+
+        const rowI = el('div', 'peso-row modo-class ind-row');
+        rowI.dataset.classe = 'INDÚSTRIA';
+        rowI.innerHTML = `
+            <div class="peso-classe">
+                INDÚSTRIA
+                <span class="peso-saldo">
+                    ${indSaldo > 0
+                        ? `ref. Origem: ${indSaldo.toLocaleString('pt-BR')} kg (apenas referência, sem limitação)`
+                        : 'Sem estoque na origem — você pode inserir assim mesmo'}
+                </span>
+            </div>
+            <input class="peso-inp" type="number" inputmode="decimal"
+                step="1" min="0" placeholder="0"
+                value="${st.indPeso}" data-c="INDÚSTRIA" data-t="ind">
+        `;
+        rowI.querySelector('input').addEventListener('input',  ()=>atualizarTotal());
+        rowI.querySelector('input').addEventListener('blur', e => {
+            const v = parseFloat(e.target.value);
+            st.indPeso = (!isNaN(v) && v>0) ? String(Math.round(v)) : '';
+            e.target.value = st.indPeso;
+            atualizarTotal();
+        });
+        pesoEl.appendChild(rowI);
+    }
+
+    // Total
+    const totDiv = el('div','total-row');
+    totDiv.innerHTML = `<span>🔹 Total</span><span id="totalVal">0 kg</span>`;
+    pesoEl.appendChild(totDiv);
+    atualizarTotal();
+}
+
+// Utilitário: cria elemento com classe e innerHTML
+function el(tag, cls, html='') {
+    const e = document.createElement(tag);
+    e.className = cls;
+    if (html) e.innerHTML = html;
+    return e;
+}
+
+// Atualiza total geral
+function atualizarTotal() {
+    let t = 0;
+    if (IS_CLAS) {
+        CLASSES_CLAS.forEach(c => {
+            const inp = document.querySelector(`.peso-inp[data-c="${c}"]`);
+            t += parseFloat(inp?.value)||0;
+        });
+    } else {
+        st.comSaldo.forEach(c => {
+            const p = document.querySelector(`.peso-inp[data-c="${c}"][data-t="peso"]`);
+            const d = document.querySelector(`.perda-inp[data-c="${c}"][data-t="perda"]`);
+            t += (parseFloat(p?.value)||0) + (parseFloat(d?.value)||0);
+        });
+        t += parseFloat(document.querySelector('.peso-inp[data-t="ind"]')?.value)||0;
+    }
+    const tv = $('totalVal');
+    if (tv) tv.textContent = t.toLocaleString('pt-BR') + ' kg';
+}
+
+// Marca linha vermelha se peso+perda > saldo
+function updateRowState(c) {
+    const row   = document.querySelector(`.peso-row[data-classe="${c}"]`);
+    const pInp  = document.querySelector(`.peso-inp[data-c="${c}"][data-t="peso"]`);
+    const dInp  = document.querySelector(`.perda-inp[data-c="${c}"][data-t="perda"]`);
+    if (!row || !pInp) return;
+    const saldo = st.saldos[c] || 0;
+    const usado = (parseFloat(pInp.value)||0) + (parseFloat(dInp?.value)||0);
+    row.classList.toggle('excede', usado > saldo + 0.001);
+}
+
+// Arredonda input e grava no estado
+function arredondar(e, c, tipo) {
+    const v = parseFloat(e.target.value);
+    const r = (!isNaN(v) && v>0) ? (tipo==='perda' ? v : Math.round(v)) : '';
+    e.target.value = r;
+    if (IS_CLAS) { st.pesos[c] = String(r); }
+    else if (tipo==='peso')  { st.pesos[c]  = String(r); updateRowState(c); }
+    else if (tipo==='perda') { st.perdas[c] = String(r); updateRowState(c); }
+    atualizarTotal();
+}
+
+// ── LIMPAR ────────────────────────────────────────────────────────────────
+function limparPesos() {
+    st.pesos = {}; st.perdas = {}; st.indPeso = '';
+    if (horasInp) horasInp.value = 0;
+    renderPesos();
+}
+function limparTudo() {
+    matInp.value = nomInp.value = pidInp.value = '';
+    banner.classList.remove('show');
+    st.saldos = {}; st.comSaldo = [];
+    if (saldoTagEl) saldoTagEl.textContent = '—';
+    limparPesos();
+    status('✅ Formulário limpo.', 'success', 2000);
+}
+
+// ── EXEMPLO ───────────────────────────────────────────────────────────────
+function carregarExemplo() {
+    const ex = {
+        'São Valentim': {"INDÚSTRIA":850,"TIPO 2":512,"TIPO 3":870,"TIPO 4":1269,"TIPO 5":579,"TIPO 6":199,"TIPO 7":45},
+        'Ito':          {"INDÚSTRIA":1200,"TIPO 2":780,"TIPO 3":1250,"TIPO 4":890,"TIPO 5":445,"TIPO 6":267,"TIPO 7":89},
+        'Chonan':       {"INDÚSTRIA":950,"TIPO 2":650,"TIPO 3":980,"TIPO 4":1540,"TIPO 5":720,"TIPO 6":310,"TIPO 7":125}
+    }[st.variedade] || {};
+
+    if (IS_CLAS) {
+        CLASSES_CLAS.forEach(c => {
+            const inp = document.querySelector(`.peso-inp[data-c="${c}"]`);
+            if (inp && ex[c] !== undefined) { inp.value = ex[c]; st.pesos[c] = String(ex[c]); }
+        });
+    } else {
+        // Preenche apenas classes com saldo
+        st.comSaldo.forEach(c => {
+            const saldo = st.saldos[c] || 0;
+            const val = Math.min(ex[c]||0, saldo);
+            const inp = document.querySelector(`.peso-inp[data-c="${c}"][data-t="peso"]`);
+            if (inp && val > 0) { inp.value = val; st.pesos[c] = String(val); }
+        });
+        const indInp = document.querySelector('.peso-inp[data-t="ind"]');
+        if (indInp && ex['INDÚSTRIA']) { indInp.value = ex['INDÚSTRIA']; st.indPeso = String(ex['INDÚSTRIA']); }
+    }
+    atualizarTotal();
+    status(`📋 Exemplo ${st.variedade} carregado.`, 'info', 2000);
+}
+
+// ── SALVAR ────────────────────────────────────────────────────────────────
+async function salvar() {
+    if (st.busy) { status('⏳ Aguarde os saldos carregarem.','warning'); return; }
+
+    const prodId   = pidInp.value;
+    const prodNome = nomInp.value.trim();
+    const local    = ldest.value;
+    const origem   = origemSel?.value ?? null;
+    const horas    = parseFloat(horasInp?.value)||0;
+
+    if (!prodId || !prodNome) { status('❌ Selecione um produtor.','error'); return; }
+    if (!IS_CLAS && !origem)  { status('❌ Selecione a origem.','error'); return; }
+
+    const detalhes = [];
+    let   totalDest = 0, totalPerd = 0;
+
+    if (IS_CLAS) {
+        // ── Classificação: tudo é "entrada" direta ─────────────────────────
+        CLASSES_CLAS.forEach(c => {
+            const inp = document.querySelector(`.peso-inp[data-c="${c}"]`);
+            const p = parseFloat(inp?.value)||0;
+            if (p > 0) {
+                detalhes.push({classe:c, peso:p, tipo:'entrada'});
+                totalDest += p;
+            }
+        });
+        if (!detalhes.length) { status('⚠️ Preencha pelo menos um peso.','warning'); return; }
+
+    } else {
+        // ── Banca/Toletagem ────────────────────────────────────────────────
+        for (const c of st.comSaldo) {
+            const pInp = document.querySelector(`.peso-inp[data-c="${c}"][data-t="peso"]`);
+            const dInp = document.querySelector(`.perda-inp[data-c="${c}"][data-t="perda"]`);
+            const peso  = parseFloat(pInp?.value)||0;
+            const perda = parseFloat(dInp?.value)||0;
+            const saldo = st.saldos[c]||0;
+
+            if (peso + perda > saldo + 0.001) {
+                status(`❌ ${c}: peso+perda (${(peso+perda).toFixed(2)} kg) excede saldo (${saldo.toFixed(2)} kg).`,'error');
+                pInp?.focus();
+                return;
+            }
+            if (peso  > 0) { detalhes.push({classe:c, peso, tipo:'transferencia'}); totalDest += peso; }
+            if (perda > 0) { detalhes.push({classe:c, peso:perda, tipo:'perda'}); totalPerd += perda; }
+        }
+
+        // Indústria — entrada direta
+        const indInp = document.querySelector('.peso-inp[data-t="ind"]');
+        const indP   = parseFloat(indInp?.value)||0;
+        if (indP > 0) {
+            detalhes.push({classe:'INDÚSTRIA', peso:indP, tipo:'industria'});
+            totalDest += indP;
+        }
+
+        if (totalDest === 0 && totalPerd === 0) {
+            status('⚠️ Preencha pelo menos um campo.','warning'); return;
+        }
+    }
+
+    // Confirmação
+    const destLabel = local==='Classificação' ? 'Classificação' : local==='banca' ? 'Banca' : 'Toletagem';
+    let conf = `Confirmar ${IS_CLAS?'entrada':'transferência'}?\n\n`
+             + `Produtor: ${prodNome}\nVariedade: ${st.variedade}\nDestino: ${destLabel}`;
+    if (!IS_CLAS) {
+        conf += `\nOrigem: ${origem}`;
+        conf += `\nPeso → Destino: ${totalDest.toLocaleString('pt-BR')} kg`;
+        if (totalPerd > 0) conf += `\n⚠️ Perdas/Impurezas: ${totalPerd.toLocaleString('pt-BR')} kg (removidas da origem)`;
+        const indP2 = detalhes.find(d=>d.tipo==='industria');
+        if (indP2) conf += `\n🏭 Indústria: ${indP2.peso} kg (entra sem limite)`;
+    } else {
+        conf += `\nTotal: ${totalDest.toLocaleString('pt-BR')} kg`;
+    }
+    if (horas > 0) conf += `\nHoras banca: ${horas}`;
+    if (!confirm(conf)) return;
+
+    // Envio
+    const btn = $('btnSalvar');
+    btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Salvando…';
+
+    const res = await apiPost('/api/salvar-entrada', {
+        produtor_id: parseInt(prodId),
+        tipo_alho:   st.variedade,
+        local,
+        local_origem: origem,
+        detalhes,
+        horas_banca:  horas,
+    });
+
+    btn.disabled = false; btn.innerHTML = '💾 Registrar';
+
+    if (res?.sucesso) {
+        $('sucMsg').textContent = res.mensagem;
+        $('sucOverlay').classList.add('show');
+    } else {
+        status(`❌ ${res?.mensagem||'Erro desconhecido.'}`, 'error', 0);
+    }
+}
+
+// ── OVERLAY SUCESSO ───────────────────────────────────────────────────────
+$('btnNovo').addEventListener('click', () => {
+    $('sucOverlay').classList.remove('show');
+    limparPesos();
+    // Rebusca saldos atualizados após o registro
+    if (!IS_CLAS && pidInp.value) buscarSaldos();
+    matInp.focus();
+});
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+$('btnLimpar').onclick  = limparTudo;
+$('btnExemplo').onclick = carregarExemplo;
+$('btnSalvar').onclick  = salvar;
+
+renderPesos();
+atualizarData();
+setInterval(atualizarData, 60000);
+status('📝 Digite a matrícula e selecione o produtor.','info',4000);
 </script>
 </body>
 </html>
