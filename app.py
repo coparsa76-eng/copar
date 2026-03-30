@@ -76,7 +76,6 @@ def conectar_banco():
 
 
 def criar_tabela_perdas():
-    # Mantido apenas para compatibilidade; perdas não serão mais registradas
     conn = conectar_banco()
     if not conn:
         return
@@ -347,96 +346,112 @@ def remover_perda_sem_registro(cursor, produtor_id, tipo_alho, classe_ui,
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  CONSULTAS — GERENTE
+#  CONSULTAS — GERENTE (CORRIGIDAS: CADA CONSULTA É INDIVIDUAL)
 # ─────────────────────────────────────────────────────────────────────────────
 
 def obter_estatisticas_gerais():
+    """
+    Retorna dicionário com estatísticas gerais.
+    Cada consulta é executada separadamente; se falhar, retorna 0 para aquela métrica.
+    Isso evita que uma tabela ausente anule todas as estatísticas.
+    """
+    stats = {
+        'total_produtores': 0,
+        'total_estoque_kg': 0,
+        'estoque_classificacao': 0,
+        'estoque_banca': 0,
+        'estoque_toletagem': 0,
+        'vendas_mes': 0,
+        'pagamentos_mes': 0,
+        'saldo_total': 0,
+        'perdas_mes': 0,
+    }
+
     conn = conectar_banco()
     if not conn:
-        return {
-            'total_produtores': 0,
-            'total_estoque_kg': 0,
-            'estoque_classificacao': 0,
-            'estoque_banca': 0,
-            'estoque_toletagem': 0,
-            'vendas_mes': 0,
-            'pagamentos_mes': 0,
-            'saldo_total': 0,
-            'perdas_mes': 0
-        }
+        return stats
+
     try:
+        # 1. Total de produtores
         cursor = conn.cursor()
-
-        # Total de produtores
         cursor.execute("SELECT COUNT(*) FROM produtores")
-        total_produtores = cursor.fetchone()[0]
+        stats['total_produtores'] = cursor.fetchone()[0]
+        cursor.close()
+    except Exception as e:
+        logger.error(f"Erro ao buscar total_produtores: {e}")
 
-        # Total estoque geral
+    try:
+        # 2. Total estoque geral
+        cursor = conn.cursor()
         cursor.execute("SELECT COALESCE(SUM(peso),0) FROM estoque WHERE peso > 0")
-        total_estoque_kg = float(cursor.fetchone()[0])
+        stats['total_estoque_kg'] = float(cursor.fetchone()[0])
+        cursor.close()
+    except Exception as e:
+        logger.error(f"Erro ao buscar total_estoque_kg: {e}")
 
-        # Estoque por local
+    try:
+        # 3. Estoque por local
+        cursor = conn.cursor()
         cursor.execute("SELECT COALESCE(SUM(peso),0) FROM estoque WHERE local_estoque='Classificação' AND peso>0")
-        estoque_classificacao = float(cursor.fetchone()[0])
+        stats['estoque_classificacao'] = float(cursor.fetchone()[0])
         cursor.execute("SELECT COALESCE(SUM(peso),0) FROM estoque WHERE local_estoque='Banca' AND peso>0")
-        estoque_banca = float(cursor.fetchone()[0])
+        stats['estoque_banca'] = float(cursor.fetchone()[0])
         cursor.execute("SELECT COALESCE(SUM(peso),0) FROM estoque WHERE local_estoque='Toletagem' AND peso>0")
-        estoque_toletagem = float(cursor.fetchone()[0])
+        stats['estoque_toletagem'] = float(cursor.fetchone()[0])
+        cursor.close()
+    except Exception as e:
+        logger.error(f"Erro ao buscar estoque por local: {e}")
 
-        # Vendas do mês
+    try:
+        # 4. Vendas do mês
+        cursor = conn.cursor()
         cursor.execute("""
             SELECT COALESCE(SUM(valor_total),0) FROM vendas
             WHERE DATE_TRUNC('month', data_venda) = DATE_TRUNC('month', CURRENT_DATE)
         """)
-        vendas_mes = float(cursor.fetchone()[0])
+        stats['vendas_mes'] = float(cursor.fetchone()[0])
+        cursor.close()
+    except Exception as e:
+        logger.error(f"Erro ao buscar vendas_mes: {e}")
 
-        # Pagamentos do mês
+    try:
+        # 5. Pagamentos do mês
+        cursor = conn.cursor()
         cursor.execute("""
             SELECT COALESCE(SUM(valor_total),0) FROM pagamentos
             WHERE DATE_TRUNC('month', data_pagamento) = DATE_TRUNC('month', CURRENT_DATE)
         """)
-        pagamentos_mes = float(cursor.fetchone()[0])
+        stats['pagamentos_mes'] = float(cursor.fetchone()[0])
+        cursor.close()
+    except Exception as e:
+        logger.error(f"Erro ao buscar pagamentos_mes: {e}")
 
-        # Saldo total a pagar (créditos)
+    try:
+        # 6. Saldo total (créditos a pagar)
+        cursor = conn.cursor()
         cursor.execute("SELECT COALESCE(SUM(saldo),0) FROM creditos_produtor")
-        saldo_total = float(cursor.fetchone()[0])
+        stats['saldo_total'] = float(cursor.fetchone()[0])
+        cursor.close()
+    except Exception as e:
+        logger.error(f"Erro ao buscar saldo_total: {e}")
 
-        # Perdas do mês (agora não será mais usado, mas mantido para compatibilidade)
+    try:
+        # 7. Perdas do mês (se a tabela existir)
+        cursor = conn.cursor()
         cursor.execute("""
             SELECT COALESCE(SUM(peso_kg),0) FROM perdas
             WHERE DATE_TRUNC('month', data_perda) = DATE_TRUNC('month', CURRENT_DATE)
         """)
-        perdas_mes = float(cursor.fetchone()[0])
-
+        stats['perdas_mes'] = float(cursor.fetchone()[0])
         cursor.close()
-        conn.close()
-
-        return {
-            'total_produtores': total_produtores,
-            'total_estoque_kg': total_estoque_kg,
-            'estoque_classificacao': estoque_classificacao,
-            'estoque_banca': estoque_banca,
-            'estoque_toletagem': estoque_toletagem,
-            'vendas_mes': vendas_mes,
-            'pagamentos_mes': pagamentos_mes,
-            'saldo_total': saldo_total,
-            'perdas_mes': perdas_mes,
-        }
     except Exception as e:
-        logger.error(f"Erro ao obter estatísticas: {e}")
-        return {
-            'total_produtores': 0,
-            'total_estoque_kg': 0,
-            'estoque_classificacao': 0,
-            'estoque_banca': 0,
-            'estoque_toletagem': 0,
-            'vendas_mes': 0,
-            'pagamentos_mes': 0,
-            'saldo_total': 0,
-            'perdas_mes': 0,
-        }
+        logger.error(f"Erro ao buscar perdas_mes: {e}")
+
+    conn.close()
+    return stats
 
 
+# As demais funções de consulta do gerente (estoque_hierarquico, etc.) permanecem inalteradas
 def obter_estoque_hierarquico():
     conn = conectar_banco()
     if not conn:
@@ -619,12 +634,12 @@ def obter_vendas_por_mes():
 
 
 def obter_perdas_recentes(limite=50):
-    # Função mantida para compatibilidade, mas perdas não são mais registradas
+    # Tabela perdas pode não existir; retorna lista vazia
     return []
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  ROTAS
+#  ROTAS (inalteradas)
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _redirecionar_por_tipo(tipo):
@@ -852,15 +867,11 @@ def api_salvar_entrada():
             if peso <= 0:
                 continue
 
-            # Indústria não tem verificação de saldo
+            # Indústria tem tratamento especial (sem limite, mas ainda precisa retirar da origem)
             if classe_ui == 'INDÚSTRIA':
                 classe_banco = 'Indústria'
-                # Indústria não retira da origem (ou retira? No fluxo, indústria também sai da origem. Sim, deve retirar)
-                # Para Indústria, usamos o mesmo mecanismo de retirada da origem se local_origem existir
-                # Mas sem verificação de saldo (pode retirar mesmo se não tiver saldo? Não, não pode retirar mais do que tem)
-                # Na verdade, se não tem saldo, não pode retirar. Então ainda precisamos verificar saldo, mas sem limite adicional.
-                # Vamos manter a verificação de saldo normal para Indústria, mas sem limite superior extra.
-                # A diferença é que o frontend não mostra excedente para Indústria.
+                # Retira da origem normalmente, mas não há validação extra no frontend.
+                # A função registrar_movimentacao fará a retirada e inserção.
                 entrada_id = registrar_movimentacao(
                     cursor        = cursor,
                     produtor_id   = produtor_id,
