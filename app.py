@@ -76,6 +76,7 @@ def conectar_banco():
 
 
 def criar_tabela_perdas():
+    # Mantido apenas para compatibilidade; perdas não serão mais registradas
     conn = conectar_banco()
     if not conn:
         return
@@ -306,11 +307,11 @@ def registrar_movimentacao(cursor, produtor_id, tipo_alho, classe_banco,
     return entrada_id
 
 
-def registrar_perda_por_classe(cursor, produtor_id, tipo_alho, classe_ui,
+def remover_perda_sem_registro(cursor, produtor_id, tipo_alho, classe_ui,
                                 peso_perda, local_origem):
     """
     Remove peso_perda kg de uma classe específica da origem (FIFO dentro da classe)
-    e registra como perda na tabela perdas.
+    sem registrar na tabela perdas. Apenas exclui do estoque.
     """
     local_banco = MAPEAMENTO_LOCAL.get(local_origem, local_origem)
     classe_banco = CLASSES_MAP.get(classe_ui, classe_ui)
@@ -344,13 +345,6 @@ def registrar_perda_por_classe(cursor, produtor_id, tipo_alho, classe_ui,
                            (round(epeso - restante, 4), eid))
             restante = 0
 
-    # Registra a perda na tabela perdas
-    cursor.execute("""
-        INSERT INTO perdas (produtor_id, tipo_alho, classe, peso_kg, local_origem, motivo)
-        VALUES (%s, %s, %s, %s, %s, %s)
-    """, (produtor_id, tipo_alho, classe_banco, round(peso_perda, 4),
-          local_banco, 'Perda por classe na movimentação'))
-
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  CONSULTAS — GERENTE
@@ -359,76 +353,88 @@ def registrar_perda_por_classe(cursor, produtor_id, tipo_alho, classe_ui,
 def obter_estatisticas_gerais():
     conn = conectar_banco()
     if not conn:
-        return {k: 0 for k in ('total_produtores','total_estoque_kg',
-                                'estoque_classificacao','estoque_banca','estoque_toletagem',
-                                'vendas_mes','pagamentos_mes','saldo_total','perdas_mes')}
+        return {
+            'total_produtores': 0,
+            'total_estoque_kg': 0,
+            'estoque_classificacao': 0,
+            'estoque_banca': 0,
+            'estoque_toletagem': 0,
+            'vendas_mes': 0,
+            'pagamentos_mes': 0,
+            'saldo_total': 0,
+            'perdas_mes': 0
+        }
     try:
         cursor = conn.cursor()
 
+        # Total de produtores
         cursor.execute("SELECT COUNT(*) FROM produtores")
         total_produtores = cursor.fetchone()[0]
 
+        # Total estoque geral
         cursor.execute("SELECT COALESCE(SUM(peso),0) FROM estoque WHERE peso > 0")
         total_estoque_kg = float(cursor.fetchone()[0])
 
-        for local in ('Classificação', 'Banca', 'Toletagem'):
-            cursor.execute(
-                "SELECT COALESCE(SUM(peso),0) FROM estoque WHERE local_estoque=%s AND peso>0",
-                (local,))
-            key = f'estoque_{local.lower().replace("ã","a").replace("ç","c")}'
-            locals()[key] = float(cursor.fetchone()[0])
+        # Estoque por local
+        cursor.execute("SELECT COALESCE(SUM(peso),0) FROM estoque WHERE local_estoque='Classificação' AND peso>0")
+        estoque_classificacao = float(cursor.fetchone()[0])
+        cursor.execute("SELECT COALESCE(SUM(peso),0) FROM estoque WHERE local_estoque='Banca' AND peso>0")
+        estoque_banca = float(cursor.fetchone()[0])
+        cursor.execute("SELECT COALESCE(SUM(peso),0) FROM estoque WHERE local_estoque='Toletagem' AND peso>0")
+        estoque_toletagem = float(cursor.fetchone()[0])
 
+        # Vendas do mês
         cursor.execute("""
             SELECT COALESCE(SUM(valor_total),0) FROM vendas
             WHERE DATE_TRUNC('month', data_venda) = DATE_TRUNC('month', CURRENT_DATE)
         """)
         vendas_mes = float(cursor.fetchone()[0])
 
+        # Pagamentos do mês
         cursor.execute("""
             SELECT COALESCE(SUM(valor_total),0) FROM pagamentos
             WHERE DATE_TRUNC('month', data_pagamento) = DATE_TRUNC('month', CURRENT_DATE)
         """)
         pagamentos_mes = float(cursor.fetchone()[0])
 
+        # Saldo total a pagar (créditos)
         cursor.execute("SELECT COALESCE(SUM(saldo),0) FROM creditos_produtor")
         saldo_total = float(cursor.fetchone()[0])
 
+        # Perdas do mês (agora não será mais usado, mas mantido para compatibilidade)
         cursor.execute("""
             SELECT COALESCE(SUM(peso_kg),0) FROM perdas
             WHERE DATE_TRUNC('month', data_perda) = DATE_TRUNC('month', CURRENT_DATE)
         """)
         perdas_mes = float(cursor.fetchone()[0])
 
-        # Re‑fetch for explicit variables (avoid locals() confusion)
-        cursor.execute(
-            "SELECT COALESCE(SUM(peso),0) FROM estoque WHERE local_estoque='Classificação' AND peso>0")
-        estoque_classificacao = float(cursor.fetchone()[0])
-        cursor.execute(
-            "SELECT COALESCE(SUM(peso),0) FROM estoque WHERE local_estoque='Banca' AND peso>0")
-        estoque_banca = float(cursor.fetchone()[0])
-        cursor.execute(
-            "SELECT COALESCE(SUM(peso),0) FROM estoque WHERE local_estoque='Toletagem' AND peso>0")
-        estoque_toletagem = float(cursor.fetchone()[0])
-
         cursor.close()
         conn.close()
 
         return {
-            'total_produtores':     total_produtores,
-            'total_estoque_kg':     total_estoque_kg,
+            'total_produtores': total_produtores,
+            'total_estoque_kg': total_estoque_kg,
             'estoque_classificacao': estoque_classificacao,
-            'estoque_banca':         estoque_banca,
-            'estoque_toletagem':     estoque_toletagem,
-            'vendas_mes':            vendas_mes,
-            'pagamentos_mes':        pagamentos_mes,
-            'saldo_total':           saldo_total,
-            'perdas_mes':            perdas_mes,
+            'estoque_banca': estoque_banca,
+            'estoque_toletagem': estoque_toletagem,
+            'vendas_mes': vendas_mes,
+            'pagamentos_mes': pagamentos_mes,
+            'saldo_total': saldo_total,
+            'perdas_mes': perdas_mes,
         }
     except Exception as e:
         logger.error(f"Erro ao obter estatísticas: {e}")
-        return {k: 0 for k in ('total_produtores','total_estoque_kg',
-                                'estoque_classificacao','estoque_banca','estoque_toletagem',
-                                'vendas_mes','pagamentos_mes','saldo_total','perdas_mes')}
+        return {
+            'total_produtores': 0,
+            'total_estoque_kg': 0,
+            'estoque_classificacao': 0,
+            'estoque_banca': 0,
+            'estoque_toletagem': 0,
+            'vendas_mes': 0,
+            'pagamentos_mes': 0,
+            'saldo_total': 0,
+            'perdas_mes': 0,
+        }
 
 
 def obter_estoque_hierarquico():
@@ -613,34 +619,8 @@ def obter_vendas_por_mes():
 
 
 def obter_perdas_recentes(limite=50):
-    conn = conectar_banco()
-    if not conn:
-        return []
-    try:
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT p.id, pr.nome, p.tipo_alho, p.classe, p.peso_kg,
-                   p.local_origem, p.data_perda, p.motivo
-            FROM perdas p
-            JOIN produtores pr ON p.produtor_id = pr.id
-            WHERE DATE_TRUNC('month', p.data_perda) = DATE_TRUNC('month', CURRENT_DATE)
-            ORDER BY p.data_perda DESC
-            LIMIT %s
-        """, (limite,))
-        perdas = []
-        for r in cursor.fetchall():
-            perdas.append({
-                'id': r[0], 'produtor': r[1], 'tipo_alho': r[2], 'classe': r[3],
-                'peso': float(r[4]), 'local_origem': r[5],
-                'data': r[6].strftime('%d/%m/%Y') if r[6] else '',
-                'motivo': r[7] or '',
-            })
-        cursor.close()
-        conn.close()
-        return perdas
-    except Exception as e:
-        logger.error(f"Erro ao buscar perdas recentes: {e}")
-        return []
+    # Função mantida para compatibilidade, mas perdas não são mais registradas
+    return []
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -872,10 +852,32 @@ def api_salvar_entrada():
             if peso <= 0:
                 continue
 
+            # Indústria não tem verificação de saldo
             if classe_ui == 'INDÚSTRIA':
                 classe_banco = 'Indústria'
-            else:
-                classe_banco = CLASSES_MAP.get(classe_ui)
+                # Indústria não retira da origem (ou retira? No fluxo, indústria também sai da origem. Sim, deve retirar)
+                # Para Indústria, usamos o mesmo mecanismo de retirada da origem se local_origem existir
+                # Mas sem verificação de saldo (pode retirar mesmo se não tiver saldo? Não, não pode retirar mais do que tem)
+                # Na verdade, se não tem saldo, não pode retirar. Então ainda precisamos verificar saldo, mas sem limite adicional.
+                # Vamos manter a verificação de saldo normal para Indústria, mas sem limite superior extra.
+                # A diferença é que o frontend não mostra excedente para Indústria.
+                entrada_id = registrar_movimentacao(
+                    cursor        = cursor,
+                    produtor_id   = produtor_id,
+                    tipo_alho     = tipo_alho,
+                    classe_banco  = classe_banco,
+                    peso          = peso,
+                    local_destino = local_destino,
+                    horas_banca   = horas_banca,
+                    local_origem  = local_origem,
+                )
+                resultados.append({'classe': classe_ui, 'peso': peso, 'entrada_id': entrada_id})
+                total_entrou_destino += peso
+                total_saiu_origem    += peso
+                continue
+
+            # Classes normais (TIPO 2-7)
+            classe_banco = CLASSES_MAP.get(classe_ui)
             if not classe_banco:
                 raise ValueError(f'Classe "{classe_ui}" não reconhecida')
 
@@ -893,13 +895,13 @@ def api_salvar_entrada():
             total_entrou_destino += peso
             total_saiu_origem    += peso
 
-        # Processar perdas por classe
+        # Processar perdas (apenas remover da origem, sem registro)
         for item in itens_perda:
             classe_ui = item.get('classe')
             peso      = float(item.get('peso', 0) or 0)
             if peso <= 0:
                 continue
-            registrar_perda_por_classe(
+            remover_perda_sem_registro(
                 cursor        = cursor,
                 produtor_id   = produtor_id,
                 tipo_alho     = tipo_alho,
@@ -916,7 +918,7 @@ def api_salvar_entrada():
 
         msg = f'Registrado com sucesso! Entrou no destino: {total_entrou_destino:.2f} kg'
         if itens_perda:
-            msg += f' | Perdas registradas: {sum(p["peso"] for p in itens_perda):.2f} kg'
+            msg += f' | Perdas removidas: {sum(p["peso"] for p in itens_perda):.2f} kg'
         if horas_banca > 0:
             msg += f' | Horas: {horas_banca}'
         if local_origem:
