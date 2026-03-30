@@ -584,7 +584,6 @@ document.querySelectorAll('.pill').forEach(p => {
 let buscaTimeout;
 matriculaInput.addEventListener('input', e => {
     const t = e.target.value.trim();
-    // ✅ Fix: mínimo 2 caracteres antes de buscar
     if (t.length < 2) { autocompleteList.style.display = 'none'; if (!t) limparProdutor(); return; }
     clearTimeout(buscaTimeout);
     buscaTimeout = setTimeout(async () => {
@@ -661,8 +660,7 @@ async function atualizarSaldos(msg) {
             : `Sem estoque em ${origem} para ${state.variedade}`;
     }
 
-    // ✅ Fix: classesComSaldo contém apenas CLASSES_SETOR (TIPO 2…7)
-    //         Indústria é tratada separado — NÃO entra aqui
+    // classesComSaldo contém apenas CLASSES_SETOR (TIPO 2…7)
     state.classesComSaldo = CLASSES_SETOR.filter(c => (state.saldos[c] || 0) > 0);
 
     // Limpa pesos de classes que sumiram do saldo
@@ -784,7 +782,6 @@ function renderPesos() {
     });
 
     // ── INDÚSTRIA (campo próprio — vai para o destino) ────────────────────
-    // ✅ Fix: Indústria NÃO está em classesComSaldo, então não há duplicidade
     if (temIndustria) {
         const saldoInd = state.saldos['INDÚSTRIA'] || 0;
         const excede   = state.pesoIndustria !== '' && parseFloat(state.pesoIndustria) > saldoInd;
@@ -921,7 +918,6 @@ async function salvar() {
 
     const pid    = produtorIdInput.value;
     const pnome  = produtorInput.value.trim();
-    // ✅ Fix: variável local explícita — sem dependência de escopo externo
     const isClassificacao = ROLE === 'classificacao';
     const local           = localDestinoEl.value;
     const origem          = origemSelect?.value ?? null;
@@ -931,9 +927,6 @@ async function salvar() {
     if (!isClassificacao && !origem) { showStatus('❌ Selecione a origem.', 'error'); return; }
 
     // ── Montar detalhes ─────────────────────────────────────────────────────
-    // ✅ Fix: nomes dos campos alinhados com o que o backend espera:
-    //   { classe, peso, tipo }
-    //   tipo = "classe" | "industria" | "quebra"
     const detalhes = [];
     let totSaindo  = 0;
 
@@ -964,7 +957,6 @@ async function salvar() {
                 showStatus(`❌ INDÚSTRIA: peso (${indP} kg) excede saldo (${state.saldos['INDÚSTRIA']} kg).`, 'error');
                 return;
             }
-            // ✅ Fix: tipo = 'industria'  (não 'industry')
             detalhes.push({ classe: 'INDÚSTRIA', peso: indP, tipo: 'industria' });
             totSaindo += indP;
         }
@@ -972,7 +964,6 @@ async function salvar() {
         // Quebra — sai da origem como perda, NÃO entra no destino
         const qP = parseFloat(state.pesoQuebra) || 0;
         if (qP > 0) {
-            // ✅ Fix: tipo = 'quebra'  (não 'loss')
             detalhes.push({ classe: '__QUEBRA__', peso: qP, tipo: 'quebra' });
             totSaindo += qP;
         }
@@ -983,7 +974,6 @@ async function salvar() {
         return;
     }
 
-    // ✅ Fix: usa isClassificacao declarado localmente — sem erro de escopo
     if (!isClassificacao && totSaindo > state.saldoTotal + 0.001) {
         showStatus(
             `❌ Total (${totSaindo.toLocaleString('pt-BR')} kg) excede saldo disponível ` +
@@ -1012,7 +1002,6 @@ async function salvar() {
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span>Salvando…';
 
-    // ✅ Fix: nomes dos campos corretos — local, local_origem, detalhes, horas_banca
     const result = await fetchJSON('/api/salvar-entrada', 'POST', {
         produtor_id:  parseInt(pid),
         tipo_alho:    state.variedade,
