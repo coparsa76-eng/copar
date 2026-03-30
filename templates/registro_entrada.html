@@ -243,10 +243,6 @@
         .peso-input:focus, .perda-input:focus { outline: none; border-color: var(--verde); }
         .peso-input.ind, .perda-input.ind { border-color: #e8d78a; background: #fffef5; }
         .peso-input.ind:focus, .perda-input.ind:focus { border-color: #c8a94a; }
-        .peso-input.qbr, .perda-input.qbr { border-color: var(--danger-border); background: #fff5f5; color: var(--danger); }
-        .peso-input.qbr:focus, .perda-input.qbr:focus { border-color: var(--danger); }
-
-        .peso-separator { height: 1px; background: var(--border); margin: .15rem 0; }
 
         .sem-estoque {
             text-align: center;
@@ -431,11 +427,6 @@ const VALOR_HORA = {{ valor_hora_banca }};
 
 const CLASSES_CLASSIFICACAO = ["INDÚSTRIA","TIPO 2","TIPO 3","TIPO 4","TIPO 5","TIPO 6","TIPO 7"];
 const CLASSES_SETOR = ["TIPO 2","TIPO 3","TIPO 4","TIPO 5","TIPO 6","TIPO 7"];
-
-const CLASSE_MAP = {
-    "INDÚSTRIA":"Indústria","TIPO 2":"Classe 2","TIPO 3":"Classe 3",
-    "TIPO 4":"Classe 4","TIPO 5":"Classe 5","TIPO 6":"Classe 6","TIPO 7":"Classe 7"
-};
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  ESTADO
@@ -625,8 +616,7 @@ async function atualizarSaldos(msg) {
     state.carregando = false;
     ocultarLoading();
 
-    const temIndustria = (state.saldos['INDÚSTRIA'] || 0) > 0;
-    if (state.classesComSaldo.length === 0 && !temIndustria) {
+    if (state.classesComSaldo.length === 0 && !(state.saldos['INDÚSTRIA'] > 0)) {
         showStatus(`⚠️ Nenhum estoque em ${origem} para ${state.variedade}.`, 'warning', 6000);
     } else {
         hideStatus();
@@ -684,13 +674,7 @@ function renderPesos() {
         return;
     }
 
-    /* ══ BANCA / TOLETAGEM ══════════════════════════════════════════════════
-     *  Cada classe tem:
-     *    - Peso (kg) → vai para o destino
-     *    - Perda (kg) → removido da origem como perda
-     *  Indústria → vai para o destino
-     * ════════════════════════════════════════════════════════════════════════ */
-
+    /* ══ BANCA / TOLETAGEM ══════════════════════════════════════════════════ */
     const temIndustria = (state.saldos['INDÚSTRIA'] || 0) > 0;
     if (state.classesComSaldo.length === 0 && !temIndustria) {
         pesoListEl.innerHTML = '<div class="sem-estoque">🔍 Nenhuma classe com estoque disponível.<br>Selecione um produtor e origem com saldo.</div>';
@@ -743,15 +727,14 @@ function renderPesos() {
         pesoListEl.appendChild(row);
     });
 
-    // ── INDÚSTRIA (sempre visível, independente de saldo) ────────────────────
+    // ── INDÚSTRIA (sempre visível, sem limitador de saldo) ────────────────────
     const indSaldo = state.saldos['INDÚSTRIA'] || 0;
-    const indExcede = state.pesoIndustria !== '' && parseFloat(state.pesoIndustria) > indSaldo;
     const rowI = document.createElement('div');
-    rowI.className = `peso-row industria-row${indExcede ? ' excede' : ''}`;
+    rowI.className = 'peso-row industria-row';
     rowI.innerHTML = `
         <div class="peso-classe">
             🏭 INDÚSTRIA
-            <div class="peso-saldo">disp: ${indSaldo.toLocaleString('pt-BR')} kg → entra no destino</div>
+            <div class="peso-saldo">disp: ${indSaldo.toLocaleString('pt-BR')} kg → sem limite, pode entrar quanto quiser</div>
         </div>
         <input class="peso-input ind" type="number" inputmode="decimal"
             step="1" min="0" placeholder="0"
@@ -825,13 +808,9 @@ async function salvar() {
             }
         }
 
-        // Indústria
+        // Indústria (sem limite)
         const indP = parseFloat(state.pesoIndustria) || 0;
         if (indP > 0) {
-            if (indP > (state.saldos['INDÚSTRIA'] || 0) + 0.001) {
-                showStatus(`❌ INDÚSTRIA: peso (${indP} kg) excede saldo (${state.saldos['INDÚSTRIA']} kg).`, 'error');
-                return;
-            }
             detalhes.push({ classe: 'INDÚSTRIA', peso: indP, tipo: 'industria' });
             totSaindo += indP;
         }
@@ -846,13 +825,20 @@ async function salvar() {
         return;
     }
 
-    if (!isClassificacao && totSaindo > state.saldoTotal + 0.001) {
-        showStatus(
-            `❌ Total (${totSaindo.toLocaleString('pt-BR')} kg) excede saldo disponível ` +
-            `(${state.saldoTotal.toLocaleString('pt-BR')} kg).`,
-            'error'
-        );
-        return;
+    // Verificação de saldo total apenas para classes que não são indústria (indústria não tem limite)
+    if (!isClassificacao) {
+        const classesNaoIndustria = detalhes.filter(d => d.classe !== 'INDÚSTRIA' && d.tipo !== 'perda');
+        const totalClasses = classesNaoIndustria.reduce((s, d) => s + d.peso, 0);
+        const totalPerdas = detalhes.filter(d => d.tipo === 'perda').reduce((s, d) => s + d.peso, 0);
+        const totalSaindoClasses = totalClasses + totalPerdas;
+        if (totalSaindoClasses > state.saldoTotal + 0.001) {
+            showStatus(
+                `❌ Total saindo das classes (${totalSaindoClasses.toLocaleString('pt-BR')} kg) excede saldo disponível ` +
+                `(${state.saldoTotal.toLocaleString('pt-BR')} kg).`,
+                'error'
+            );
+            return;
+        }
     }
 
     const destLabel = local === 'Classificação' ? 'Classificação' : local === 'banca' ? 'Banca' : 'Toletagem';
@@ -864,6 +850,10 @@ async function salvar() {
         const perdasList = detalhes.filter(d => d.tipo === 'perda');
         if (perdasList.length) {
             conf += `\n⚠️ Perdas: ${perdasList.map(p => `${p.classe} ${p.peso}kg`).join(', ')} → removidas da origem`;
+        }
+        const indP = parseFloat(state.pesoIndustria) || 0;
+        if (indP > 0) {
+            conf += `\n🏭 Indústria: ${indP} kg → entra no destino (sem limite de saldo)`;
         }
     }
     if (horas > 0) conf += `\nHoras de banca: ${horas}`;
