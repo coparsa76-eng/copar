@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-    <title>COPAR –
+    <title>COPAR – 
         {% if role == 'classificacao' %}Entrada na Classificação
         {% elif role == 'banca' %}Transferência para Banca
         {% else %}Transferência para Toletagem{% endif %}
@@ -197,7 +197,7 @@
 
         .peso-header {
             display: grid;
-            grid-template-columns: 1fr 120px;
+            grid-template-columns: 1fr 100px 100px;
             gap: .5rem;
             padding: .3rem .85rem;
             font-size: .7rem;
@@ -207,10 +207,11 @@
             color: var(--muted);
         }
         .peso-header span:last-child { text-align: right; }
+        .peso-header span:nth-child(2) { text-align: right; }
 
         .peso-row {
             display: grid;
-            grid-template-columns: 1fr 120px;
+            grid-template-columns: 1fr 100px 100px;
             align-items: center;
             gap: .5rem;
             padding: .6rem .85rem;
@@ -222,14 +223,12 @@
         .peso-row:focus-within { border-color: var(--verde); }
         .peso-row.industria-row { background: #fffbec; border-color: #e8d78a; }
         .peso-row.industria-row:focus-within { border-color: #c8a94a; }
-        .peso-row.quebra-row { background: var(--danger-bg); border-color: var(--danger-border); }
-        .peso-row.quebra-row:focus-within { border-color: var(--danger); }
         .peso-row.excede { border-color: var(--danger) !important; background: var(--danger-bg) !important; }
 
         .peso-classe { font-size: .9rem; font-weight: 600; min-width: 0; }
         .peso-saldo  { font-size: .72rem; color: var(--muted); }
 
-        .peso-input {
+        .peso-input, .perda-input {
             width: 100%;
             padding: .55rem .75rem;
             border: 1.5px solid var(--border);
@@ -241,56 +240,14 @@
             color: var(--text);
             -webkit-appearance: none;
         }
-        .peso-input:focus      { outline: none; border-color: var(--verde); }
-        .peso-input.ind        { border-color: #e8d78a; background: #fffef5; }
-        .peso-input.ind:focus  { border-color: #c8a94a; }
-        .peso-input.qbr        { border-color: var(--danger-border); background: #fff5f5; color: var(--danger); }
-        .peso-input.qbr:focus  { border-color: var(--danger); }
-        .peso-input.qbr::placeholder { color: #e0a0a0; }
+        .peso-input:focus, .perda-input:focus { outline: none; border-color: var(--verde); }
+        .peso-input.ind, .perda-input.ind { border-color: #e8d78a; background: #fffef5; }
+        .peso-input.ind:focus, .perda-input.ind:focus { border-color: #c8a94a; }
+        .peso-input.qbr, .perda-input.qbr { border-color: var(--danger-border); background: #fff5f5; color: var(--danger); }
+        .peso-input.qbr:focus, .perda-input.qbr:focus { border-color: var(--danger); }
 
         .peso-separator { height: 1px; background: var(--border); margin: .15rem 0; }
 
-        /* TOTAIS */
-        .total-bloco {
-            border-radius: 10px;
-            padding: .8rem .85rem;
-            margin-top: .3rem;
-            display: flex;
-            flex-direction: column;
-            gap: .35rem;
-        }
-        .total-bloco.simples {
-            background: var(--verde-light);
-            border: 2px solid #b8d9b5;
-            flex-direction: row;
-            justify-content: space-between;
-            align-items: center;
-            font-weight: 700;
-            font-size: 1rem;
-        }
-        .tl { display: flex; justify-content: space-between; font-size: .88rem; font-weight: 500; }
-        .tl.destaque {
-            font-weight: 700; font-size: .95rem;
-            padding-top: .3rem;
-            border-top: 1.5px dashed var(--border);
-            margin-top: .1rem;
-        }
-        .tl .lbl { color: var(--muted); }
-        .verde    { color: var(--verde); }
-        .amarelo  { color: #8a6a00; }
-        .vermelho { color: var(--danger); }
-        .grande   { font-size: 1.05rem; }
-
-        .alerta-excede {
-            background: var(--danger-bg);
-            border: 1.5px solid var(--danger-border);
-            color: var(--danger);
-            border-radius: 8px;
-            padding: .5rem .85rem;
-            font-size: .82rem;
-            font-weight: 600;
-            margin-top: .2rem;
-        }
         .sem-estoque {
             text-align: center;
             padding: 1.5rem;
@@ -459,11 +416,9 @@
 
 <div class="botoes">
     <button class="btn btn-danger"    id="limparBtn">🗑️ Limpar</button>
-    <button class="btn btn-secondary" id="exemploBtn">📋 Exemplo</button>
     <button class="btn btn-primary"   id="salvarBtn">💾 Registrar</button>
 </div>
 
-<!-- ▸ local destino vem do Jinja — só leitura pelo JS -->
 <input type="hidden" id="localDestino"
     value="{{ 'Classificação' if role == 'classificacao' else 'banca' if role == 'banca' else 'toletagem' }}">
 
@@ -474,12 +429,9 @@
 const ROLE       = "{{ role }}";
 const VALOR_HORA = {{ valor_hora_banca }};
 
-// Na classificação Indústria aparece junto com as demais
 const CLASSES_CLASSIFICACAO = ["INDÚSTRIA","TIPO 2","TIPO 3","TIPO 4","TIPO 5","TIPO 6","TIPO 7"];
-// Na banca/toletagem TIPO 2…7 são as classes; Indústria é campo separado
 const CLASSES_SETOR = ["TIPO 2","TIPO 3","TIPO 4","TIPO 5","TIPO 6","TIPO 7"];
 
-// Mapeamento interface → banco  (usado no backend, mas mantido aqui para referência)
 const CLASSE_MAP = {
     "INDÚSTRIA":"Indústria","TIPO 2":"Classe 2","TIPO 3":"Classe 3",
     "TIPO 4":"Classe 4","TIPO 5":"Classe 5","TIPO 6":"Classe 6","TIPO 7":"Classe 7"
@@ -489,9 +441,9 @@ const CLASSE_MAP = {
 //  ESTADO
 // ─────────────────────────────────────────────────────────────────────────────
 const state = {
-    pesos:           {},   // { "TIPO 2": "500", ... }  — TIPO 2…7 + INDÚSTRIA na classificação
-    pesoIndustria:   '',   // campo próprio na banca/toletagem
-    pesoQuebra:      '',   // sujeira — removida da origem, vai para perdas
+    pesos:           {},   // { "TIPO 2": "500", ... }  — kg que vão para o destino
+    perdas:          {},   // { "TIPO 2": "20", ... }   — kg de perda (impureza) por classe
+    pesoIndustria:   '',   // kg Indústria que vão para o destino
     saldos:          {},   // { "TIPO 2": 800, "INDÚSTRIA": 150, ... }
     saldoTotal:      0,    // soma de todos os saldos disponíveis na origem
     classesComSaldo: [],   // subset de CLASSES_SETOR com saldo > 0
@@ -548,8 +500,8 @@ function ocultarLoading() {
 
 function resetState() {
     state.pesos         = {};
+    state.perdas        = {};
     state.pesoIndustria = '';
-    state.pesoQuebra    = '';
 }
 
 async function fetchJSON(url, method = 'GET', body = null) {
@@ -579,7 +531,7 @@ document.querySelectorAll('.pill').forEach(p => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  AUTOCOMPLETE  (debounce mínimo 2 chars)
+//  AUTOCOMPLETE
 // ─────────────────────────────────────────────────────────────────────────────
 let buscaTimeout;
 matriculaInput.addEventListener('input', e => {
@@ -634,7 +586,7 @@ function limparProdutor() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  SALDOS  — 1 request para todas as classes
+//  SALDOS
 // ─────────────────────────────────────────────────────────────────────────────
 async function atualizarSaldos(msg) {
     const pid    = produtorIdInput.value;
@@ -660,12 +612,14 @@ async function atualizarSaldos(msg) {
             : `Sem estoque em ${origem} para ${state.variedade}`;
     }
 
-    // classesComSaldo contém apenas CLASSES_SETOR (TIPO 2…7)
     state.classesComSaldo = CLASSES_SETOR.filter(c => (state.saldos[c] || 0) > 0);
 
-    // Limpa pesos de classes que sumiram do saldo
+    // Limpa pesos/perdas de classes que sumiram do saldo
     for (const c of CLASSES_SETOR) {
-        if (!state.classesComSaldo.includes(c)) delete state.pesos[c];
+        if (!state.classesComSaldo.includes(c)) {
+            delete state.pesos[c];
+            delete state.perdas[c];
+        }
     }
 
     state.carregando = false;
@@ -699,7 +653,7 @@ function renderPesos() {
     if (ROLE === 'classificacao') {
         const hdr = document.createElement('div');
         hdr.className = 'peso-header';
-        hdr.innerHTML = '<span>Classe</span><span>Peso (kg)</span>';
+        hdr.innerHTML = '<span>Classe</span><span>Peso (kg)</span><span></span>';
         pesoListEl.appendChild(hdr);
 
         CLASSES_CLASSIFICACAO.forEach(c => {
@@ -711,6 +665,7 @@ function renderPesos() {
                 <input class="peso-input${c === 'INDÚSTRIA' ? ' ind' : ''}"
                     type="number" inputmode="decimal" step="1" min="0"
                     placeholder="0" value="${val}" data-classe="${c}">
+                <div></div>
             `;
             row.querySelector('input').addEventListener('change', e => {
                 state.pesos[c] = e.target.value === ''
@@ -730,17 +685,10 @@ function renderPesos() {
     }
 
     /* ══ BANCA / TOLETAGEM ══════════════════════════════════════════════════
-     *
-     *  Lógica do fluxo:
-     *    Origem tinha X kg.
-     *    Operador pesa o resultado após limpeza:
-     *      • TIPO 2…7   → entram no estoque do DESTINO
-     *      • INDÚSTRIA  → entra no estoque do DESTINO como classe Indústria
-     *      • QUEBRA     → PERDA REAL (sujeira/ruins) — sai da origem,
-     *                     vai para tabela `perdas`, NÃO entra no destino
-     *
-     *    Total saindo da origem = classes + indústria + quebra
-     *    Esse total deve ser <= saldo disponível
+     *  Cada classe tem:
+     *    - Peso (kg) → vai para o destino
+     *    - Perda (kg) → removido da origem como perda
+     *  Indústria → vai para o destino
      * ════════════════════════════════════════════════════════════════════════ */
 
     const temIndustria = (state.saldos['INDÚSTRIA'] || 0) > 0;
@@ -751,15 +699,18 @@ function renderPesos() {
 
     const hdr = document.createElement('div');
     hdr.className = 'peso-header';
-    hdr.innerHTML = '<span>Classe</span><span>Peso (kg)</span>';
+    hdr.innerHTML = '<span>Classe</span><span>Peso (kg) → Destino</span><span>Perda (kg) → Removido</span>';
     pesoListEl.appendChild(hdr);
 
-    // ── TIPO 2…7 ──────────────────────────────────────────────────────────
+    // ── TIPO 2…7 com peso e perda ──────────────────────────────────────────
     state.classesComSaldo.forEach(c => {
         const saldo = state.saldos[c] || 0;
-        const val   = state.pesos[c] || '';
-        const v     = parseFloat(val) || 0;
-        const excede = val !== '' && v > saldo;
+        const pesoVal   = state.pesos[c] || '';
+        const perdaVal  = state.perdas[c] || '';
+        const pesoNum   = parseFloat(pesoVal) || 0;
+        const perdaNum  = parseFloat(perdaVal) || 0;
+        const totalUsado = pesoNum + perdaNum;
+        const excede = totalUsado > saldo;
 
         const row = document.createElement('div');
         row.className = `peso-row${excede ? ' excede' : ''}`;
@@ -770,141 +721,59 @@ function renderPesos() {
             </div>
             <input class="peso-input" type="number" inputmode="decimal"
                 step="1" min="0" placeholder="0"
-                value="${val}" data-classe="${c}">
+                value="${pesoVal}" data-classe="${c}" data-tipo="peso">
+            <input class="perda-input" type="number" inputmode="decimal"
+                step="0.1" min="0" placeholder="0"
+                value="${perdaVal}" data-classe="${c}" data-tipo="perda">
         `;
-        row.querySelector('input').addEventListener('change', e => {
+        const pesoInput = row.querySelector('input[data-tipo="peso"]');
+        const perdaInput = row.querySelector('input[data-tipo="perda"]');
+        pesoInput.addEventListener('change', e => {
             state.pesos[c] = e.target.value === ''
                 ? '' : String(Math.max(0, Math.round(parseFloat(e.target.value) || 0)));
             e.target.value = state.pesos[c];
             renderPesos();
         });
+        perdaInput.addEventListener('change', e => {
+            state.perdas[c] = e.target.value === ''
+                ? '' : String(Math.max(0, parseFloat(e.target.value) || 0));
+            e.target.value = state.perdas[c];
+            renderPesos();
+        });
         pesoListEl.appendChild(row);
     });
 
-    // ── INDÚSTRIA (campo próprio — vai para o destino) ────────────────────
-    if (temIndustria) {
-        const saldoInd = state.saldos['INDÚSTRIA'] || 0;
-        const excede   = state.pesoIndustria !== '' && parseFloat(state.pesoIndustria) > saldoInd;
-        const rowI = document.createElement('div');
-        rowI.className = `peso-row industria-row${excede ? ' excede' : ''}`;
-        rowI.innerHTML = `
-            <div class="peso-classe">
-                🏭 INDÚSTRIA
-                <div class="peso-saldo">disp: ${saldoInd.toLocaleString('pt-BR')} kg → entra no destino</div>
-            </div>
-            <input class="peso-input ind" type="number" inputmode="decimal"
-                step="1" min="0" placeholder="0"
-                value="${state.pesoIndustria}" id="inputIndustria">
-        `;
-        rowI.querySelector('input').addEventListener('change', e => {
-            state.pesoIndustria = e.target.value === ''
-                ? '' : String(Math.max(0, Math.round(parseFloat(e.target.value) || 0)));
-            e.target.value = state.pesoIndustria;
-            renderPesos();
-        });
-        pesoListEl.appendChild(rowI);
-    }
-
-    // ── Separador visual ──────────────────────────────────────────────────
-    pesoListEl.appendChild(Object.assign(document.createElement('div'), { className: 'peso-separator' }));
-
-    // ── QUEBRA / SUJEIRA — sai da origem como perda, NÃO entra no destino ─
-    const rowQ = document.createElement('div');
-    rowQ.className = 'peso-row quebra-row';
-    rowQ.title = 'Sujeiras e alhos ruins — removidos do estoque de origem e registrados como perda';
-    rowQ.innerHTML = `
-        <div class="peso-classe" style="color:var(--danger)">
-            ⚠️ QUEBRA / SUJEIRA
-            <div class="peso-saldo" style="color:#c03">
-                Removido da origem → registrado como perda (não entra no destino)
-            </div>
+    // ── INDÚSTRIA (sempre visível, independente de saldo) ────────────────────
+    const indSaldo = state.saldos['INDÚSTRIA'] || 0;
+    const indExcede = state.pesoIndustria !== '' && parseFloat(state.pesoIndustria) > indSaldo;
+    const rowI = document.createElement('div');
+    rowI.className = `peso-row industria-row${indExcede ? ' excede' : ''}`;
+    rowI.innerHTML = `
+        <div class="peso-classe">
+            🏭 INDÚSTRIA
+            <div class="peso-saldo">disp: ${indSaldo.toLocaleString('pt-BR')} kg → entra no destino</div>
         </div>
-        <input class="peso-input qbr" type="number" inputmode="decimal"
-            step="0.1" min="0" placeholder="0"
-            value="${state.pesoQuebra}" id="inputQuebra">
+        <input class="peso-input ind" type="number" inputmode="decimal"
+            step="1" min="0" placeholder="0"
+            value="${state.pesoIndustria}" id="inputIndustria">
+        <div></div>
     `;
-    rowQ.querySelector('input').addEventListener('change', e => {
-        state.pesoQuebra = e.target.value === ''
-            ? '' : String(Math.max(0, parseFloat(e.target.value) || 0));
-        e.target.value = state.pesoQuebra;
+    rowI.querySelector('input').addEventListener('change', e => {
+        state.pesoIndustria = e.target.value === ''
+            ? '' : String(Math.max(0, Math.round(parseFloat(e.target.value) || 0)));
+        e.target.value = state.pesoIndustria;
         renderPesos();
     });
-    pesoListEl.appendChild(rowQ);
-
-    // ── Bloco de totais ───────────────────────────────────────────────────
-    const totClasses = state.classesComSaldo.reduce((s, c) => s + (parseFloat(state.pesos[c]) || 0), 0);
-    const totInd     = parseFloat(state.pesoIndustria) || 0;
-    const totQuebra  = parseFloat(state.pesoQuebra)    || 0;
-    const totSaindo  = totClasses + totInd + totQuebra;
-    const excede     = totSaindo > state.saldoTotal + 0.001;
-
-    const bloco = document.createElement('div');
-    bloco.className = 'total-bloco';
-    bloco.style.background   = excede ? 'var(--danger-bg)' : 'var(--verde-light)';
-    bloco.style.border        = `2px solid ${excede ? 'var(--danger-border)' : '#b8d9b5'}`;
-    bloco.style.borderRadius  = '10px';
-
-    bloco.innerHTML = `
-        <div class="tl">
-            <span class="lbl">Classes (TIPO 2…7) → entram no destino</span>
-            <span class="verde">${totClasses.toLocaleString('pt-BR')} kg</span>
-        </div>
-        ${totInd > 0 ? `
-        <div class="tl">
-            <span class="lbl">🏭 Indústria → entra no destino</span>
-            <span class="amarelo">${totInd.toLocaleString('pt-BR')} kg</span>
-        </div>` : ''}
-        ${totQuebra > 0 ? `
-        <div class="tl">
-            <span class="lbl">⚠️ Quebra / Sujeira → perda na origem</span>
-            <span class="vermelho">− ${totQuebra.toLocaleString('pt-BR')} kg</span>
-        </div>` : ''}
-        <div class="tl destaque">
-            <span class="lbl">🔹 Total saindo da origem</span>
-            <span class="${excede ? 'vermelho' : 'verde'} grande">
-                ${totSaindo.toLocaleString('pt-BR')} kg
-            </span>
-        </div>
-        <div class="tl" style="font-size:.8rem;color:var(--muted)">
-            <span>Saldo disponível na origem</span>
-            <span>${state.saldoTotal.toLocaleString('pt-BR')} kg</span>
-        </div>
-        ${excede ? `
-        <div class="alerta-excede">
-            ❌ Total excede o saldo em ${(totSaindo - state.saldoTotal).toLocaleString('pt-BR')} kg
-        </div>` : ''}
-    `;
-    pesoListEl.appendChild(bloco);
+    pesoListEl.appendChild(rowI);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  LIMPAR / EXEMPLO
+//  LIMPAR
 // ─────────────────────────────────────────────────────────────────────────────
 function limpar() {
     resetState();
     renderPesos();
     showStatus('✅ Formulário limpo.', 'success', 2500);
-}
-
-function carregarExemplo() {
-    if (ROLE !== 'classificacao' && state.classesComSaldo.length === 0 && !(state.saldos['INDÚSTRIA'] > 0)) {
-        showStatus('⚠️ Selecione produtor e origem primeiro.', 'warning');
-        return;
-    }
-    if (ROLE === 'classificacao') {
-        const ex = {
-            'São Valentim': { 'INDÚSTRIA':150,'TIPO 2':512,'TIPO 3':870,'TIPO 4':1269,'TIPO 5':579,'TIPO 6':199,'TIPO 7':45 },
-            'Ito':          { 'INDÚSTRIA':200,'TIPO 2':780,'TIPO 3':1250,'TIPO 4':890,'TIPO 5':445,'TIPO 6':267,'TIPO 7':89 },
-            'Chonan':       { 'INDÚSTRIA':180,'TIPO 2':650,'TIPO 3':980,'TIPO 4':1540,'TIPO 5':720,'TIPO 6':310,'TIPO 7':125 },
-        }[state.variedade] || {};
-        CLASSES_CLASSIFICACAO.forEach(c => { if (ex[c] !== undefined) state.pesos[c] = String(ex[c]); });
-    } else {
-        state.classesComSaldo.forEach((c, i) => { state.pesos[c] = String(100 * (i + 2)); });
-        if ((state.saldos['INDÚSTRIA'] || 0) > 0) state.pesoIndustria = '50';
-        state.pesoQuebra = '2';
-    }
-    renderPesos();
-    showStatus(`📋 Exemplo ${state.variedade} carregado.`, 'info', 2500);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -926,7 +795,6 @@ async function salvar() {
     if (!pid || !pnome) { showStatus('❌ Selecione um produtor.', 'error'); return; }
     if (!isClassificacao && !origem) { showStatus('❌ Selecione a origem.', 'error'); return; }
 
-    // ── Montar detalhes ─────────────────────────────────────────────────────
     const detalhes = [];
     let totSaindo  = 0;
 
@@ -938,38 +806,42 @@ async function salvar() {
             totSaindo += p;
         }
     } else {
-        // Classes TIPO 2…7
+        // Classes TIPO 2…7: peso + perda
         for (const c of state.classesComSaldo) {
-            const p = parseFloat(state.pesos[c]) || 0;
-            if (p <= 0) continue;
-            if (p > (state.saldos[c] || 0)) {
-                showStatus(`❌ ${c}: peso (${p} kg) excede saldo (${state.saldos[c]} kg).`, 'error');
+            const peso  = parseFloat(state.pesos[c]) || 0;
+            const perda = parseFloat(state.perdas[c]) || 0;
+            const saldo = state.saldos[c] || 0;
+            if (peso + perda > saldo + 0.001) {
+                showStatus(`❌ ${c}: soma (${(peso+perda).toFixed(2)} kg) excede saldo (${saldo.toFixed(2)} kg).`, 'error');
                 return;
             }
-            detalhes.push({ classe: c, peso: p, tipo: 'classe' });
-            totSaindo += p;
+            if (peso > 0) {
+                detalhes.push({ classe: c, peso: peso, tipo: 'classe' });
+                totSaindo += peso;
+            }
+            if (perda > 0) {
+                detalhes.push({ classe: c, peso: perda, tipo: 'perda' });
+                totSaindo += perda;
+            }
         }
 
-        // Indústria — vai para o destino
+        // Indústria
         const indP = parseFloat(state.pesoIndustria) || 0;
         if (indP > 0) {
-            if (indP > (state.saldos['INDÚSTRIA'] || 0)) {
+            if (indP > (state.saldos['INDÚSTRIA'] || 0) + 0.001) {
                 showStatus(`❌ INDÚSTRIA: peso (${indP} kg) excede saldo (${state.saldos['INDÚSTRIA']} kg).`, 'error');
                 return;
             }
             detalhes.push({ classe: 'INDÚSTRIA', peso: indP, tipo: 'industria' });
             totSaindo += indP;
         }
-
-        // Quebra — sai da origem como perda, NÃO entra no destino
-        const qP = parseFloat(state.pesoQuebra) || 0;
-        if (qP > 0) {
-            detalhes.push({ classe: '__QUEBRA__', peso: qP, tipo: 'quebra' });
-            totSaindo += qP;
-        }
     }
 
-    if (detalhes.filter(d => d.tipo !== 'quebra').length === 0) {
+    if (detalhes.filter(d => d.tipo !== 'perda').length === 0 && !isClassificacao) {
+        showStatus('⚠️ Preencha pelo menos um peso para o destino.', 'warning');
+        return;
+    }
+    if (detalhes.length === 0 && isClassificacao) {
         showStatus('⚠️ Preencha pelo menos um peso.', 'warning');
         return;
     }
@@ -983,17 +855,16 @@ async function salvar() {
         return;
     }
 
-    // Confirmação com detalhe sobre quebra
-    const qP    = parseFloat(state.pesoQuebra)    || 0;
-    const indP  = parseFloat(state.pesoIndustria) || 0;
     const destLabel = local === 'Classificação' ? 'Classificação' : local === 'banca' ? 'Banca' : 'Toletagem';
     let conf = `Confirmar ${isClassificacao ? 'entrada' : 'transferência'}?\n\n`
              + `Produtor: ${pnome}\nVariedade: ${state.variedade}\nDestino: ${destLabel}\n`
              + `Total saindo da origem: ${totSaindo.toLocaleString('pt-BR')} kg`;
     if (!isClassificacao) {
         conf += `\nOrigem: ${origem}`;
-        if (indP > 0) conf += `\n🏭 Indústria: ${indP} kg → entra em ${destLabel}`;
-        if (qP  > 0) conf += `\n⚠️ Quebra: ${qP} kg → removida da ${origem} (perda)`;
+        const perdasList = detalhes.filter(d => d.tipo === 'perda');
+        if (perdasList.length) {
+            conf += `\n⚠️ Perdas: ${perdasList.map(p => `${p.classe} ${p.peso}kg`).join(', ')} → removidas da origem`;
+        }
     }
     if (horas > 0) conf += `\nHoras de banca: ${horas}`;
     if (!confirm(conf)) return;
@@ -1045,7 +916,6 @@ function init() {
     atualizarData();
     setInterval(atualizarData, 60000);
     $('limparBtn').onclick  = limpar;
-    $('exemploBtn').onclick = carregarExemplo;
     $('salvarBtn').onclick  = salvar;
     showStatus('📝 Digite a matrícula e selecione o produtor.', 'info', 4000);
 }
