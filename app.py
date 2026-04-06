@@ -757,6 +757,280 @@ def api_salvar_entrada():
         conn.close()
         logger.error(f"Erro interno: {e}")
         return jsonify({'sucesso': False, 'mensagem': f'Erro interno: {e}'}), 500
+# Adicione estas funções ao seu app.py
+
+def obter_estoque_por_produtor():
+    """Retorna estoque agrupado por produtor, com hierarquia de tipos e classes"""
+    conn = conectar_banco()
+    if not conn: return []
+    try:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT p.id, p.nome, p.matricula, 
+                   e.local_estoque, e.tipo_alho, e.classe,
+                   SUM(e.peso) as total_peso,
+                   COALESCE(SUM(e.horas_banca), 0) as total_horas
+            FROM estoque e 
+            JOIN produtores p ON e.produtor_id = p.id
+            WHERE e.peso > 0
+            GROUP BY p.id, p.nome, p.matricula, e.local_estoque, e.tipo_alho, e.classe
+            ORDER BY p.nome, e.local_estoque, e.tipo_alho, e.classe
+        """)
+        
+        produtores = {}
+        for row in cur.fetchall():
+            pid, nome, matricula = row[0], row[1], row[2]
+            local, tipo, classe = row[3], row[4], row[5]
+            peso, horas = float(row[6]), float(row[7])
+            
+            if pid not in produtores:
+                produtores[pid] = {
+                    'id': pid,
+                    'nome': nome,
+                    'matricula': matricula,
+                    'locais': {}
+                }
+            
+            if local not in produtores[pid]['locais']:
+                produtores[pid]['locais'][local] = {}
+            if tipo not in produtores[pid]['locais'][local]:
+                produtores[pid]['locais'][local][tipo] = {}
+            if classe not in produtores[pid]['locais'][local][tipo]:
+                produtores[pid]['locais'][local][tipo][classe] = {'peso': 0, 'horas': 0}
+            
+            produtores[pid]['locais'][local][tipo][classe]['peso'] += peso
+            produtores[pid]['locais'][local][tipo][classe]['horas'] = horas
+        
+        cur.close()
+        conn.close()
+        
+        # Converter para formato de lista
+        result = []
+        for produtor in produtores.values():
+            prod_data = {
+                'id': produtor['id'],
+                'nome': produtor['nome'],
+                'matricula': produtor['matricula'],
+                'locais': []
+            }
+            for local, tipos in produtor['locais'].items():
+                local_data = {'nome': local, 'tipos': []}
+                for tipo, classes in tipos.items():
+                    tipo_data = {'nome': tipo, 'classes': []}
+                    for classe, dados in classes.items():
+                        tipo_data['classes'].append({
+                            'nome': classe,
+                            'peso': dados['peso'],
+                            'horas': dados['horas']
+                        })
+                    local_data['tipos'].append(tipo_data)
+                prod_data['locais'].append(local_data)
+            result.append(prod_data)
+        
+        return result
+    except Exception as e:
+        logger.error(f"Erro ao obter estoque por produtor: {e}")
+        return []
+
+def obter_relatorio_produtor(produtor_id):
+    """Gera relatório completo de um produtor específico"""
+    conn = conectar_banco()
+    if not conn: return None
+    try:
+        cur = conn.cursor()
+        
+        # Dados do produtor
+        cur.execute("SELECT id, nome, matricula FROM produtores WHERE id = %s", (produtor_id,))
+        produtor = cur.fetchone()
+        if not produtor:
+            return None
+        
+        # Estoque atual
+        cur.execute("""
+            SELECT local_estoque, tipo_alho, classe, SUM(peso) as total,
+                   SUM(horas_banca) as horas
+            FROM estoque
+            WHERE produtor_id = %s AND peso > 0
+            GROUP BY local_estoque, tipo_alho, classe
+            ORDER BY local_estoque, tipo_alho, classe
+        """, (produtor_id,))
+        estoque = [{
+            'local': r[0], 'tipo': r[1], 'classe': r[2],
+            'peso': float(r[3]), 'horas': float(r[4] or 0)
+        } for r in cur.fetchall()]
+        
+        # Vendas
+        cur.execute("""
+            SELECT v.data_venda, v.tipo_alho, v.classe, v.peso,
+                   v.valor_total, v.valor_produtor, v.status_pagamento,
+                   COALESCE(cp.saldo, 0)
+            FROM vendas v
+            LEFT JOIN creditos_produtor cp ON v.id = cp.venda_id
+            WHERE v.produtor_id = %s
+            ORDER BY v.data_venda DESC
+        """, (produtor_id,))
+        vendas = [{
+            'data': r[0].strftime("%d/%m/%Y") if r[0] else "",
+            'tipo': r[1], 'classe': r[2], 'peso': float(r[3]),
+            'valor_total': float(r[4]), 'valor_produtor': float(r[5]),
+            'status': r[6], 'saldo': float(r[7] or 0)
+        } for r in cur.fetchall()]
+        
+        # Pagamentos
+        cur.execute("""
+            SELECT data_pagamento, valor_total, forma_pagamento
+            FROM pagamentos
+            WHERE produtor_id = %s
+            ORDER BY data_pagamento DESC
+        """, (produtor_id,))
+        pagamentos = [{
+            'data': r[0].strftime("%d/%m/%Y") if r[0] else "",
+            'valor': float(r[1]), 'forma': r[2]
+        } for r in cur.fetchall()]
+        
+        # Resumo financeiro
+        total_vendas = sum(v['valor_total'] for v in vendas)
+        total_recebido = sum(p['valor'] for p in pagamentos)
+        total_a_receber = sum(v['saldo'] for v in vendas if v['status'] != 'Pago')
+        
+        cur.close()
+        conn.close()
+        
+        return {
+            'produtor': {'id': produtor[0], 'nome': produtor[1], 'matricula': produtor[2]},
+            'estoque': estoque,
+            'vendas': vendas,
+            'pagamentos': pagamentos,
+            'resumo': {
+                'total_vendas': total_vendas,
+                'total_recebido': total_recebido,
+                'total_a_receber': total_a_receber,
+                'total_estoque_kg': sum(e['peso'] for e in estoque)
+            }
+        }
+    except Exception as e:
+        logger.error(f"Erro ao gerar relatório: {e}")
+        return None
+
+def obter_relatorio_geral():
+    """Gera relatório geral para diretoria"""
+    conn = conectar_banco()
+    if not conn: return None
+    try:
+        cur = conn.cursor()
+        
+        # Total de produtores
+        cur.execute("SELECT COUNT(*) FROM produtores")
+        total_produtores = cur.fetchone()[0]
+        
+        # Estoque total por local
+        cur.execute("""
+            SELECT local_estoque, SUM(peso)
+            FROM estoque WHERE peso > 0
+            GROUP BY local_estoque
+        """)
+        estoque_por_local = {r[0]: float(r[1]) for r in cur.fetchall()}
+        
+        # Estoque por tipo
+        cur.execute("""
+            SELECT tipo_alho, SUM(peso)
+            FROM estoque WHERE peso > 0
+            GROUP BY tipo_alho
+        """)
+        estoque_por_tipo = {r[0] or 'Não definido': float(r[1]) for r in cur.fetchall()}
+        
+        # Vendas por mês (últimos 12 meses)
+        cur.execute("""
+            SELECT DATE_TRUNC('month', data_venda) as mes,
+                   COUNT(*) as qtd_vendas,
+                   SUM(peso) as total_peso,
+                   SUM(valor_total) as total_valor,
+                   SUM(valor_produtor) as total_produtor
+            FROM vendas
+            WHERE data_venda >= CURRENT_DATE - INTERVAL '12 months'
+            GROUP BY DATE_TRUNC('month', data_venda)
+            ORDER BY mes DESC
+        """)
+        vendas_mensais = [{
+            'mes': r[0].strftime("%B/%Y") if r[0] else "",
+            'qtd': r[1], 'peso': float(r[2]), 'valor': float(r[3]), 'produtor': float(r[4])
+        } for r in cur.fetchall()]
+        
+        # Top 10 produtores por volume
+        cur.execute("""
+            SELECT p.nome, SUM(v.peso) as total_peso, SUM(v.valor_total) as total_valor
+            FROM vendas v
+            JOIN produtores p ON v.produtor_id = p.id
+            GROUP BY p.id, p.nome
+            ORDER BY total_peso DESC
+            LIMIT 10
+        """)
+        top_produtores = [{
+            'nome': r[0], 'peso': float(r[1]), 'valor': float(r[2])
+        } for r in cur.fetchall()]
+        
+        # Pagamentos totais
+        cur.execute("""
+            SELECT SUM(valor_total) FROM pagamentos
+            WHERE data_pagamento >= DATE_TRUNC('month', CURRENT_DATE)
+        """)
+        pagamentos_mes = float(cur.fetchone()[0] or 0)
+        
+        cur.execute("SELECT SUM(valor_total) FROM pagamentos")
+        pagamentos_total = float(cur.fetchone()[0] or 0)
+        
+        cur.close()
+        conn.close()
+        
+        return {
+            'data_geracao': datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+            'total_produtores': total_produtores,
+            'estoque_total': sum(estoque_por_local.values()),
+            'estoque_por_local': estoque_por_local,
+            'estoque_por_tipo': estoque_por_tipo,
+            'vendas_mensais': vendas_mensais,
+            'top_produtores': top_produtores,
+            'pagamentos_mes': pagamentos_mes,
+            'pagamentos_total': pagamentos_total
+        }
+    except Exception as e:
+        logger.error(f"Erro ao gerar relatório geral: {e}")
+        return None
+
+# Adicione estas rotas ao app.py:
+
+@app.route('/api/gerente/estoque-por-produtor')
+def api_gerente_estoque_por_produtor():
+    if _check_gerente():
+        return jsonify([]), 403
+    return jsonify(obter_estoque_por_produtor())
+
+@app.route('/api/gerente/relatorio-produtor/<int:produtor_id>')
+def api_gerente_relatorio_produtor(produtor_id):
+    if _check_gerente():
+        return jsonify({'erro': 'Não autorizado'}), 403
+    relatorio = obter_relatorio_produtor(produtor_id)
+    if not relatorio:
+        return jsonify({'erro': 'Produtor não encontrado'}), 404
+    return jsonify(relatorio)
+
+@app.route('/api/gerente/relatorio-geral')
+def api_gerente_relatorio_geral():
+    if _check_gerente():
+        return jsonify({'erro': 'Não autorizado'}), 403
+    return jsonify(obter_relatorio_geral())
+
+@app.route('/gerente/relatorio/<int:produtor_id>')
+def gerente_relatorio_produtor_html(produtor_id):
+    if _check_gerente():
+        return redirect(url_for('login'))
+    return render_template('relatorio_produtor.html', produtor_id=produtor_id)
+
+@app.route('/gerente/relatorio-geral')
+def gerente_relatorio_geral_html():
+    if _check_gerente():
+        return redirect(url_for('login'))
+    return render_template('relatorio_geral.html')
 
 # ── APIs do Gerente (COMPLETAS) ──────────────────────────────────────────────
 
