@@ -25,6 +25,7 @@
             --pendente:    #c0392b;
             --radius:      14px;
             --shadow:      0 4px 20px rgba(42,92,40,.1);
+            --laranja:     #e67e22;
         }
 
         body {
@@ -168,6 +169,23 @@
             color: var(--verde);
         }
 
+        .progresso-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: .4rem;
+            background: #fef5e7;
+            color: var(--laranja);
+            padding: .3rem .8rem;
+            border-radius: 20px;
+            font-size: .78rem;
+            font-weight: 600;
+        }
+        
+        .progresso-badge::before {
+            content: "⚙️";
+            font-size: .85rem;
+        }
+
         .badge {
             display: inline-block;
             padding: .2rem .6rem;
@@ -185,6 +203,11 @@
             font-size: .88rem;
         }
         .vazio span { font-size: 2rem; display: block; margin-bottom: .5rem; }
+        
+        .separador {
+            margin: .5rem 0;
+            border-top: 1px dashed var(--border);
+        }
     </style>
 </head>
 <body>
@@ -209,24 +232,52 @@
         </div>
     </div>
 
-    <!-- Estoque -->
+    <!-- Estoque Classificação (mostra peso) -->
     <div class="secao">
-        <div class="secao-header">📦 Estoque Atual</div>
+        <div class="secao-header">📦 Estoque - Classificação</div>
         <div class="secao-body">
-            {% if estoque %}
-                {% for item in estoque %}
-                <div class="item">
-                    <div class="item-left">
-                        <div class="item-titulo">{{ item.tipo }}</div>
-                        <div class="item-sub">{{ item.classe }}</div>
+            {% set tem_classificacao = false %}
+            {% for item in estoque %}
+                {% if not item.em_progresso %}
+                    {% set tem_classificacao = true %}
+                    <div class="item">
+                        <div class="item-left">
+                            <div class="item-titulo">{{ item.tipo }}</div>
+                            <div class="item-sub">{{ item.classe }}</div>
+                        </div>
+                        <div class="item-right">
+                            <div class="item-peso">{{ "%.1f"|format(item.peso) }} kg</div>
+                        </div>
                     </div>
-                    <div class="item-right">
-                        <div class="item-peso">{{ "%.1f"|format(item.peso) }} kg</div>
+                {% endif %}
+            {% endfor %}
+            {% if not tem_classificacao %}
+                <div class="vazio"><span>📭</span>Sem estoque na classificação</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Estoque em Progresso (Banca + Toletagem) -->
+    <div class="secao">
+        <div class="secao-header">⚙️ Em Progresso</div>
+        <div class="secao-body">
+            {% set tem_progresso = false %}
+            {% for item in estoque %}
+                {% if item.em_progresso %}
+                    {% set tem_progresso = true %}
+                    <div class="item">
+                        <div class="item-left">
+                            <div class="item-titulo">{{ item.tipo }} - {{ item.classe }}</div>
+                            <div class="item-sub">{{ item.local }}</div>
+                        </div>
+                        <div class="item-right">
+                            <span class="progresso-badge">em processamento</span>
+                        </div>
                     </div>
-                </div>
-                {% endfor %}
-            {% else %}
-                <div class="vazio"><span>📭</span>Sem estoque no momento</div>
+                {% endif %}
+            {% endfor %}
+            {% if not tem_progresso %}
+                <div class="vazio"><span>🔄</span>Nenhum produto em processamento</div>
             {% endif %}
         </div>
     </div>
