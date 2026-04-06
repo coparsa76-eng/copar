@@ -93,24 +93,96 @@
         .mini-spin { width:16px; height:16px; border:2px solid #cde2be; border-top-color:var(--verde); border-radius:50%; animation:spin .7s linear infinite; flex-shrink:0; }
         @keyframes spin { to{transform:rotate(360deg)} }
 
-        /* ════════════════════════════════════════════════
-           TABELA DE PESAGEM
-        ════════════════════════════════════════════════ */
+        /* BOTÃO CADASTRAR PRODUTOR */
+        .btn-cad-prod {
+            display:inline-flex; align-items:center; gap:.4rem;
+            margin-top:.6rem;
+            padding:.45rem .9rem;
+            background:var(--verde-light);
+            border:1.5px solid #b8d9b5;
+            border-radius:8px;
+            font-family:'DM Sans',sans-serif;
+            font-size:.8rem;
+            font-weight:700;
+            color:var(--verde);
+            cursor:pointer;
+            transition:background .15s, border-color .15s;
+            -webkit-tap-highlight-color:transparent;
+        }
+        .btn-cad-prod:hover { background:#d5eccd; border-color:var(--verde); }
+
+        /* MODAL */
+        .modal-bg {
+            position:fixed; inset:0;
+            background:rgba(0,0,0,.45);
+            backdrop-filter:blur(4px);
+            z-index:800;
+            display:none;
+            align-items:center;
+            justify-content:center;
+            padding:1rem;
+        }
+        .modal-bg.open { display:flex; animation:fadeIn .2s ease; }
+        @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+        .modal {
+            background:var(--white);
+            border-radius:16px;
+            box-shadow:0 16px 48px rgba(0,0,0,.2);
+            width:100%;
+            max-width:440px;
+            padding:1.5rem;
+            animation:slideUp .22s ease;
+        }
+        @keyframes slideUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:none} }
+
+        .modal-title {
+            font-family:'DM Serif Display',serif;
+            font-size:1.15rem;
+            color:var(--verde);
+            margin-bottom:1rem;
+            display:flex;
+            align-items:center;
+            gap:.5rem;
+        }
+
+        .modal-field { display:flex; flex-direction:column; gap:.3rem; margin-bottom:.75rem; }
+        .modal-field label { font-size:.72rem; font-weight:700; color:var(--verde); text-transform:uppercase; letter-spacing:.06em; }
+        .modal-field input {
+            padding:.7rem .9rem;
+            border:2px solid var(--border);
+            border-radius:10px;
+            font-family:'DM Sans',sans-serif;
+            font-size:.95rem;
+            color:var(--text);
+            background:var(--verde-pale);
+            transition:border .15s;
+        }
+        .modal-field input:focus { outline:none; border-color:var(--verde); box-shadow:0 0 0 3px rgba(42,92,40,.1); }
+
+        .modal-actions { display:flex; gap:.6rem; margin-top:1.1rem; }
+        .modal-btn {
+            flex:1; padding:.75rem; border:none; border-radius:10px;
+            font-family:'DM Sans',sans-serif; font-weight:700; font-size:.9rem;
+            cursor:pointer; transition:opacity .15s;
+        }
+        .modal-btn-primary { background:var(--verde); color:var(--white); }
+        .modal-btn-primary:hover { background:var(--verde-mid); }
+        .modal-btn-secondary { background:var(--verde-light); color:var(--verde); border:1.5px solid #b8d9b5; }
+        .modal-btn:disabled { opacity:.5; pointer-events:none; }
+
+        /* TABELA DE PESAGEM */
         .peso-list { display:flex; flex-direction:column; gap:.4rem; }
 
-        /* Cabeçalho da tabela */
         .peso-thead {
             display:grid;
             gap:.5rem;
             padding:.3rem .85rem;
             font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--muted);
         }
-        /* Classificação: 2 colunas */
         .peso-thead.modo-class { grid-template-columns: 1fr 120px; }
-        /* Banca/Toletagem: 3 colunas (classe | peso→destino | perda→removida) */
         .peso-thead.modo-setor { grid-template-columns: 1fr 105px 105px; }
 
-        /* Linha de peso */
         .peso-row {
             display:grid;
             gap:.5rem;
@@ -125,17 +197,14 @@
         .peso-row.modo-class { grid-template-columns: 1fr 120px; }
         .peso-row.modo-setor { grid-template-columns: 1fr 105px 105px; }
 
-        /* Linha da Indústria (dourado) */
         .peso-row.ind-row { background:var(--ouro-bg); border-color:var(--ouro-bord); }
         .peso-row.ind-row:focus-within { border-color:var(--ouro); }
 
-        /* Excede saldo */
         .peso-row.excede { border-color:var(--danger) !important; background:var(--danger-bg) !important; }
 
         .peso-classe { font-size:.88rem; font-weight:700; min-width:0; }
         .peso-saldo  { font-size:.7rem; color:var(--muted); margin-top:.1rem; display:block; }
 
-        /* Inputs de peso e perda */
         .peso-inp, .perda-inp {
             width:100%; padding:.55rem .65rem; border:1.5px solid var(--border);
             border-radius:8px; font-family:'DM Sans',sans-serif; font-size:.92rem;
@@ -143,18 +212,14 @@
         }
         .peso-inp:focus, .perda-inp:focus { outline:none; border-color:var(--verde); }
 
-        /* Perda com cor aviso */
         .perda-inp { border-color:#f0c080; }
         .perda-inp:focus { border-color:var(--ouro); box-shadow:0 0 0 3px rgba(200,169,74,.15); }
         .perda-inp:not(:placeholder-shown):not([value=""]) { background:#fffbec; }
 
-        /* Linha de total */
         .total-row { display:flex; align-items:center; justify-content:space-between; padding:.75rem .85rem; background:var(--verde-light); border-radius:10px; border:2px solid #b8d9b5; font-weight:700; font-size:.95rem; margin-top:.1rem; }
 
-        /* Sem estoque */
         .sem-estoque { text-align:center; padding:2rem 1rem; color:var(--muted); font-size:.88rem; }
 
-        /* Seção Indústria separada */
         .industria-sep { font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--ouro); padding:.6rem .85rem .2rem; }
 
         /* BOTÕES FIXOS */
@@ -172,7 +237,6 @@
         /* OVERLAY SUCESSO */
         .suc-overlay { position:fixed; inset:0; background:rgba(30,68,28,.93); display:none; flex-direction:column; align-items:center; justify-content:center; z-index:999; text-align:center; padding:2rem; }
         .suc-overlay.show { display:flex; animation:fadeIn .25s ease; }
-        @keyframes fadeIn { from{opacity:0} to{opacity:1} }
         .suc-icon  { font-size:4rem; margin-bottom:1rem; }
         .suc-title { font-size:1.5rem; font-weight:700; color:var(--white); margin-bottom:.4rem; font-family:'DM Serif Display',serif; }
         .suc-msg   { color:rgba(255,255,255,.85); font-size:.9rem; margin-bottom:2rem; max-width:360px; line-height:1.55; }
@@ -220,6 +284,13 @@
             </div>
             <div id="prodBanner" class="prod-banner"></div>
             <input type="hidden" id="pidInput">
+
+            <!-- BOTÃO CADASTRAR NOVO PRODUTOR (apenas para classificação) -->
+            {% if role == 'classificacao' or role == 'superadmin' %}
+            <button class="btn-cad-prod" id="btnAbrirCadProd" type="button">
+                ➕ Cadastrar novo produtor
+            </button>
+            {% endif %}
         </div>
     </div>
 
@@ -298,6 +369,33 @@
     <button class="suc-btn" id="btnNovo">+ Novo Registro</button>
 </div>
 
+<!-- ══ MODAL CADASTRO DE PRODUTOR ══════════════════════════════════════ -->
+<div class="modal-bg" id="modalCadProd">
+    <div class="modal">
+        <div class="modal-title">➕ Cadastrar Produtor</div>
+
+        <div class="modal-field">
+            <label>Nome completo</label>
+            <input id="cadNome" type="text" placeholder="Nome do produtor" autocomplete="off">
+        </div>
+        <div class="modal-field">
+            <label>Matrícula</label>
+            <input id="cadMat" type="text" placeholder="Ex: 001, P-042…" autocomplete="off">
+        </div>
+        <div class="modal-field">
+            <label>CPF</label>
+            <input id="cadCpf" type="text" placeholder="000.000.000-00" inputmode="numeric" maxlength="14">
+        </div>
+
+        <div id="cadStatus" style="font-size:.82rem;min-height:1.2rem;margin-top:.2rem;"></div>
+
+        <div class="modal-actions">
+            <button class="modal-btn modal-btn-secondary" id="btnFecharModal">Cancelar</button>
+            <button class="modal-btn modal-btn-primary"   id="btnSalvarProd">💾 Salvar</button>
+        </div>
+    </div>
+</div>
+
 <input type="hidden" id="localDest"
     value="{{ 'Classificação' if role == 'classificacao' else 'banca' if role == 'banca' else 'toletagem' }}">
 
@@ -307,22 +405,16 @@
 const ROLE    = "{{ role }}";
 const IS_CLAS = ROLE === 'classificacao';
 
-// Classes para classificação (entrada direta)
-const CLASSES_CLAS = ["INDÚSTRIA","TIPO 2","TIPO 3","TIPO 4","TIPO 5","TIPO 6","TIPO 7"];
-
-// Classes transferíveis (têm saldo na origem)
+const CLASSES_CLAS  = ["INDÚSTRIA","TIPO 2","TIPO 3","TIPO 4","TIPO 5","TIPO 6","TIPO 7"];
 const CLASSES_TRANS = ["TIPO 2","TIPO 3","TIPO 4","TIPO 5","TIPO 6","TIPO 7"];
 
 // ── ESTADO ────────────────────────────────────────────────────────────────
-// pesos[c]  = kg que vão para o destino  (string ou '')
-// perdas[c] = kg de perda/impureza a remover da origem (string ou '')
-// indPeso   = kg de Indústria que entram no destino (banca/toletagem)
 const st = {
-    pesos:       {},   // TIPO 2..7
-    perdas:      {},   // TIPO 2..7
-    indPeso:     '',   // INDÚSTRIA (banca/toletagem: entra sem retirar da origem)
-    saldos:      {},   // { "TIPO 2": 800, "INDÚSTRIA": 150 }
-    comSaldo:    [],   // subset de CLASSES_TRANS com saldo>0
+    pesos:       {},
+    perdas:      {},
+    indPeso:     '',
+    saldos:      {},
+    comSaldo:    [],
     variedade:   'São Valentim',
     busy:        false,
 };
@@ -431,7 +523,7 @@ function limparProd() {
     renderPesos();
 }
 
-// ── SALDOS (1 request único) ──────────────────────────────────────────────
+// ── SALDOS ────────────────────────────────────────────────────────────────
 async function buscarSaldos() {
     if (!pidInp.value || !origemSel) return;
     if (st.busy) return;
@@ -462,9 +554,7 @@ async function buscarSaldos() {
         status(`⚠️ ${res?.mensagem||'Erro ao buscar saldos'}`, 'warning');
     }
 
-    // Filtra apenas classes com saldo > 0 (TIPO 2..7)
     st.comSaldo = CLASSES_TRANS.filter(c => (st.saldos[c]||0) > 0);
-    // Limpa pesos de classes que saíram do saldo
     for (const c of CLASSES_TRANS) {
         if (!st.comSaldo.includes(c)) { delete st.pesos[c]; delete st.perdas[c]; }
     }
@@ -480,22 +570,10 @@ if (origemSel) {
 }
 
 // ── RENDER ────────────────────────────────────────────────────────────────
-/**
- * Classificação: tabela simples 2 colunas (Classe | Peso)
- *                inclui INDÚSTRIA na lista normal
- *
- * Banca/Toletagem: tabela 3 colunas (Classe | Peso→destino | Perda→removida)
- *                  apenas classes com saldo > 0
- *                  + seção especial para INDÚSTRIA (entrada direta, sem limite de saldo)
- *
- * IMPORTANTE: inputs são criados UMA VEZ — não recriados ao digitar.
- * Saldos/bordas vermelhas são atualizados via updateRowState().
- */
 function renderPesos() {
     pesoEl.innerHTML = '';
 
     if (IS_CLAS) {
-        // ── Classificação ─────────────────────────────────────────────────
         const thead = el('div', 'peso-thead modo-class',
             '<span>Classe</span><span style="text-align:right">Peso (kg)</span>');
         pesoEl.appendChild(thead);
@@ -515,13 +593,11 @@ function renderPesos() {
         });
 
     } else {
-        // ── Banca / Toletagem ─────────────────────────────────────────────
         if (st.comSaldo.length === 0) {
             pesoEl.innerHTML = `<div class="sem-estoque">
                 🔍 Nenhuma classe disponível.<br>
                 Selecione um produtor com estoque na origem selecionada.
             </div>`;
-            // Ainda mostra a seção Indústria mesmo sem saldo de classes
         }
 
         if (st.comSaldo.length > 0) {
@@ -555,7 +631,6 @@ function renderPesos() {
             });
         }
 
-        // ── Seção Indústria (sempre visível para banca/toletagem) ────────
         const indSaldo = st.saldos['INDÚSTRIA'] || 0;
         const sepInd = el('div', 'industria-sep',
             '🏭 INDÚSTRIA — entrada direta no destino (sem desconto da origem)');
@@ -586,14 +661,12 @@ function renderPesos() {
         pesoEl.appendChild(rowI);
     }
 
-    // Total
     const totDiv = el('div','total-row');
     totDiv.innerHTML = `<span>🔹 Total</span><span id="totalVal">0 kg</span>`;
     pesoEl.appendChild(totDiv);
     atualizarTotal();
 }
 
-// Utilitário: cria elemento com classe e innerHTML
 function el(tag, cls, html='') {
     const e = document.createElement(tag);
     e.className = cls;
@@ -601,7 +674,6 @@ function el(tag, cls, html='') {
     return e;
 }
 
-// Atualiza total geral
 function atualizarTotal() {
     let t = 0;
     if (IS_CLAS) {
@@ -621,7 +693,6 @@ function atualizarTotal() {
     if (tv) tv.textContent = t.toLocaleString('pt-BR') + ' kg';
 }
 
-// Marca linha vermelha se peso+perda > saldo
 function updateRowState(c) {
     const row   = document.querySelector(`.peso-row[data-classe="${c}"]`);
     const pInp  = document.querySelector(`.peso-inp[data-c="${c}"][data-t="peso"]`);
@@ -632,7 +703,6 @@ function updateRowState(c) {
     row.classList.toggle('excede', usado > saldo + 0.001);
 }
 
-// Arredonda input e grava no estado
 function arredondar(e, c, tipo) {
     const v = parseFloat(e.target.value);
     const r = (!isNaN(v) && v>0) ? (tipo==='perda' ? v : Math.round(v)) : '';
@@ -672,7 +742,6 @@ function carregarExemplo() {
             if (inp && ex[c] !== undefined) { inp.value = ex[c]; st.pesos[c] = String(ex[c]); }
         });
     } else {
-        // Preenche apenas classes com saldo
         st.comSaldo.forEach(c => {
             const saldo = st.saldos[c] || 0;
             const val = Math.min(ex[c]||0, saldo);
@@ -703,7 +772,6 @@ async function salvar() {
     let   totalDest = 0, totalPerd = 0;
 
     if (IS_CLAS) {
-        // ── Classificação: tudo é "entrada" direta ─────────────────────────
         CLASSES_CLAS.forEach(c => {
             const inp = document.querySelector(`.peso-inp[data-c="${c}"]`);
             const p = parseFloat(inp?.value)||0;
@@ -715,7 +783,6 @@ async function salvar() {
         if (!detalhes.length) { status('⚠️ Preencha pelo menos um peso.','warning'); return; }
 
     } else {
-        // ── Banca/Toletagem ────────────────────────────────────────────────
         for (const c of st.comSaldo) {
             const pInp = document.querySelector(`.peso-inp[data-c="${c}"][data-t="peso"]`);
             const dInp = document.querySelector(`.perda-inp[data-c="${c}"][data-t="perda"]`);
@@ -732,7 +799,6 @@ async function salvar() {
             if (perda > 0) { detalhes.push({classe:c, peso:perda, tipo:'perda'}); totalPerd += perda; }
         }
 
-        // Indústria — entrada direta
         const indInp = document.querySelector('.peso-inp[data-t="ind"]');
         const indP   = parseFloat(indInp?.value)||0;
         if (indP > 0) {
@@ -745,7 +811,6 @@ async function salvar() {
         }
     }
 
-    // Confirmação
     const destLabel = local==='Classificação' ? 'Classificação' : local==='banca' ? 'Banca' : 'Toletagem';
     let conf = `Confirmar ${IS_CLAS?'entrada':'transferência'}?\n\n`
              + `Produtor: ${prodNome}\nVariedade: ${st.variedade}\nDestino: ${destLabel}`;
@@ -761,7 +826,6 @@ async function salvar() {
     if (horas > 0) conf += `\nHoras banca: ${horas}`;
     if (!confirm(conf)) return;
 
-    // Envio
     const btn = $('btnSalvar');
     btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Salvando…';
 
@@ -788,10 +852,109 @@ async function salvar() {
 $('btnNovo').addEventListener('click', () => {
     $('sucOverlay').classList.remove('show');
     limparPesos();
-    // Rebusca saldos atualizados após o registro
     if (!IS_CLAS && pidInp.value) buscarSaldos();
     matInp.focus();
 });
+
+// ── MODAL CADASTRO DE PRODUTOR ────────────────────────────────────────────
+const modalBg      = $('modalCadProd');
+const cadNomeInp   = $('cadNome');
+const cadMatInp    = $('cadMat');
+const cadCpfInp    = $('cadCpf');
+const cadStatusEl  = $('cadStatus');
+const btnAbrirModal = $('btnAbrirCadProd');
+
+// Máscara simples de CPF
+if (cadCpfInp) {
+    cadCpfInp.addEventListener('input', () => {
+        let v = cadCpfInp.value.replace(/\D/g,'').slice(0,11);
+        if (v.length > 9)      v = v.replace(/^(\d{3})(\d{3})(\d{3})(\d{0,2})/, '$1.$2.$3-$4');
+        else if (v.length > 6) v = v.replace(/^(\d{3})(\d{3})(\d{0,3})/, '$1.$2.$3');
+        else if (v.length > 3) v = v.replace(/^(\d{3})(\d{0,3})/, '$1.$2');
+        cadCpfInp.value = v;
+    });
+}
+
+function abrirModal() {
+    if (!modalBg) return;
+    cadNomeInp.value = cadMatInp.value = cadCpfInp.value = '';
+    cadStatusEl.textContent = '';
+    cadStatusEl.style.color = '';
+    modalBg.classList.add('open');
+    setTimeout(()=>cadNomeInp.focus(), 80);
+}
+
+function fecharModal() {
+    if (modalBg) modalBg.classList.remove('open');
+}
+
+if (btnAbrirModal) btnAbrirModal.addEventListener('click', abrirModal);
+if ($('btnFecharModal')) $('btnFecharModal').addEventListener('click', fecharModal);
+
+// Fechar ao clicar fora
+if (modalBg) {
+    modalBg.addEventListener('pointerdown', e => {
+        if (e.target === modalBg) fecharModal();
+    });
+}
+
+// Salvar novo produtor
+const btnSalvarProd = $('btnSalvarProd');
+if (btnSalvarProd) {
+    btnSalvarProd.addEventListener('click', async () => {
+        const nome = cadNomeInp.value.trim();
+        const mat  = cadMatInp.value.trim();
+        const cpf  = cadCpfInp.value.trim();
+
+        if (!nome || !mat || !cpf) {
+            cadStatusEl.textContent = '❌ Preencha todos os campos.';
+            cadStatusEl.style.color = 'var(--danger)';
+            return;
+        }
+
+        // Validação básica do CPF (11 dígitos numéricos)
+        const cpfDigits = cpf.replace(/\D/g,'');
+        if (cpfDigits.length !== 11) {
+            cadStatusEl.textContent = '❌ CPF inválido (precisa ter 11 dígitos).';
+            cadStatusEl.style.color = 'var(--danger)';
+            return;
+        }
+
+        btnSalvarProd.disabled = true;
+        btnSalvarProd.textContent = '⏳ Salvando…';
+        cadStatusEl.textContent = '';
+
+        const res = await apiPost('/api/produtores/cadastrar', {
+            nome,
+            matricula: mat,
+            cpf: cpfDigits,
+        });
+
+        btnSalvarProd.disabled = false;
+        btnSalvarProd.textContent = '💾 Salvar';
+
+        if (res?.sucesso) {
+            cadStatusEl.textContent = '✅ Produtor cadastrado com sucesso!';
+            cadStatusEl.style.color = '#1a6b35';
+
+            // Auto-seleciona o produtor recém-cadastrado
+            if (res.produtor_id) {
+                setTimeout(() => {
+                    fecharModal();
+                    selProd({ id: String(res.produtor_id), matricula: mat, nome });
+                    matInp.value = mat;
+                }, 900);
+            } else {
+                setTimeout(fecharModal, 1400);
+            }
+
+            status(`✅ Produtor "${nome}" cadastrado!`, 'success', 4000);
+        } else {
+            cadStatusEl.textContent = '❌ ' + (res?.mensagem || 'Erro ao salvar.');
+            cadStatusEl.style.color = 'var(--danger)';
+        }
+    });
+}
 
 // ── INIT ──────────────────────────────────────────────────────────────────
 $('btnLimpar').onclick  = limparTudo;
