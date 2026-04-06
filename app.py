@@ -997,6 +997,242 @@ def obter_relatorio_geral():
         logger.error(f"Erro ao gerar relatório geral: {e}")
         return None
 
+# Adicione após as outras funções no app.py
+
+def validar_cpf(cpf):
+    """Valida CPF"""
+    cpf = ''.join(filter(str.isdigit, cpf))
+    if len(cpf) != 11:
+        return False
+    if cpf == cpf[0] * 11:
+        return False
+    
+    # Calcula primeiro dígito
+    soma = sum(int(cpf[i]) * (10 - i) for i in range(9))
+    digito1 = 11 - (soma % 11)
+    if digito1 >= 10:
+        digito1 = 0
+    
+    # Calcula segundo dígito
+    soma = sum(int(cpf[i]) * (11 - i) for i in range(10))
+    digito2 = 11 - (soma % 11)
+    if digito2 >= 10:
+        digito2 = 0
+    
+    return int(cpf[9]) == digito1 and int(cpf[10]) == digito2
+
+def gerar_senha(cpf):
+    """Gera senha como os 2 últimos dígitos do CPF"""
+    cpf_clean = ''.join(filter(str.isdigit, cpf))
+    if len(cpf_clean) >= 11:
+        return cpf_clean[-2:]  # últimos 2 dígitos
+    return "00"
+
+def cadastrar_produtor(nome, cpf, matricula):
+    """Cadastra novo produtor"""
+    if not nome or not cpf or not matricula:
+        return {'sucesso': False, 'mensagem': 'Todos os campos são obrigatórios'}
+    
+    if not validar_cpf(cpf):
+        return {'sucesso': False, 'mensagem': 'CPF inválido'}
+    
+    conn = conectar_banco()
+    if not conn:
+        return {'sucesso': False, 'mensagem': 'Erro de conexão'}
+    
+    try:
+        cur = conn.cursor()
+        # Verifica se matrícula já existe
+        cur.execute("SELECT id FROM produtores WHERE matricula = %s", (matricula,))
+        if cur.fetchone():
+            cur.close()
+            conn.close()
+            return {'sucesso': False, 'mensagem': 'Matrícula já cadastrada'}
+        
+        # Insere novo produtor
+        cur.execute("""
+            INSERT INTO produtores (nome, matricula, cpf, senha)
+            VALUES (%s, %s, %s, %s) RETURNING id
+        """, (nome, matricula, cpf, gerar_senha(cpf)))
+        
+        produtor_id = cur.fetchone()[0]
+        conn.commit()
+        cur.close()
+        conn.close()
+        
+        return {
+            'sucesso': True,
+            'mensagem': f'Produtor {nome} cadastrado com sucesso!',
+            'produtor_id': produtor_id,
+            'senha': gerar_senha(cpf)
+        }
+    except Exception as e:
+        logger.error(f"Erro ao cadastrar produtor: {e}")
+        return {'sucesso': False, 'mensagem': f'Erro: {str(e)}'}
+
+def editar_produtor(produtor_id, nome, cpf, matricula):
+    """Edita dados do produtor"""
+    if not nome or not cpf or not matricula:
+        return {'sucesso': False, 'mensagem': 'Todos os campos são obrigatórios'}
+    
+    if not validar_cpf(cpf):
+        return {'sucesso': False, 'mensagem': 'CPF inválido'}
+    
+    conn = conectar_banco()
+    if not conn:
+        return {'sucesso': False, 'mensagem': 'Erro de conexão'}
+    
+    try:
+        cur = conn.cursor()
+        # Verifica se matrícula já existe para outro produtor
+        cur.execute("SELECT id FROM produtores WHERE matricula = %s AND id != %s", (matricula, produtor_id))
+        if cur.fetchone():
+            cur.close()
+            conn.close()
+            return {'sucesso': False, 'mensagem': 'Matrícula já cadastrada para outro produtor'}
+        
+        # Atualiza produtor
+        cur.execute("""
+            UPDATE produtores 
+            SET nome = %s, cpf = %s, matricula = %s, senha = %s
+            WHERE id = %s
+        """, (nome, cpf, matricula, gerar_senha(cpf), produtor_id))
+        
+        conn.commit()
+        cur.close()
+        conn.close()
+        
+        return {
+            'sucesso': True,
+            'mensagem': f'Produtor {nome} atualizado com sucesso!',
+            'senha': gerar_senha(cpf)
+        }
+    except Exception as e:
+        logger.error(f"Erro ao editar produtor: {e}")
+        return {'sucesso': False, 'mensagem': f'Erro: {str(e)}'}
+
+def excluir_produtor(produtor_id):
+    """Exclui produtor e seus registros"""
+    conn = conectar_banco()
+    if not conn:
+        return {'sucesso': False, 'mensagem': 'Erro de conexão'}
+    
+    try:
+        cur = conn.cursor()
+        
+        # Verifica se produtor existe
+        cur.execute("SELECT nome FROM produtores WHERE id = %s", (produtor_id,))
+        produtor = cur.fetchone()
+        if not produtor:
+            return {'sucesso': False, 'mensagem': 'Produtor não encontrado'}
+        
+        # Remove registros relacionados (ON DELETE CASCADE deve cuidar disso)
+        cur.execute("DELETE FROM produtores WHERE id = %s", (produtor_id,))
+        
+        conn.commit()
+        cur.close()
+        conn.close()
+        
+        return {
+            'sucesso': True,
+            'mensagem': f'Produtor {produtor[0]} excluído com sucesso!'
+        }
+    except Exception as e:
+        logger.error(f"Erro ao excluir produtor: {e}")
+        return {'sucesso': False, 'mensagem': f'Erro: {str(e)}'}
+
+def listar_produtores():
+    """Lista todos os produtores"""
+    conn = conectar_banco()
+    if not conn:
+        return []
+    
+    try:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT p.id, p.nome, p.matricula, p.cpf, p.senha,
+                   COALESCE(SUM(e.peso), 0) as total_estoque,
+                   COALESCE(SUM(v.valor_total), 0) as total_vendas
+            FROM produtores p
+            LEFT JOIN estoque e ON p.id = e.produtor_id AND e.peso > 0
+            LEFT JOIN vendas v ON p.id = v.produtor_id
+            GROUP BY p.id, p.nome, p.matricula, p.cpf, p.senha
+            ORDER BY p.nome
+        """)
+        
+        produtores = []
+        for row in cur.fetchall():
+            produtores.append({
+                'id': row[0],
+                'nome': row[1],
+                'matricula': row[2],
+                'cpf': row[3],
+                'senha': row[4],
+                'total_estoque': float(row[5]),
+                'total_vendas': float(row[6])
+            })
+        
+        cur.close()
+        conn.close()
+        return produtores
+    except Exception as e:
+        logger.error(f"Erro ao listar produtores: {e}")
+        return []
+
+# Adicione estas rotas ao app.py:
+
+@app.route('/api/produtores/listar')
+def api_produtores_listar():
+    if _check_gerente():
+        return jsonify([]), 403
+    return jsonify(listar_produtores())
+
+@app.route('/api/produtores/cadastrar', methods=['POST'])
+def api_produtores_cadastrar():
+    if _check_gerente():
+        return jsonify({'sucesso': False, 'mensagem': 'Não autorizado'}), 403
+    
+    data = request.get_json()
+    if not data:
+        return jsonify({'sucesso': False, 'mensagem': 'Dados inválidos'}), 400
+    
+    result = cadastrar_produtor(
+        data.get('nome', '').strip(),
+        data.get('cpf', '').strip(),
+        data.get('matricula', '').strip()
+    )
+    return jsonify(result)
+
+@app.route('/api/produtores/editar', methods=['POST'])
+def api_produtores_editar():
+    if _check_gerente():
+        return jsonify({'sucesso': False, 'mensagem': 'Não autorizado'}), 403
+    
+    data = request.get_json()
+    if not data or not data.get('id'):
+        return jsonify({'sucesso': False, 'mensagem': 'Dados inválidos'}), 400
+    
+    result = editar_produtor(
+        data['id'],
+        data.get('nome', '').strip(),
+        data.get('cpf', '').strip(),
+        data.get('matricula', '').strip()
+    )
+    return jsonify(result)
+
+@app.route('/api/produtores/excluir', methods=['POST'])
+def api_produtores_excluir():
+    if _check_gerente():
+        return jsonify({'sucesso': False, 'mensagem': 'Não autorizado'}), 403
+    
+    data = request.get_json()
+    if not data or not data.get('id'):
+        return jsonify({'sucesso': False, 'mensagem': 'Dados inválidos'}), 400
+    
+    result = excluir_produtor(data['id'])
+    return jsonify(result)
+
+
 # Adicione estas rotas ao app.py:
 
 @app.route('/api/gerente/estoque-por-produtor')
