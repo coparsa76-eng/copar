@@ -1181,6 +1181,11 @@ def listar_produtores():
 
 # Adicione estas rotas ao app.py:
 
+def _check_setor_ou_admin():
+    """Retorna True se NÃO autorizado"""
+    tipo = session.get('tipo')
+    return 'produtor_id' not in session or tipo not in ('classificacao', 'gerente', 'superadmin')
+
 @app.route('/api/produtores/listar')
 def api_produtores_listar():
     if _check_gerente():
