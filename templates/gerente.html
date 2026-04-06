@@ -39,58 +39,128 @@
 
         nav {
             background: var(--verde);
-            padding: .85rem 1.25rem;
+            padding: .85rem 1.5rem;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            position: sticky; top: 0; z-index: 200;
+            position: sticky; 
+            top: 0; 
+            z-index: 200;
+            flex-wrap: wrap;
+            gap: .75rem;
         }
         .nav-brand {
             font-family: 'DM Serif Display', serif;
-            color: var(--white); font-size: 1.35rem;
-            display: flex; align-items: center; gap: .5rem;
+            color: var(--white); 
+            font-size: 1.35rem;
+            display: flex; 
+            align-items: center; 
+            gap: .5rem;
         }
-        .nav-right { display: flex; align-items: center; gap: .75rem; }
-        .nav-name { color: rgba(255,255,255,.8); font-size: .8rem; }
+        .nav-right { 
+            display: flex; 
+            align-items: center; 
+            gap: .75rem;
+        }
+        .nav-name { 
+            color: rgba(255,255,255,.9); 
+            font-size: .85rem;
+            font-weight: 500;
+        }
         .btn-sair {
             background: rgba(255,255,255,.15);
             border: 1px solid rgba(255,255,255,.3);
-            color: var(--white); padding: .4rem .85rem;
-            border-radius: 8px; font-size: .82rem; text-decoration: none;
-        }
-
-        main { max-width: 1200px; margin: 0 auto; padding: 1.25rem; }
-
-        /* TAB NAVIGATION */
-        .tab-nav {
-            display: flex;
-            gap: .5rem;
-            margin-bottom: 1.5rem;
-            background: var(--white);
-            padding: .5rem;
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-        }
-        .tab-btn {
-            flex: 1;
-            padding: .75rem 1rem;
-            border: none;
-            background: transparent;
-            font-family: 'DM Sans', sans-serif;
-            font-weight: 600;
-            font-size: .9rem;
-            color: var(--muted);
-            cursor: pointer;
-            border-radius: 10px;
+            color: var(--white); 
+            padding: .5rem 1rem;
+            border-radius: 10px; 
+            font-size: .82rem; 
+            text-decoration: none;
             transition: all .2s;
         }
-        .tab-btn.active {
+        .btn-sair:hover {
+            background: rgba(255,255,255,.25);
+        }
+
+        main { 
+            max-width: 1400px; 
+            margin: 0 auto; 
+            padding: 1.5rem;
+        }
+
+        /* ── MENU PRINCIPAL ── */
+        .main-menu {
+            background: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+        }
+        
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1px;
+            background: var(--border);
+        }
+        
+        .menu-item {
+            background: var(--white);
+            padding: 1rem 1.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all .2s;
+            border: none;
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 600;
+            font-size: .95rem;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: .6rem;
+        }
+        
+        .menu-item span {
+            font-size: 1.3rem;
+        }
+        
+        .menu-item:hover {
+            background: var(--verde-light);
+        }
+        
+        .menu-item.active {
             background: var(--verde);
             color: var(--white);
         }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-
+        
+        /* ── SUBMENU ── */
+        .submenu {
+            background: var(--verde-pale);
+            padding: .6rem 1rem;
+            display: flex;
+            gap: .5rem;
+            flex-wrap: wrap;
+            border-top: 1px solid var(--border);
+            justify-content: center;
+        }
+        
+        .submenu-item {
+            background: transparent;
+            border: 1.5px solid var(--verde);
+            color: var(--verde);
+            padding: .4rem 1rem;
+            border-radius: 20px;
+            font-size: .8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all .2s;
+        }
+        
+        .submenu-item.active {
+            background: var(--verde);
+            color: var(--white);
+        }
+        
         /* STAT CARDS */
         .stat-grid {
             display: grid;
@@ -98,7 +168,11 @@
             gap: .85rem;
             margin-bottom: 1.5rem;
         }
-        @media (min-width: 600px) { .stat-grid { grid-template-columns: repeat(4, 1fr); } }
+        @media (min-width: 600px) { 
+            .stat-grid { 
+                grid-template-columns: repeat(4, 1fr); 
+            } 
+        }
 
         .stat-card {
             background: var(--white);
@@ -132,7 +206,11 @@
             gap: 1rem;
             margin-bottom: 1.5rem;
         }
-        @media (min-width: 640px) { .charts-grid { grid-template-columns: 1fr 1fr; } }
+        @media (min-width: 640px) { 
+            .charts-grid { 
+                grid-template-columns: 1fr 1fr; 
+            } 
+        }
 
         .chart-card {
             background: var(--white);
@@ -166,7 +244,11 @@
             justify-content: space-between;
             gap: .5rem;
         }
-        .secao-header-left { display: flex; align-items: center; gap: .5rem; }
+        .secao-header-left { 
+            display: flex; 
+            align-items: center; 
+            gap: .5rem; 
+        }
 
         /* FILTER PILLS */
         .filter-pills {
@@ -185,7 +267,11 @@
             font-weight: 600;
             cursor: pointer;
         }
-        .fpill.active { background: var(--verde); border-color: var(--verde); color: var(--white); }
+        .fpill.active { 
+            background: var(--verde); 
+            border-color: var(--verde); 
+            color: var(--white); 
+        }
         
         .btn-refresh, .btn-print {
             background: none;
@@ -197,8 +283,27 @@
             cursor: pointer;
         }
 
+        /* SEARCH */
+        .search-box {
+            padding: .75rem 1.1rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .search-box input {
+            width: 100%;
+            padding: .6rem .8rem;
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: .85rem;
+        }
+        
         /* TREE */
-        .tree { padding: .75rem 1rem; font-size: .88rem; max-height: 500px; overflow-y: auto; }
+        .tree { 
+            padding: .75rem 1rem; 
+            font-size: .88rem; 
+            max-height: 550px; 
+            overflow-y: auto; 
+        }
         .tree-node { margin: .15rem 0; }
         .tree-toggle {
             cursor: pointer;
@@ -216,6 +321,7 @@
             border-radius: 20px;
             font-size: .72rem;
             font-weight: 700;
+            white-space: nowrap;
         }
         .b-kg   { background: #e3f2fd; color: #1565c0; }
         .b-tipo { background: #e8f2e7; color: var(--verde); }
@@ -223,27 +329,17 @@
         .b-prod { background: #f3e5f5; color: #6a1b9a; }
         .b-hrs  { background: #fef9e7; color: #9c6d00; }
 
-        .tree-children { padding-left: 1.25rem; border-left: 2px solid var(--border); margin-left: .75rem; }
+        .tree-children { 
+            padding-left: 1.25rem; 
+            border-left: 2px solid var(--border); 
+            margin-left: .75rem; 
+        }
         .tree-leaf {
             padding: .4rem .6rem;
             display: flex;
             align-items: center;
             gap: .5rem;
             flex-wrap: wrap;
-        }
-        
-        /* SEARCH */
-        .search-box {
-            padding: .75rem 1.1rem;
-            border-bottom: 1px solid var(--border);
-        }
-        .search-box input {
-            width: 100%;
-            padding: .6rem .8rem;
-            border: 1.5px solid var(--border);
-            border-radius: 10px;
-            font-family: 'DM Sans', sans-serif;
-            font-size: .85rem;
         }
         
         /* TABLES */
@@ -280,8 +376,15 @@
         
         .vazio { padding: 2rem; text-align: center; color: var(--muted); }
         
+        /* Responsive */
+        @media (max-width: 480px) {
+            main { padding: 1rem; }
+            .menu-item { padding: .75rem 1rem; font-size: .85rem; }
+            .menu-item span { font-size: 1.1rem; }
+        }
+        
         @media print {
-            nav, .tab-nav, .btn-refresh, .btn-print, .filter-pills, .btn-small {
+            nav, .main-menu, .submenu, .btn-refresh, .btn-print, .btn-small {
                 display: none !important;
             }
             body { background: white; padding: 0; margin: 0; }
@@ -294,93 +397,43 @@
 <nav>
     <div class="nav-brand">🌾 COPAR - Gerencial</div>
     <div class="nav-right">
-        <span class="nav-name">Luis Henrique</span>
+        <span class="nav-name">👤 Luis Henrique</span>
         <a href="/logout" class="btn-sair">Sair</a>
     </div>
 </nav>
 
 <main>
-    <!-- TABS -->
-    <div class="tab-nav">
-        <button class="tab-btn active" data-tab="dashboard">📊 Dashboard</button>
-        <button class="tab-btn" data-tab="estoque-local">📦 Estoque por Local</button>
-        <button class="tab-btn" data-tab="estoque-produtor">👥 Estoque por Produtor</button>
-        <button class="tab-btn" data-tab="relatorios">📄 Relatórios</button>
+    <!-- MENU PRINCIPAL - 2 botões em cima e 2 embaixo -->
+    <div class="main-menu">
+        <div class="menu-grid">
+            <button class="menu-item" data-menu="dashboard">
+                <span>📊</span> Dashboard
+            </button>
+            <button class="menu-item" data-menu="estoque">
+                <span>📦</span> Estoque
+            </button>
+            <button class="menu-item" data-menu="produtores">
+                <span>👥</span> Produtores
+            </button>
+            <button class="menu-item" data-menu="relatorios">
+                <span>📄</span> Relatórios
+            </button>
+        </div>
+        
+        <!-- Submenu que muda conforme o menu selecionado -->
+        <div id="submenu" class="submenu"></div>
     </div>
 
-    <!-- TAB DASHBOARD -->
-    <div id="tab-dashboard" class="tab-content active">
-        <div class="stat-grid">
-            <div class="stat-card"><div class="stat-label">👥 Produtores</div><div class="stat-val" id="statProdutores">--</div></div>
-            <div class="stat-card"><div class="stat-label">📦 Estoque (kg)</div><div class="stat-val" id="statEstoque">--</div></div>
-            <div class="stat-card"><div class="stat-label">💰 Vendas / Mês</div><div class="stat-val" id="statVendas">--</div></div>
-            <div class="stat-card"><div class="stat-label">💸 Pagamentos / Mês</div><div class="stat-val" id="statPagamentos">--</div></div>
-        </div>
-        <div class="charts-grid">
-            <div class="chart-card"><h3>📊 Estoque por Variedade</h3><canvas id="chartTipo" height="180"></canvas></div>
-            <div class="chart-card"><h3>📈 Vendas – últimos 6 meses</h3><canvas id="chartVendas" height="180"></canvas></div>
-        </div>
-        <div class="secao">
-            <div class="secao-header"><span>🔄 Últimas Vendas</span></div>
-            <div class="table-wrap"><table><thead><tr><th>Data</th><th>Produtor</th><th>Produto</th><th>Peso</th><th>Valor</th></tr></thead><tbody id="vendasTbody"></tbody></table></div>
-        </div>
-    </div>
-
-    <!-- TAB ESTOQUE POR LOCAL -->
-    <div id="tab-estoque-local" class="tab-content">
-        <div class="secao">
-            <div class="secao-header">
-                <span>📦 Estoque por Local</span>
-                <button class="btn-refresh" onclick="carregarEstoqueLocal()">🔄</button>
-            </div>
-            <div class="filter-pills">
-                <button class="fpill active" data-filter-local="all">Todos</button>
-                <button class="fpill" data-filter-local="Classificação">🏭 Classificação</button>
-                <button class="fpill" data-filter-local="Banca">📦 Banca</button>
-                <button class="fpill" data-filter-local="Toletagem">✅ Toletagem</button>
-            </div>
-            <div id="treeEstoqueLocal" class="tree"><div class="vazio">Carregando...</div></div>
-        </div>
-    </div>
-
-    <!-- TAB ESTOQUE POR PRODUTOR -->
-    <div id="tab-estoque-produtor" class="tab-content">
-        <div class="secao">
-            <div class="secao-header">
-                <span>👥 Estoque por Produtor</span>
-                <button class="btn-refresh" onclick="carregarEstoqueProdutor()">🔄</button>
-            </div>
-            <div class="search-box">
-                <input type="text" id="searchProdutor" placeholder="🔍 Buscar produtor..." onkeyup="filtrarProdutores()">
-            </div>
-            <div id="treeEstoqueProdutor" class="tree"><div class="vazio">Carregando...</div></div>
-        </div>
-    </div>
-
-    <!-- TAB RELATÓRIOS -->
-    <div id="tab-relatorios" class="tab-content">
-        <div class="secao">
-            <div class="secao-header">
-                <span>📄 Relatórios</span>
-            </div>
-            <div style="padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem;">
-                <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
-                    <select id="selectProdutorRelatorio" style="flex: 1; padding: .6rem; border-radius: 8px; border: 1px solid var(--border); font-family: inherit;">
-                        <option value="">Selecione um produtor...</option>
-                    </select>
-                    <button class="btn-small" onclick="gerarRelatorioProdutor()" style="padding: .6rem 1.2rem;">📄 Gerar Relatório</button>
-                    <button class="btn-small" onclick="window.open('/gerente/relatorio-geral', '_blank')" style="background: var(--dourado);">📊 Relatório Geral</button>
-                </div>
-            </div>
-        </div>
-    </div>
+    <!-- CONTEÚDO DINÂMICO -->
+    <div id="conteudo"></div>
 </main>
 
 <script>
 let estoqueLocalData = [];
 let estoqueProdutorData = [];
-let filtroLocalAtivo = 'all';
 let chartTipo, chartVendas;
+let menuAtual = 'dashboard';
+let submenuAtual = 'local'; // 'local' ou 'produtor' para estoque
 
 // Helper functions
 const fmt = v => new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v);
@@ -391,27 +444,101 @@ async function api(url) {
     catch(e) { console.error(url, e); return null; }
 }
 
-// Load produtores for select
-async function carregarProdutoresSelect() {
-    const data = await api('/api/gerente/estoque-por-produtor');
-    if (data) {
-        const select = document.getElementById('selectProdutorRelatorio');
-        select.innerHTML = '<option value="">Selecione um produtor...</option>' + 
-            data.map(p => `<option value="${p.id}">${p.nome} (${p.matricula})</option>`).join('');
+// ==================== RENDERIZAÇÃO DOS SUBMENUS ====================
+function renderSubmenu() {
+    const submenuDiv = document.getElementById('submenu');
+    
+    if (menuAtual === 'dashboard') {
+        submenuDiv.innerHTML = `
+            <button class="submenu-item active" data-submenu="visao">📈 Visão Geral</button>
+            <button class="submenu-item" data-submenu="vendas">🔄 Últimas Vendas</button>
+        `;
+        submenuAtual = 'visao';
+    } 
+    else if (menuAtual === 'estoque') {
+        submenuDiv.innerHTML = `
+            <button class="submenu-item ${submenuAtual === 'local' ? 'active' : ''}" data-submenu="local">🏭 Por Local</button>
+            <button class="submenu-item ${submenuAtual === 'produtor' ? 'active' : ''}" data-submenu="produtor">👤 Por Produtor</button>
+        `;
+    }
+    else if (menuAtual === 'produtores') {
+        submenuDiv.innerHTML = `
+            <button class="submenu-item active" data-submenu="lista">📋 Lista de Produtores</button>
+        `;
+    }
+    else if (menuAtual === 'relatorios') {
+        submenuDiv.innerHTML = `
+            <button class="submenu-item active" data-submenu="individual">👤 Relatório Individual</button>
+            <button class="submenu-item" data-submenu="geral">📊 Relatório Geral</button>
+        `;
+    }
+    
+    // Adiciona eventos aos submenus
+    document.querySelectorAll('.submenu-item').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.submenu-item').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            submenuAtual = btn.dataset.submenu;
+            carregarConteudo();
+        });
+    });
+}
+
+// ==================== CARREGAMENTO DO CONTEÚDO PRINCIPAL ====================
+async function carregarConteudo() {
+    const conteudo = document.getElementById('conteudo');
+    
+    if (menuAtual === 'dashboard') {
+        if (submenuAtual === 'visao') {
+            await carregarDashboard(conteudo);
+        } else if (submenuAtual === 'vendas') {
+            await carregarUltimasVendas(conteudo);
+        }
+    }
+    else if (menuAtual === 'estoque') {
+        if (submenuAtual === 'local') {
+            await carregarEstoqueLocalView(conteudo);
+        } else if (submenuAtual === 'produtor') {
+            await carregarEstoqueProdutorView(conteudo);
+        }
+    }
+    else if (menuAtual === 'produtores') {
+        await carregarListaProdutores(conteudo);
+    }
+    else if (menuAtual === 'relatorios') {
+        if (submenuAtual === 'individual') {
+            await carregarRelatorioIndividualView(conteudo);
+        } else if (submenuAtual === 'geral') {
+            await carregarRelatorioGeralView(conteudo);
+        }
     }
 }
 
-// Dashboard functions
-async function carregarStats() {
+// ==================== DASHBOARD ====================
+async function carregarDashboard(container) {
+    container.innerHTML = `
+        <div class="stat-grid">
+            <div class="stat-card"><div class="stat-label">👥 Produtores</div><div class="stat-val" id="statProdutores">--</div></div>
+            <div class="stat-card"><div class="stat-label">📦 Estoque (kg)</div><div class="stat-val" id="statEstoque">--</div></div>
+            <div class="stat-card"><div class="stat-label">💰 Vendas / Mês</div><div class="stat-val" id="statVendas">--</div></div>
+            <div class="stat-card"><div class="stat-label">💸 Pagamentos / Mês</div><div class="stat-val" id="statPagamentos">--</div></div>
+        </div>
+        <div class="charts-grid">
+            <div class="chart-card"><h3>📊 Estoque por Variedade</h3><canvas id="chartTipo" height="180"></canvas></div>
+            <div class="chart-card"><h3>📈 Vendas – últimos 6 meses</h3><canvas id="chartVendas" height="180"></canvas></div>
+        </div>
+    `;
+    
+    // Carrega stats
     const d = await api('/api/gerente/estatisticas');
-    if (!d) return;
-    document.getElementById('statProdutores').textContent = d.total_produtores ?? 0;
-    document.getElementById('statEstoque').textContent = fmtN(d.total_estoque_kg ?? 0) + ' kg';
-    document.getElementById('statVendas').textContent = fmt(d.vendas_mes ?? 0);
-    document.getElementById('statPagamentos').textContent = fmt(d.pagamentos_mes ?? 0);
-}
-
-async function carregarGraficos() {
+    if (d) {
+        document.getElementById('statProdutores').textContent = d.total_produtores ?? 0;
+        document.getElementById('statEstoque').textContent = fmtN(d.total_estoque_kg ?? 0) + ' kg';
+        document.getElementById('statVendas').textContent = fmt(d.vendas_mes ?? 0);
+        document.getElementById('statPagamentos').textContent = fmt(d.pagamentos_mes ?? 0);
+    }
+    
+    // Gráficos
     const tipo = await api('/api/gerente/estoque-por-tipo');
     if (tipo) {
         if (chartTipo) chartTipo.destroy();
@@ -421,6 +548,7 @@ async function carregarGraficos() {
             options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false } }, scales: { y: { ticks: { callback: v => fmtN(v) + ' kg' } } } }
         });
     }
+    
     const vend = await api('/api/gerente/vendas-por-mes');
     if (vend) {
         if (chartVendas) chartVendas.destroy();
@@ -432,24 +560,75 @@ async function carregarGraficos() {
     }
 }
 
-async function carregarVendas() {
+async function carregarUltimasVendas(container) {
     const vendas = await api('/api/gerente/vendas-recentes?limite=20');
-    const tbody = document.getElementById('vendasTbody');
-    if (!vendas?.length) { tbody.innerHTML = '<tr><td colspan="6" class="vazio">Nenhuma venda</td></tr>'; return; }
-    tbody.innerHTML = vendas.map(v => `<tr><td>${v.data}</td><td>${v.produtor}</td><td>${v.tipo_alho} ${v.classe}</td><td>${fmtN(v.peso)} kg</td><td>${fmt(v.valor_total)}</td></tr>`).join('');
+    container.innerHTML = `
+        <div class="secao">
+            <div class="secao-header"><span>🔄 Últimas Vendas</span></div>
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>Data</th><th>Produtor</th><th>Produto</th><th>Peso</th><th>Valor</th></tr></thead>
+                    <tbody id="vendasLista"></tbody>
+                </table>
+            </div>
+        </div>
+    `;
+    const tbody = document.getElementById('vendasLista');
+    if (!vendas?.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="vazio">Nenhuma venda recente</td></tr>';
+        return;
+    }
+    tbody.innerHTML = vendas.map(v => `
+        <tr>
+            <td>${v.data}</td>
+            <td>${v.produtor}</td>
+            <td>${v.tipo_alho} ${v.classe}</td>
+            <td>${fmtN(v.peso)} kg</td>
+            <td>${fmt(v.valor_total)}</td>
+        </tr>
+    `).join('');
 }
 
-// Estoque por Local
-async function carregarEstoqueLocal() {
-    const container = document.getElementById('treeEstoqueLocal');
-    container.innerHTML = '<div class="vazio">Carregando...</div>';
+// ==================== ESTOQUE POR LOCAL ====================
+async function carregarEstoqueLocalView(container) {
+    container.innerHTML = `
+        <div class="secao">
+            <div class="secao-header">
+                <span>📦 Estoque por Local</span>
+                <button class="btn-refresh" onclick="recarregarEstoqueLocal()">🔄 Atualizar</button>
+            </div>
+            <div class="filter-pills">
+                <button class="fpill active" data-filter-local="all">Todos</button>
+                <button class="fpill" data-filter-local="Classificação">🏭 Classificação</button>
+                <button class="fpill" data-filter-local="Banca">📦 Banca</button>
+                <button class="fpill" data-filter-local="Toletagem">✅ Toletagem</button>
+            </div>
+            <div id="treeEstoqueLocal" class="tree"><div class="vazio">Carregando...</div></div>
+        </div>
+    `;
+    
     estoqueLocalData = await api('/api/gerente/estoque-hierarquico') || [];
     renderEstoqueLocal();
+    
+    // Filtros
+    document.querySelectorAll('[data-filter-local]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('[data-filter-local]').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderEstoqueLocal(btn.dataset.filterLocal);
+        });
+    });
 }
 
-function renderEstoqueLocal() {
-    let dados = filtroLocalAtivo === 'all' ? estoqueLocalData : estoqueLocalData.filter(l => l.local === filtroLocalAtivo);
-    if (!dados.length) { document.getElementById('treeEstoqueLocal').innerHTML = '<div class="vazio">Nenhum estoque encontrado</div>'; return; }
+function renderEstoqueLocal(filtro = 'all') {
+    let dados = filtro === 'all' ? estoqueLocalData : estoqueLocalData.filter(l => l.local === filtro);
+    const container = document.getElementById('treeEstoqueLocal');
+    if (!container) return;
+    
+    if (!dados.length) {
+        container.innerHTML = '<div class="vazio">Nenhum estoque encontrado</div>';
+        return;
+    }
     
     function badge(txt, cls) { return `<span class="badge ${cls}">${txt}</span>`; }
     const iconLocal = { 'Classificação': '🏭', 'Banca': '📦', 'Toletagem': '✅' };
@@ -470,27 +649,50 @@ function renderEstoqueLocal() {
         });
         html += `</div></div>`;
     });
-    document.getElementById('treeEstoqueLocal').innerHTML = html;
+    container.innerHTML = html;
 }
 
-// Estoque por Produtor
-async function carregarEstoqueProdutor() {
-    const container = document.getElementById('treeEstoqueProdutor');
-    container.innerHTML = '<div class="vazio">Carregando...</div>';
+window.recarregarEstoqueLocal = async function() {
+    estoqueLocalData = await api('/api/gerente/estoque-hierarquico') || [];
+    const activeFilter = document.querySelector('[data-filter-local].active')?.dataset.filterLocal || 'all';
+    renderEstoqueLocal(activeFilter);
+};
+
+// ==================== ESTOQUE POR PRODUTOR ====================
+async function carregarEstoqueProdutorView(container) {
+    container.innerHTML = `
+        <div class="secao">
+            <div class="secao-header">
+                <span>👥 Estoque por Produtor</span>
+                <button class="btn-refresh" onclick="recarregarEstoqueProdutor()">🔄 Atualizar</button>
+            </div>
+            <div class="search-box">
+                <input type="text" id="searchProdutor" placeholder="🔍 Buscar produtor por nome ou matrícula..." onkeyup="filtrarProdutores()">
+            </div>
+            <div id="treeEstoqueProdutor" class="tree"><div class="vazio">Carregando...</div></div>
+        </div>
+    `;
+    
     estoqueProdutorData = await api('/api/gerente/estoque-por-produtor') || [];
     renderEstoqueProdutor();
 }
 
 function renderEstoqueProdutor(filtro = '') {
     let dados = filtro ? estoqueProdutorData.filter(p => p.nome.toLowerCase().includes(filtro.toLowerCase()) || p.matricula.includes(filtro)) : estoqueProdutorData;
-    if (!dados.length) { document.getElementById('treeEstoqueProdutor').innerHTML = '<div class="vazio">Nenhum produtor encontrado</div>'; return; }
+    const container = document.getElementById('treeEstoqueProdutor');
+    if (!container) return;
+    
+    if (!dados.length) {
+        container.innerHTML = '<div class="vazio">Nenhum produtor encontrado</div>';
+        return;
+    }
     
     function badge(txt, cls) { return `<span class="badge ${cls}">${txt}</span>`; }
     
     let html = '';
     dados.forEach(produtor => {
         const totalProdutor = produtor.locais.reduce((s, l) => s + l.tipos.reduce((ss, t) => ss + t.classes.reduce((sss, c) => sss + c.peso, 0), 0), 0);
-        html += `<div class="tree-node"><div class="tree-toggle" onclick="toggle(this)"><span>▶</span><span class="lbl">👤 ${produtor.nome} (${produtor.matricula})</span>${badge(fmtN(totalProdutor) + ' kg', 'b-kg')}<button class="btn-small" onclick="event.stopPropagation();gerarRelatorioProdutorEspecifico(${produtor.id})" style="margin-left:auto">📄 Relatório</button></div><div class="tree-children" style="display:none">`;
+        html += `<div class="tree-node"><div class="tree-toggle" onclick="toggle(this)"><span>▶</span><span class="lbl">👤 ${produtor.nome} (${produtor.matricula})</span>${badge(fmtN(totalProdutor) + ' kg', 'b-kg')}<button class="btn-small" onclick="event.stopPropagation();gerarRelatorioProdutor(${produtor.id})" style="margin-left:auto">📄 Relatório</button></div><div class="tree-children" style="display:none">`;
         produtor.locais.forEach(local => {
             html += `<div class="tree-node"><div class="tree-toggle" onclick="toggle(this)"><span>▶</span><span class="lbl">📁 ${local.nome}</span></div><div class="tree-children" style="display:none">`;
             local.tipos.forEach(tipo => {
@@ -504,62 +706,137 @@ function renderEstoqueProdutor(filtro = '') {
         });
         html += `</div></div>`;
     });
-    document.getElementById('treeEstoqueProdutor').innerHTML = html;
+    container.innerHTML = html;
 }
 
-function filtrarProdutores() {
-    const filtro = document.getElementById('searchProdutor').value;
+window.recarregarEstoqueProdutor = async function() {
+    estoqueProdutorData = await api('/api/gerente/estoque-por-produtor') || [];
+    const filtro = document.getElementById('searchProdutor')?.value || '';
     renderEstoqueProdutor(filtro);
+};
+
+window.filtrarProdutores = function() {
+    const filtro = document.getElementById('searchProdutor')?.value || '';
+    renderEstoqueProdutor(filtro);
+};
+
+// ==================== LISTA DE PRODUTORES ====================
+async function carregarListaProdutores(container) {
+    const produtores = await api('/api/gerente/estoque-por-produtor') || [];
+    container.innerHTML = `
+        <div class="secao">
+            <div class="secao-header"><span>👥 Todos os Produtores</span></div>
+            <div class="search-box">
+                <input type="text" id="searchProdutorLista" placeholder="🔍 Buscar produtor..." onkeyup="filtrarListaProdutores()">
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>Matrícula</th><th>Nome</th><th>Estoque Total (kg)</th><th>Ações</th></tr></thead>
+                    <tbody id="listaProdutores"></tbody>
+                </table>
+            </div>
+        </div>
+    `;
+    
+    window.listaProdutoresData = produtores;
+    renderListaProdutores();
 }
 
-function gerarRelatorioProdutorEspecifico(id) {
-    window.open(`/gerente/relatorio/${id}`, '_blank');
+function renderListaProdutores(filtro = '') {
+    let dados = filtro ? window.listaProdutoresData.filter(p => p.nome.toLowerCase().includes(filtro.toLowerCase()) || p.matricula.includes(filtro)) : window.listaProdutoresData;
+    const tbody = document.getElementById('listaProdutores');
+    if (!tbody) return;
+    
+    if (!dados.length) {
+        tbody.innerHTML = '<tr><td colspan="4" class="vazio">Nenhum produtor encontrado</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = dados.map(p => {
+        const totalEstoque = p.locais.reduce((s, l) => s + l.tipos.reduce((ss, t) => ss + t.classes.reduce((sss, c) => sss + c.peso, 0), 0), 0);
+        return `
+            <tr>
+                <td>${p.matricula}</td>
+                <td>${p.nome}</td>
+                <td>${fmtN(totalEstoque)} kg</td>
+                <td><button class="btn-small" onclick="gerarRelatorioProdutor(${p.id})">📄 Ver Relatório</button></td>
+            </tr>
+        `;
+    }).join('');
 }
 
-function gerarRelatorioProdutor() {
-    const id = document.getElementById('selectProdutorRelatorio').value;
+window.filtrarListaProdutores = function() {
+    const filtro = document.getElementById('searchProdutorLista')?.value || '';
+    renderListaProdutores(filtro);
+};
+
+// ==================== RELATÓRIOS ====================
+async function carregarRelatorioIndividualView(container) {
+    const produtores = await api('/api/gerente/estoque-por-produtor') || [];
+    container.innerHTML = `
+        <div class="secao">
+            <div class="secao-header"><span>📄 Relatório Individual</span></div>
+            <div style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem;">
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end;">
+                    <div style="flex: 1; min-width: 200px;">
+                        <label style="display: block; font-size: .75rem; font-weight: 600; margin-bottom: .3rem; color: var(--muted);">SELECIONE O PRODUTOR</label>
+                        <select id="selectProdutorRelatorio" style="width: 100%; padding: .7rem; border-radius: 10px; border: 1.5px solid var(--border); font-family: inherit; font-size: .9rem;">
+                            <option value="">-- Selecione um produtor --</option>
+                            ${produtores.map(p => `<option value="${p.id}">${p.nome} (${p.matricula})</option>`).join('')}
+                        </select>
+                    </div>
+                    <button class="btn-small" onclick="gerarRelatorioProdutor(document.getElementById('selectProdutorRelatorio').value)" style="padding: .7rem 1.5rem;">📄 Gerar Relatório</button>
+                </div>
+                <div style="background: var(--verde-pale); padding: 1rem; border-radius: 10px;">
+                    <p style="font-size: .85rem; color: var(--muted);">ℹ️ O relatório será aberto em uma nova janela e poderá ser impresso.</p>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+async function carregarRelatorioGeralView(container) {
+    container.innerHTML = `
+        <div class="secao">
+            <div class="secao-header"><span>📊 Relatório Geral</span></div>
+            <div style="padding: 1.5rem; text-align: center;">
+                <p style="margin-bottom: 1rem; color: var(--muted);">Gerar relatório completo com todos os dados da cooperativa</p>
+                <button class="btn-small" onclick="window.open('/gerente/relatorio-geral', '_blank')" style="padding: .8rem 2rem; font-size: 1rem;">📊 Gerar Relatório Geral</button>
+            </div>
+        </div>
+    `;
+}
+
+window.gerarRelatorioProdutor = function(id) {
     if (!id) { alert('Selecione um produtor'); return; }
     window.open(`/gerente/relatorio/${id}`, '_blank');
-}
+};
 
-// Toggle function
+// ==================== TOGGLE PARA ÁRVORE ====================
 function toggle(el) {
     const ch = el.nextElementSibling;
     if (!ch) return;
     const open = ch.style.display !== 'none';
     ch.style.display = open ? 'none' : 'block';
-    el.querySelector('span:first-child').textContent = open ? '▶' : '▼';
+    const arrow = el.querySelector('span:first-child');
+    if (arrow) arrow.textContent = open ? '▶' : '▼';
 }
 
-// Tab switching
-document.querySelectorAll('.tab-btn').forEach(btn => {
+// ==================== INICIALIZAÇÃO ====================
+document.querySelectorAll('.menu-item').forEach(btn => {
     btn.addEventListener('click', () => {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.querySelectorAll('.menu-item').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
+        menuAtual = btn.dataset.menu;
+        renderSubmenu();
+        carregarConteudo();
     });
 });
 
-// Filter for local
-document.querySelectorAll('[data-filter-local]').forEach(btn => {
-    btn.addEventListener('click', () => {
-        document.querySelectorAll('[data-filter-local]').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        filtroLocalAtivo = btn.dataset.filterLocal;
-        renderEstoqueLocal();
-    });
-});
-
-// Initial load
-Promise.all([
-    carregarStats(),
-    carregarGraficos(),
-    carregarVendas(),
-    carregarEstoqueLocal(),
-    carregarEstoqueProdutor(),
-    carregarProdutoresSelect()
-]);
+// Inicializa
+document.querySelector('.menu-item').classList.add('active');
+renderSubmenu();
+carregarConteudo();
 </script>
 </body>
 </html>
