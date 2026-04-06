@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>COPAR - Relatório Geral</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'DM Sans', 'Arial', sans-serif;
+            padding: 2rem;
+            color: #1a2e19;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #2a5c28;
+        }
+        .header h1 { color: #2a5c28; margin-bottom: .5rem; }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: #f4f9f3;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-card .label { font-size: .8rem; color: #6b7c6a; text-transform: uppercase; }
+        .stat-card .value { font-size: 1.5rem; font-weight: bold; color: #2a5c28; }
+        .section {
+            margin-bottom: 2rem;
+            page-break-inside: avoid;
+        }
+        .section h2 {
+            color: #2a5c28;
+            margin-bottom: 1rem;
+            padding-bottom: .5rem;
+            border-bottom: 1px solid #dde8db;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1rem;
+        }
+        th, td {
+            padding: .5rem;
+            text-align: left;
+            border-bottom: 1px solid #dde8db;
+        }
+        th {
+            background: #e8f2e7;
+            font-weight: 600;
+        }
+        .footer {
+            margin-top: 2rem;
+            text-align: center;
+            font-size: .8rem;
+            color: #6b7c6a;
+            border-top: 1px solid #dde8db;
+            padding-top: 1rem;
+        }
+        @media print {
+            body { padding: 0.5rem; }
+            .no-print { display: none; }
+        }
+        button {
+            margin-bottom: 1rem;
+            padding: .5rem 1rem;
+            background: #2a5c28;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+<div class="no-print" style="text-align: right; margin-bottom: 1rem;">
+    <button onclick="window.print()">🖨️ Imprimir</button>
+    <button onclick="window.close()">✖️ Fechar</button>
+</div>
+<div id="conteudo"></div>
+<script>
+    async function carregarRelatorio() {
+        const resp = await fetch('/api/gerente/relatorio-geral');
+        const data = await resp.json();
+        
+        const html = `
+            <div class="header">
+                <h1>🌾 COPAR - Cooperativa Agrícola</h1>
+                <p>Relatório Gerencial</p>
+                <p><small>Gerado em: ${data.data_geracao}</small></p>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-card"><div class="label">👥 Produtores</div><div class="value">${data.total_produtores}</div></div>
+                <div class="stat-card"><div class="label">📦 Estoque Total</div><div class="value">${data.estoque_total.toFixed(2)} kg</div></div>
+                <div class="stat-card"><div class="label">💰 Pagamentos Mês</div><div class="value">R$ ${data.pagamentos_mes.toFixed(2)}</div></div>
+                <div class="stat-card"><div class="label">💵 Total Pago</div><div class="value">R$ ${data.pagamentos_total.toFixed(2)}</div></div>
+            </div>
+            
+            <div class="section">
+                <h2>📦 Estoque por Local</h2>
+                <table>
+                    <thead><tr><th>Local</th><th>Peso (kg)</th></tr></thead>
+                    <tbody>${Object.entries(data.estoque_por_local).map(([local, peso]) => `<tr><td>${local}</td><td>${peso.toFixed(2)}</td></tr>`).join('')}</tbody>
+                </table>
+            </div>
+            
+            <div class="section">
+                <h2>🧄 Estoque por Tipo de Alho</h2>
+                <table>
+                    <thead><tr><th>Tipo</th><th>Peso (kg)</th></tr></thead>
+                    <tbody>${Object.entries(data.estoque_por_tipo).map(([tipo, peso]) => `<tr><td>${tipo}</td><td>${peso.toFixed(2)}</td></tr>`).join('')}</tbody>
+                </table>
+            </div>
+            
+            <div class="section">
+                <h2>📈 Vendas por Mês (últimos 12 meses)</h2>
+                <table>
+                    <thead><tr><th>Mês</th><th>Qtd Vendas</th><th>Peso (kg)</th><th>Valor Total</th><th>Valor Produtor</th></tr></thead>
+                    <tbody>${data.vendas_mensais.map(v => `<tr><td>${v.mes}</td><td>${v.qtd}</td><td>${v.peso.toFixed(2)}</td><td>R$ ${v.valor.toFixed(2)}</td><td>R$ ${v.produtor.toFixed(2)}</td></tr>`).join('')}</tbody>
+                </table>
+            </div>
+            
+            <div class="section">
+                <h2>🏆 Top 10 Produtores por Volume</h2>
+                <table>
+                    <thead><tr><th>Produtor</th><th>Peso Vendido (kg)</th><th>Valor Total</th></tr></thead>
+                    <tbody>${data.top_produtores.map(p => `<tr><td>${p.nome}</td><td>${p.peso.toFixed(2)}</td><td>R$ ${p.valor.toFixed(2)}</td></tr>`).join('')}</tbody>
+                </table>
+            </div>
+            
+            <div class="footer">
+                <p>Relatório gerado automaticamente pelo sistema COPAR</p>
+            </div>
+        `;
+        
+        document.getElementById('conteudo').innerHTML = html;
+    }
+    
+    carregarRelatorio();
+</script>
+</body>
+</html>
