@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>COPAR - Relatório do Produtor</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'DM Sans', 'Arial', sans-serif;
+            padding: 2rem;
+            color: #1a2e19;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #2a5c28;
+        }
+        .header h1 { color: #2a5c28; margin-bottom: .5rem; }
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            background: #f4f9f3;
+            padding: 1rem;
+            border-radius: 8px;
+        }
+        .section {
+            margin-bottom: 2rem;
+            page-break-inside: avoid;
+        }
+        .section h2 {
+            color: #2a5c28;
+            margin-bottom: 1rem;
+            padding-bottom: .5rem;
+            border-bottom: 1px solid #dde8db;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1rem;
+        }
+        th, td {
+            padding: .5rem;
+            text-align: left;
+            border-bottom: 1px solid #dde8db;
+        }
+        th {
+            background: #e8f2e7;
+            font-weight: 600;
+        }
+        .total {
+            font-weight: bold;
+            margin-top: 1rem;
+            text-align: right;
+        }
+        @media print {
+            body { padding: 0.5rem; }
+            .no-print { display: none; }
+        }
+        button {
+            margin-bottom: 1rem;
+            padding: .5rem 1rem;
+            background: #2a5c28;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+<div class="no-print" style="text-align: right; margin-bottom: 1rem;">
+    <button onclick="window.print()">🖨️ Imprimir</button>
+    <button onclick="window.close()">✖️ Fechar</button>
+</div>
+<div id="conteudo">
+    <div class="header">
+        <h1>🌾 COPAR - Cooperativa Agrícola</h1>
+        <p>Relatório Individual do Produtor</p>
+    </div>
+    <div id="dados"></div>
+</div>
+<script>
+    const produtorId = {{ produtor_id }};
+    
+    async function carregarRelatorio() {
+        const resp = await fetch(`/api/gerente/relatorio-produtor/${produtorId}`);
+        const data = await resp.json();
+        
+        if (data.erro) {
+            document.getElementById('dados').innerHTML = `<p style="color: red;">${data.erro}</p>`;
+            return;
+        }
+        
+        const html = `
+            <div class="info-grid">
+                <div><strong>👤 Produtor:</strong> ${data.produtor.nome}</div>
+                <div><strong>🔢 Matrícula:</strong> ${data.produtor.matricula}</div>
+                <div><strong>💰 Total de Vendas:</strong> R$ ${data.resumo.total_vendas.toFixed(2)}</div>
+                <div><strong>✅ Total Recebido:</strong> R$ ${data.resumo.total_recebido.toFixed(2)}</div>
+                <div><strong>⏳ A Receber:</strong> R$ ${data.resumo.total_a_receber.toFixed(2)}</div>
+                <div><strong>📦 Estoque Atual:</strong> ${data.resumo.total_estoque_kg.toFixed(2)} kg</div>
+            </div>
+            
+            <div class="section">
+                <h2>📦 Estoque Atual</h2>
+                ${data.estoque.length ? `
+                    <table>
+                        <thead><tr><th>Local</th><th>Tipo</th><th>Classe</th><th>Peso (kg)</th><th>Horas Banca</th></tr></thead>
+                        <tbody>${data.estoque.map(e => `<tr><td>${e.local}</td><td>${e.tipo}</td><td>${e.classe}</td><td>${e.peso.toFixed(2)}</td><td>${e.horas}</td></tr>`).join('')}</tbody>
+                    </table>
+                ` : '<p>Nenhum estoque registrado</p>'}
+            </div>
+            
+            <div class="section">
+                <h2>📋 Vendas Realizadas</h2>
+                ${data.vendas.length ? `
+                    <table>
+                        <thead><tr><th>Data</th><th>Tipo</th><th>Classe</th><th>Peso (kg)</th><th>Valor Total</th><th>Valor Produtor</th><th>Status</th></tr></thead>
+                        <tbody>${data.vendas.map(v => `<tr><td>${v.data}</td><td>${v.tipo}</td><td>${v.classe}</td><td>${v.peso.toFixed(2)}</td><td>R$ ${v.valor_total.toFixed(2)}</td><td>R$ ${v.valor_produtor.toFixed(2)}</td><td>${v.status}</td></tr>`).join('')}</tbody>
+                    </table>
+                ` : '<p>Nenhuma venda registrada</p>'}
+            </div>
+            
+            <div class="section">
+                <h2>💳 Pagamentos Recebidos</h2>
+                ${data.pagamentos.length ? `
+                    <table>
+                        <thead><tr><th>Data</th><th>Valor</th><th>Forma de Pagamento</th></tr></thead>
+                        <tbody>${data.pagamentos.map(p => `<tr><td>${p.data}</td><td>R$ ${p.valor.toFixed(2)}</td><td>${p.forma}</td></tr>`).join('')}</tbody>
+                    </table>
+                ` : '<p>Nenhum pagamento registrado</p>'}
+            </div>
+            
+            <div class="total">
+                <p><strong>📊 Resumo Financeiro:</strong></p>
+                <p>Total em Vendas: R$ ${data.resumo.total_vendas.toFixed(2)}</p>
+                <p>Total Recebido: R$ ${data.resumo.total_recebido.toFixed(2)}</p>
+                <p>Saldo a Receber: R$ ${data.resumo.total_a_receber.toFixed(2)}</p>
+            </div>
+        `;
+        
+        document.getElementById('dados').innerHTML = html;
+    }
+    
+    carregarRelatorio();
+</script>
+</body>
+</html>
