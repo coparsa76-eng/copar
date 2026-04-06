@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>COPAR – Cadastro de Produtores</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --verde:       #2a5c28;
+            --verde-mid:   #3d7a3a;
+            --verde-light: #e8f2e7;
+            --verde-pale:  #f4f9f3;
+            --bg:          #f2f5f0;
+            --text:        #1a2e19;
+            --muted:       #6b7c6a;
+            --border:      #dde8db;
+            --white:       #ffffff;
+            --danger:      #c0392b;
+            --danger-bg:   #fdecea;
+            --radius:      14px;
+            --shadow:      0 4px 20px rgba(42,92,40,.1);
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100dvh;
+            padding-bottom: 2rem;
+        }
+
+        nav {
+            background: var(--verde);
+            padding: .85rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 200;
+        }
+        .nav-brand {
+            font-family: 'DM Serif Display', serif;
+            color: var(--white);
+            font-size: 1.35rem;
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+        }
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: .75rem;
+        }
+        .btn-sair, .btn-voltar {
+            background: rgba(255,255,255,.15);
+            border: 1px solid rgba(255,255,255,.3);
+            color: var(--white);
+            padding: .5rem 1rem;
+            border-radius: 10px;
+            font-size: .82rem;
+            text-decoration: none;
+            transition: all .2s;
+        }
+        .btn-sair:hover, .btn-voltar:hover {
+            background: rgba(255,255,255,.25);
+        }
+
+        main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1.5rem;
+        }
+
+        /* Header com botão */
+        .header-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .header-actions h1 {
+            color: var(--verde);
+            font-size: 1.5rem;
+            font-family: 'DM Serif Display', serif;
+        }
+        .btn-novo {
+            background: var(--verde);
+            color: var(--white);
+            border: none;
+            padding: .7rem 1.5rem;
+            border-radius: 10px;
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 600;
+            font-size: .9rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+        }
+        .btn-novo:hover {
+            background: var(--verde-mid);
+        }
+
+        /* Card de formulário */
+        .form-card {
+            background: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+            display: none;
+        }
+        .form-card.show {
+            display: block;
+        }
+        .form-header {
+            background: var(--verde);
+            padding: 1rem 1.5rem;
+            color: var(--white);
+            font-weight: 700;
+            font-size: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .form-body {
+            padding: 1.5rem;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: .3rem;
+        }
+        .field label {
+            font-size: .72rem;
+            font-weight: 700;
+            color: var(--verde);
+            text-transform: uppercase;
+            letter-spacing: .06em;
+        }
+        .field input {
+            padding: .75rem 1rem;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: .95rem;
+            background: var(--verde-pale);
+            transition: border .15s;
+        }
+        .field input:focus {
+            outline: none;
+            border-color: var(--verde);
+        }
+        .field small {
+            font-size: .7rem;
+            color: var(--muted);
+        }
+        .senha-destaque {
+            background: var(--verde-light);
+            padding: .5rem;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: var(--verde);
+            text-align: center;
+        }
+        .form-actions {
+            display: flex;
+            gap: .75rem;
+            justify-content: flex-end;
+        }
+        .btn-salvar {
+            background: var(--verde);
+            color: white;
+            border: none;
+            padding: .7rem 1.5rem;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .btn-cancelar {
+            background: var(--verde-light);
+            color: var(--verde);
+            border: 1.5px solid var(--border);
+            padding: .7rem 1.5rem;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        /* Tabela de produtores */
+        .table-card {
+            background: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+        .table-header {
+            padding: 1rem 1.5rem;
+            background: var(--verde-pale);
+            border-bottom: 1px solid var(--border);
+            font-weight: 700;
+            color: var(--verde);
+        }
+        .table-wrap {
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th {
+            background: var(--verde-pale);
+            color: var(--verde);
+            padding: .8rem 1rem;
+            text-align: left;
+            font-size: .75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+        }
+        td {
+            padding: .8rem 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+        tr:hover td {
+            background: var(--verde-pale);
+        }
+        .acoes {
+            display: flex;
+            gap: .5rem;
+        }
+        .btn-editar, .btn-excluir {
+            padding: .4rem .8rem;
+            border-radius: 6px;
+            font-size: .75rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+        }
+        .btn-editar {
+            background: var(--verde-light);
+            color: var(--verde);
+        }
+        .btn-excluir {
+            background: var(--danger-bg);
+            color: var(--danger);
+        }
+        .status-msg {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            padding: 1rem 1.5rem;
+            border-radius: 10px;
+            background: var(--white);
+            box-shadow: var(--shadow);
+            z-index: 1000;
+            display: none;
+            animation: slideInRight 0.3s ease;
+        }
+        .status-msg.show {
+            display: block;
+        }
+        .status-msg.success {
+            border-left: 4px solid var(--verde);
+        }
+        .status-msg.error {
+            border-left: 4px solid var(--danger);
+        }
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal.show {
+            display: flex;
+        }
+        .modal-content {
+            background: var(--white);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            max-width: 400px;
+            text-align: center;
+        }
+        .modal-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 1.5rem;
+        }
+        @media (max-width: 768px) {
+            main { padding: 1rem; }
+            .form-grid { grid-template-columns: 1fr; }
+            .acoes { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+<nav>
+    <div class="nav-brand">🌾 COPAR - Cadastro de Produtores</div>
+    <div class="nav-right">
+        <a href="/gerente" class="btn-voltar">← Voltar ao Painel</a>
+        <a href="/logout" class="btn-sair">Sair</a>
+    </div>
+</nav>
+
+<main>
+    <div class="header-actions">
+        <h1>👥 Produtores Cadastrados</h1>
+        <button class="btn-novo" onclick="abrirFormulario()">➕ Novo Produtor</button>
+    </div>
+
+    <!-- Formulário de cadastro/edição -->
+    <div id="formCard" class="form-card">
+        <div class="form-header">
+            <span id="formTitle">📝 Novo Produtor</span>
+            <button onclick="fecharFormulario()" style="background:none;border:none;color:white;font-size:1.2rem;cursor:pointer;">✕</button>
+        </div>
+        <div class="form-body">
+            <form id="produtorForm">
+                <input type="hidden" id="produtorId">
+                <div class="form-grid">
+                    <div class="field">
+                        <label>📛 Nome Completo</label>
+                        <input type="text" id="nome" required placeholder="Digite o nome completo">
+                    </div>
+                    <div class="field">
+                        <label>🔢 CPF</label>
+                        <input type="text" id="cpf" required placeholder="000.000.000-00" maxlength="14" oninput="formatarCPF(this)">
+                        <small>Digite apenas números - A senha será os últimos 2 dígitos</small>
+                    </div>
+                    <div class="field">
+                        <label>🆔 Matrícula</label>
+                        <input type="text" id="matricula" required placeholder="Código único do produtor">
+                        <small>Ex: 001, 002, PROD001, etc.</small>
+                    </div>
+                    <div class="field">
+                        <label>🔑 Senha (automática)</label>
+                        <div id="senhaPreview" class="senha-destaque">--</div>
+                        <small>Gerada automaticamente a partir do CPF (últimos 2 dígitos)</small>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-cancelar" onclick="fecharFormulario()">Cancelar</button>
+                    <button type="submit" class="btn-salvar">💾 Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Lista de produtores -->
+    <div class="table-card">
+        <div class="table-header">📋 Lista de Produtores</div>
+        <div class="table-wrap">
+            <table id="produtoresTable">
+                <thead>
+                    <tr>
+                        <th>Matrícula</th>
+                        <th>Nome</th>
+                        <th>CPF</th>
+                        <th>Senha</th>
+                        <th>Estoque (kg)</th>
+                        <th>Total Vendas</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="produtoresList">
+                    <tr><td colspan="7" style="text-align:center">Carregando...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+
+<div id="statusMsg" class="status-msg"></div>
+<div id="modalConfirm" class="modal">
+    <div class="modal-content">
+        <p id="modalMsg">Tem certeza que deseja excluir este produtor?</p>
+        <div class="modal-buttons">
+            <button class="btn-cancelar" onclick="fecharModal()">Cancelar</button>
+            <button class="btn-excluir" id="confirmExcluir">Excluir</button>
+        </div>
+    </div>
+</div>
+
+<script>
+let produtores = [];
+let excluirId = null;
+
+// Formatar CPF
+function formatarCPF(input) {
+    let value = input.value.replace(/\D/g, '');
+    if (value.length > 11) value = value.slice(0, 11);
+    
+    if (value.length > 9) {
+        value = value.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+    } else if (value.length > 6) {
+        value = value.replace(/(\d{3})(\d{3})(\d{3})/, '$1.$2.$3');
+    } else if (value.length > 3) {
+        value = value.replace(/(\d{3})(\d{3})/, '$1.$2');
+    } else if (value.length > 0) {
+        value = value.replace(/(\d{3})/, '$1');
+    }
+    input.value = value;
+    
+    // Atualiza preview da senha
+    atualizarSenhaPreview(value);
+}
+
+function atualizarSenhaPreview(cpf) {
+    const cpfClean = cpf.replace(/\D/g, '');
+    if (cpfClean.length >= 11) {
+        const senha = cpfClean.slice(-2);
+        document.getElementById('senhaPreview').textContent = senha;
+        document.getElementById('senhaPreview').style.background = '#d5f0de';
+    } else {
+        document.getElementById('senhaPreview').textContent = '-- (CPF incompleto)';
+        document.getElementById('senhaPreview').style.background = '#fef5e7';
+    }
+}
+
+// Mostrar mensagem
+function showMessage(msg, type = 'success') {
+    const el = document.getElementById('statusMsg');
+    el.textContent = msg;
+    el.className = `status-msg show ${type}`;
+    setTimeout(() => {
+        el.classList.remove('show');
+    }, 3000);
+}
+
+// Abrir formulário para novo/edição
+function abrirFormulario(produtor = null) {
+    const formCard = document.getElementById('formCard');
+    const formTitle = document.getElementById('formTitle');
+    
+    if (produtor) {
+        formTitle.textContent = '✏️ Editar Produtor';
+        document.getElementById('produtorId').value = produtor.id;
+        document.getElementById('nome').value = produtor.nome;
+        document.getElementById('cpf').value = produtor.cpf;
+        document.getElementById('matricula').value = produtor.matricula;
+        atualizarSenhaPreview(produtor.cpf);
+    } else {
+        formTitle.textContent = '📝 Novo Produtor';
+        document.getElementById('produtorId').value = '';
+        document.getElementById('nome').value = '';
+        document.getElementById('cpf').value = '';
+        document.getElementById('matricula').value = '';
+        document.getElementById('senhaPreview').textContent = '--';
+        document.getElementById('senhaPreview').style.background = '#f4f9f3';
+    }
+    
+    formCard.classList.add('show');
+    document.getElementById('nome').focus();
+}
+
+function fecharFormulario() {
+    document.getElementById('formCard').classList.remove('show');
+    document.getElementById('produtorForm').reset();
+    document.getElementById('produtorId').value = '';
+}
+
+// Listar produtores
+async function listarProdutores() {
+    try {
+        const response = await fetch('/api/produtores/listar');
+        produtores = await response.json();
+        renderizarTabela();
+    } catch (error) {
+        showMessage('Erro ao carregar produtores', 'error');
+    }
+}
+
+function renderizarTabela() {
+    const tbody = document.getElementById('produtoresList');
+    if (!produtores.length) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center">Nenhum produtor cadastrado</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = produtores.map(p => `
+        <tr>
+            <td><strong>${escapeHtml(p.matricula)}</strong></td>
+            <td>${escapeHtml(p.nome)}</td>
+            <td>${escapeHtml(p.cpf || '--')}</td>
+            <td><code>${escapeHtml(p.senha || '--')}</code></td>
+            <td>${p.total_estoque.toFixed(2)} kg</td>
+            <td>R$ ${p.total_vendas.toFixed(2)}</td>
+            <td class="acoes">
+                <button class="btn-editar" onclick="editarProdutor(${p.id})">✏️ Editar</button>
+                <button class="btn-excluir" onclick="confirmarExcluir(${p.id}, '${escapeHtml(p.nome)}')">🗑️ Excluir</button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function editarProdutor(id) {
+    const produtor = produtores.find(p => p.id === id);
+    if (produtor) {
+        abrirFormulario(produtor);
+    }
+}
+
+function confirmarExcluir(id, nome) {
+    excluirId = id;
+    document.getElementById('modalMsg').textContent = `Tem certeza que deseja excluir ${nome}?`;
+    document.getElementById('modalConfirm').classList.add('show');
+}
+
+function fecharModal() {
+    excluirId = null;
+    document.getElementById('modalConfirm').classList.remove('show');
+}
+
+// Salvar produtor
+document.getElementById('produtorForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const id = document.getElementById('produtorId').value;
+    const nome = document.getElementById('nome').value.trim();
+    let cpf = document.getElementById('cpf').value;
+    const matricula = document.getElementById('matricula').value.trim();
+    
+    // Limpa CPF para validação
+    const cpfClean = cpf.replace(/\D/g, '');
+    
+    if (!nome || cpfClean.length !== 11 || !matricula) {
+        showMessage('Preencha todos os campos corretamente (CPF com 11 dígitos)', 'error');
+        return;
+    }
+    
+    const url = id ? '/api/produtores/editar' : '/api/produtores/cadastrar';
+    const data = id ? { id: parseInt(id), nome, cpf: cpfClean, matricula } : { nome, cpf: cpfClean, matricula };
+    
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        const result = await response.json();
+        
+        if (result.sucesso) {
+            showMessage(result.mensagem, 'success');
+            fecharFormulario();
+            listarProdutores();
+        } else {
+            showMessage(result.mensagem, 'error');
+        }
+    } catch (error) {
+        showMessage('Erro ao salvar produtor', 'error');
+    }
+});
+
+// Excluir produtor
+document.getElementById('confirmExcluir').addEventListener('click', async () => {
+    if (!excluirId) return;
+    
+    try {
+        const response = await fetch('/api/produtores/excluir', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: excluirId })
+        });
+        const result = await response.json();
+        
+        if (result.sucesso) {
+            showMessage(result.mensagem, 'success');
+            fecharModal();
+            listarProdutores();
+        } else {
+            showMessage(result.mensagem, 'error');
+        }
+    } catch (error) {
+        showMessage('Erro ao excluir produtor', 'error');
+    }
+});
+
+// Inicializar
+listarProdutores();
+</script>
+</body>
+</html>
