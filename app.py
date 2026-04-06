@@ -178,11 +178,33 @@ def buscar_estoque(produtor_id):
     try:
         cur = conn.cursor()
         cur.execute("""
-            SELECT tipo_alho, classe, SUM(peso) FROM estoque
+            SELECT tipo_alho, classe, local_estoque, SUM(peso) FROM estoque
             WHERE produtor_id = %s AND peso > 0
-            GROUP BY tipo_alho, classe ORDER BY tipo_alho, classe
+            GROUP BY tipo_alho, classe, local_estoque ORDER BY tipo_alho, classe
         """, (produtor_id,))
-        result = [{'tipo': r[0], 'classe': r[1], 'peso': float(r[2])} for r in cur.fetchall()]
+        
+        result = []
+        for r in cur.fetchall():
+            local = r[2]  # Classificação, Banca ou Toletagem
+            
+            # Se for Banca ou Toletagem, marcamos como "em_progresso"
+            if local in ('Banca', 'Toletagem'):
+                result.append({
+                    'tipo': r[0], 
+                    'classe': r[1], 
+                    'local': local,
+                    'peso': float(r[3]),
+                    'em_progresso': True
+                })
+            else:
+                result.append({
+                    'tipo': r[0], 
+                    'classe': r[1], 
+                    'local': local,
+                    'peso': float(r[3]),
+                    'em_progresso': False
+                })
+        
         cur.close()
         conn.close()
         return result
