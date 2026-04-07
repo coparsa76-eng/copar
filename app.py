@@ -1181,20 +1181,31 @@ def listar_produtores():
 
 # Adicione estas rotas ao app.py:
 
-def _check_setor_ou_admin():
-    """Retorna True se NÃO autorizado"""
+# Substitua a função _check_gerente existente ou adicione esta:
+def _check_admin_ou_classificacao():
+    """Retorna True se NÃO autorizado (classificação, gerente ou superadmin são autorizados)"""
+    if 'produtor_id' not in session:
+        return True
     tipo = session.get('tipo')
-    return 'produtor_id' not in session or tipo not in ('classificacao', 'gerente', 'superadmin')
+    return tipo not in ('classificacao', 'gerente', 'superadmin')
 
+# E mantenha _check_gerente para outras rotas específicas:
+def _check_gerente():
+    """Retorna True se NÃO é gerente"""
+    if 'produtor_id' not in session:
+        return True
+    return session.get('tipo') != 'gerente'
+
+# Agora corrija as 4 rotas:
 @app.route('/api/produtores/listar')
 def api_produtores_listar():
-    if _check_gerente():
+    if _check_admin_ou_classificacao():
         return jsonify([]), 403
     return jsonify(listar_produtores())
 
 @app.route('/api/produtores/cadastrar', methods=['POST'])
 def api_produtores_cadastrar():
-    if _check_gerente():
+    if _check_admin_ou_classificacao():
         return jsonify({'sucesso': False, 'mensagem': 'Não autorizado'}), 403
     
     data = request.get_json()
@@ -1208,6 +1219,34 @@ def api_produtores_cadastrar():
     )
     return jsonify(result)
 
+@app.route('/api/produtores/editar', methods=['POST'])
+def api_produtores_editar():
+    if _check_admin_ou_classificacao():
+        return jsonify({'sucesso': False, 'mensagem': 'Não autorizado'}), 403
+    
+    data = request.get_json()
+    if not data or not data.get('id'):
+        return jsonify({'sucesso': False, 'mensagem': 'Dados inválidos'}), 400
+    
+    result = editar_produtor(
+        data['id'],
+        data.get('nome', '').strip(),
+        data.get('cpf', '').strip(),
+        data.get('matricula', '').strip()
+    )
+    return jsonify(result)
+
+@app.route('/api/produtores/excluir', methods=['POST'])
+def api_produtores_excluir():
+    if _check_admin_ou_classificacao():
+        return jsonify({'sucesso': False, 'mensagem': 'Não autorizado'}), 403
+    
+    data = request.get_json()
+    if not data or not data.get('id'):
+        return jsonify({'sucesso': False, 'mensagem': 'Dados inválidos'}), 400
+    
+    result = excluir_produtor(data['id'])
+    return jsonify(result)
 # Adicione esta função no seu código (substituindo a _check_gerente existente ou criando uma nova)
 
 def _check_autorizacao_cadastro():
