@@ -1208,6 +1208,27 @@ def api_produtores_cadastrar():
     )
     return jsonify(result)
 
+# Adicione esta função no seu código (substituindo a _check_gerente existente ou criando uma nova)
+
+def _check_autorizacao_cadastro():
+    """Verifica se o usuário tem permissão para cadastrar/editar produtores"""
+    if 'produtor_id' not in session:
+        return True
+    tipo = session.get('tipo')
+    # Permite para classificação, gerente e superadmin
+    return tipo not in ('classificacao', 'gerente', 'superadmin')
+
+# Ou mantenha as duas funções separadas:
+def _check_gerente():
+    """Verifica se é especificamente gerente"""
+    return 'produtor_id' not in session or session.get('tipo') != 'gerente'
+
+def _check_admin_ou_classificacao():
+    """Verifica se tem permissão de admin/classificação"""
+    if 'produtor_id' not in session:
+        return True
+    tipo = session.get('tipo')
+    return tipo not in ('classificacao', 'gerente', 'superadmin')
 @app.route('/api/produtores/editar', methods=['POST'])
 def api_produtores_editar():
     if _check_gerente():
@@ -1242,7 +1263,7 @@ def api_produtores_excluir():
 
 @app.route('/api/gerente/estoque-por-produtor')
 def api_gerente_estoque_por_produtor():
-    if _check_gerente():
+    if _check_admin_ou_classificacao():
         return jsonify([]), 403
     return jsonify(obter_estoque_por_produtor())
 
