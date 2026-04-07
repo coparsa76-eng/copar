@@ -1,4 +1,3 @@
-Não, o código não está completo e não está correto para o que você precisa. O arquivo foi cortado no meio da função login() e faltam as partes importantes que eu mencionei anteriormente.
 
 ```python
 #!/usr/bin/env python3
