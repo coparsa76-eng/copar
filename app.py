@@ -1263,12 +1263,12 @@ def _check_gerente():
     return 'produtor_id' not in session or session.get('tipo') != 'gerente'
 
 def _check_admin_ou_classificacao():
-    """Verifica se tem permissão de admin/classificação"""
+    """Verifica se tem permissão de admin/classificao"""
     if 'produtor_id' not in session:
         return True
     tipo = session.get('tipo')
     return tipo not in ('classificacao', 'gerente', 'superadmin')
-@app.route('/api/produtores/editar', methods=['POST'])
+
 def api_produtores_editar():
     if _check_gerente():
         return jsonify({'sucesso': False, 'mensagem': 'Não autorizado'}), 403
