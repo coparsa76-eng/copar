@@ -1247,55 +1247,7 @@ def api_produtores_excluir():
     
     result = excluir_produtor(data['id'])
     return jsonify(result)
-# Adicione esta função no seu código (substituindo a _check_gerente existente ou criando uma nova)
 
-def _check_autorizacao_cadastro():
-    """Verifica se o usuário tem permissão para cadastrar/editar produtores"""
-    if 'produtor_id' not in session:
-        return True
-    tipo = session.get('tipo')
-    # Permite para classificação, gerente e superadmin
-    return tipo not in ('classificacao', 'gerente', 'superadmin')
-
-# Ou mantenha as duas funções separadas:
-def _check_gerente():
-    """Verifica se é especificamente gerente"""
-    return 'produtor_id' not in session or session.get('tipo') != 'gerente'
-
-def _check_admin_ou_classificacao():
-    """Verifica se tem permissão de admin/classificao"""
-    if 'produtor_id' not in session:
-        return True
-    tipo = session.get('tipo')
-    return tipo not in ('classificacao', 'gerente', 'superadmin')
-
-def api_produtores_editar():
-    if _check_gerente():
-        return jsonify({'sucesso': False, 'mensagem': 'Não autorizado'}), 403
-    
-    data = request.get_json()
-    if not data or not data.get('id'):
-        return jsonify({'sucesso': False, 'mensagem': 'Dados inválidos'}), 400
-    
-    result = editar_produtor(
-        data['id'],
-        data.get('nome', '').strip(),
-        data.get('cpf', '').strip(),
-        data.get('matricula', '').strip()
-    )
-    return jsonify(result)
-
-@app.route('/api/produtores/excluir', methods=['POST'])
-def api_produtores_excluir():
-    if _check_gerente():
-        return jsonify({'sucesso': False, 'mensagem': 'Não autorizado'}), 403
-    
-    data = request.get_json()
-    if not data or not data.get('id'):
-        return jsonify({'sucesso': False, 'mensagem': 'Dados inválidos'}), 400
-    
-    result = excluir_produtor(data['id'])
-    return jsonify(result)
 
 
 # Adicione estas rotas ao app.py:
@@ -1334,9 +1286,6 @@ def gerente_relatorio_geral_html():
     return render_template('relatorio_geral.html')
 
 # ── APIs do Gerente (COMPLETAS) ──────────────────────────────────────────────
-
-def _check_gerente():
-    return 'produtor_id' not in session or session.get('tipo') != 'gerente'
 
 @app.route('/api/gerente/estatisticas')
 def api_gerente_estatisticas():
