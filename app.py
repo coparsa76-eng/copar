@@ -1332,7 +1332,7 @@ try:
     print("✅ Vendas Rápidas ativado!")
 except Exception as e:
     print(f"❌ Erro ao carregar Vendas Rápidas: {e}")
-────────────────────────────────────────────────────
+# ________
 
 if __name__ == '__main__':
     criar_tabelas()
