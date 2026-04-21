@@ -306,25 +306,19 @@ def _inserir_estoque(cur, produtor_id, tipo_alho, classe_banco, peso, local_banc
     return cur.fetchone()[0]
 
 # ── Consultas do Gerente (COMPLETAS) ─────────────────────────────────────────
-
 def obter_estatisticas_completas():
-    """Retorna todas as estatísticas para o dashboard"""
     conn = conectar_banco()
     if not conn:
         return {}
-    
     try:
         cur = conn.cursor()
         
-        # Total de produtores
         cur.execute("SELECT COUNT(*) FROM produtores")
         total_produtores = cur.fetchone()[0]
         
-        # Total de estoque
         cur.execute("SELECT COALESCE(SUM(peso),0) FROM estoque WHERE peso > 0")
         total_estoque = float(cur.fetchone()[0])
         
-        # Estoque por local
         cur.execute("""
             SELECT local_estoque, COALESCE(SUM(peso),0) 
             FROM estoque WHERE peso > 0 
@@ -332,23 +326,23 @@ def obter_estatisticas_completas():
         """)
         estoque_por_local = {row[0]: float(row[1]) for row in cur.fetchall()}
         
-        # Vendas do mês atual (compatível com PostgreSQL)
+        # Vendas do mês atual – usando EXTRACT (ignora fuso)
         cur.execute("""
             SELECT COALESCE(SUM(valor_total), 0) FROM vendas 
-            WHERE DATE_TRUNC('month', data_venda) = DATE_TRUNC('month', CURRENT_DATE)
+            WHERE EXTRACT(YEAR FROM data_venda) = EXTRACT(YEAR FROM CURRENT_DATE)
+              AND EXTRACT(MONTH FROM data_venda) = EXTRACT(MONTH FROM CURRENT_DATE)
         """)
         vendas_mes = float(cur.fetchone()[0])
         
-        # Pagamentos do mês atual - VERSÃO MELHORADA
+        # Pagamentos do mês atual – usando EXTRACT (ignora fuso)
         cur.execute("""
             SELECT COALESCE(SUM(valor_total), 0) FROM pagamentos 
-            WHERE DATE_TRUNC('month', data_pagamento) = DATE_TRUNC('month', CURRENT_DATE)
+            WHERE EXTRACT(YEAR FROM data_pagamento) = EXTRACT(YEAR FROM CURRENT_DATE)
+              AND EXTRACT(MONTH FROM data_pagamento) = EXTRACT(MONTH FROM CURRENT_DATE)
         """)
         pagamentos_mes = float(cur.fetchone()[0])
         
-        # DEBUG: Mostrar no console para verificar
-        print(f"[DEBUG] Vendas mês: R$ {vendas_mes:.2f}")
-        print(f"[DEBUG] Pagamentos mês: R$ {pagamentos_mes:.2f}")
+        print(f"[DEBUG] Vendas mês: R$ {vendas_mes:.2f} | Pagamentos mês: R$ {pagamentos_mes:.2f}")
         
         cur.close()
         conn.close()
