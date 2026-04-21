@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-MÓDULO DE VENDAS RÁPIDAS - Versão Corrigida
+MÓDULO DE VENDAS RÁPIDAS - Versão Corrigida e Funcional
 """
 
 from flask import render_template_string, jsonify, request, session
@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 DATABASE_URL = 'postgresql://neondb_owner:npg_Bp1AmUEoX7ui@ep-summer-haze-a8lxhx5j-pooler.eastus2.azure.neon.tech/neondb?sslmode=require'
 
-# Constantes CORRIGIDAS (sem Semente e Tratado)
+# Constantes
 TIPOS_ALHO = ['Ito', 'Chonan', 'São Valentim']
 CLASSES = ['Indústria', 'Classe 2', 'Classe 3', 'Classe 4', 'Classe 5', 'Classe 6', 'Classe 7']
 TIPOS_ESTOQUE = ['Classificação', 'Banca', 'Toletagem']
@@ -30,7 +30,6 @@ def verificar_acesso():
     return session.get('tipo') in ('gerente', 'superadmin')
 
 def buscar_estoque_disponivel(tipo_alho, classe, local_estoque):
-    """Busca todos os produtores com estoque disponível"""
     conn = conectar_banco()
     if not conn:
         return []
@@ -39,8 +38,7 @@ def buscar_estoque_disponivel(tipo_alho, classe, local_estoque):
         cur = conn.cursor()
         cur.execute("""
             SELECT p.id, p.nome, p.matricula, 
-                   COALESCE(SUM(e.peso), 0) as peso_total,
-                   COALESCE(SUM(e.horas_banca), 0) as horas_banca
+                   COALESCE(SUM(e.peso), 0) as peso_total
             FROM estoque e
             JOIN produtores p ON e.produtor_id = p.id
             WHERE e.tipo_alho = %s 
@@ -58,8 +56,7 @@ def buscar_estoque_disponivel(tipo_alho, classe, local_estoque):
                 'id': row[0],
                 'nome': row[1],
                 'matricula': row[2],
-                'peso_disponivel': float(row[3]),
-                'horas_banca': float(row[4] or 0)
+                'peso_disponivel': float(row[3])
             })
         
         cur.close()
@@ -70,7 +67,6 @@ def buscar_estoque_disponivel(tipo_alho, classe, local_estoque):
         return []
 
 def registrar_venda_rapida(produtor_id, tipo_alho, classe, local_origem, peso, valor_kg):
-    """Registra venda com baixa no estoque"""
     conn = conectar_banco()
     if not conn:
         return {'sucesso': False, 'mensagem': 'Erro de conexão'}
@@ -80,7 +76,7 @@ def registrar_venda_rapida(produtor_id, tipo_alho, classe, local_origem, peso, v
         
         # Verificar estoque disponível
         cur.execute("""
-            SELECT COALESCE(SUM(peso), 0), COALESCE(SUM(horas_banca), 0)
+            SELECT COALESCE(SUM(peso), 0)
             FROM estoque
             WHERE produtor_id = %s 
               AND tipo_alho = %s 
@@ -89,61 +85,26 @@ def registrar_venda_rapida(produtor_id, tipo_alho, classe, local_origem, peso, v
               AND peso > 0
         """, (produtor_id, tipo_alho, classe, local_origem))
         
-        row = cur.fetchone()
-        disp = float(row[0]) if row else 0
-        horas_total = float(row[1]) if row else 0
+        disp = float(cur.fetchone()[0])
         
         if disp < peso:
             raise ValueError(f"Estoque insuficiente! Disponível: {disp:.2f} Kg")
         
         # Calcular valores
         valor_total = peso * valor_kg
-        
-        # Buscar descontos padrão
-        cur.execute("SELECT valor FROM configuracoes WHERE chave = 'descontos_padrao'")
-        row_desc = cur.fetchone()
-        if row_desc:
-            import json
-            descontos = json.loads(row_desc[0])
-        else:
-            descontos = {
-                'fundo_rural_percent': 2.0,
-                'comissao_percent': 1.5,
-                'valor_hora_banca': 2.0,
-                'sacaria_percent': 1.0,
-                'icms_percent': 12.0,
-                'caixa_percent': 0.5
-            }
-        
-        # Calcular descontos
-        proporcao = peso / disp if disp > 0 else 0
-        horas_usadas = horas_total * proporcao
-        
-        desconto_fr = valor_total * descontos.get('fundo_rural_percent', 0) / 100
-        desconto_com = valor_total * descontos.get('comissao_percent', 0) / 100
-        desconto_hb = horas_usadas * descontos.get('valor_hora_banca', 0)
-        desconto_sac = valor_total * descontos.get('sacaria_percent', 0) / 100
-        desconto_icms = valor_total * descontos.get('icms_percent', 0) / 100
-        desconto_cx = valor_total * descontos.get('caixa_percent', 0) / 100
-        
-        valor_produtor = valor_total - desconto_fr - desconto_com - desconto_hb - desconto_sac - desconto_icms - desconto_cx
-        
-        if valor_produtor < 0:
-            raise ValueError("Valor do produtor negativo após descontos!")
+        comissao = valor_total * 0.10
+        valor_produtor = valor_total - comissao
         
         # Registrar venda
         cur.execute("""
             INSERT INTO vendas (
                 produtor_id, tipo_alho, classe, peso, valor_kg, valor_total, valor_produtor,
-                desconto_fundo_rural, desconto_comissao, desconto_hora_banca,
-                desconto_sacaria, desconto_icms, desconto_caixa,
-                comprador, origem_estoque, status_pagamento
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                desconto_comissao, comprador, origem_estoque, status_pagamento
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING id
         """, (
             produtor_id, tipo_alho, classe, peso, valor_kg, valor_total, valor_produtor,
-            desconto_fr, desconto_com, desconto_hb, desconto_sac, desconto_icms, desconto_cx,
-            'Venda Rápida', local_origem, 'Pendente'
+            comissao, 'Venda Rápida', local_origem, 'Pendente'
         ))
         
         venda_id = cur.fetchone()[0]
@@ -182,7 +143,7 @@ def registrar_venda_rapida(produtor_id, tipo_alho, classe, local_origem, peso, v
         cur.close()
         conn.close()
         
-        # Buscar nome do produtor para mensagem
+        # Buscar nome do produtor
         nome_produtor = ""
         conn2 = conectar_banco()
         if conn2:
@@ -196,9 +157,8 @@ def registrar_venda_rapida(produtor_id, tipo_alho, classe, local_origem, peso, v
         
         return {
             'sucesso': True,
-            'mensagem': f'✅ Venda #{venda_id} registrada!\nProdutor: {nome_produtor}\nPeso: {peso:.2f} Kg\nValor: R$ {valor_total:.2f}\nLíquido produtor: R$ {valor_produtor:.2f}',
-            'venda_id': venda_id,
-            'valor_produtor': valor_produtor
+            'mensagem': f'✅ Venda #{venda_id} registrada!\nProdutor: {nome_produtor}\nPeso: {peso:.2f} Kg\nTotal: R$ {valor_total:.2f}\nProdutor recebe: R$ {valor_produtor:.2f}',
+            'venda_id': venda_id
         }
         
     except Exception as e:
@@ -208,7 +168,7 @@ def registrar_venda_rapida(produtor_id, tipo_alho, classe, local_origem, peso, v
         return {'sucesso': False, 'mensagem': f'❌ Erro: {str(e)}'}
 
 # ============================================
-# HTML RESPONSIVO (funciona em celular)
+# HTML COMPLETO E FUNCIONAL
 # ============================================
 
 HTML_VENDAS_RAPIDAS = """
@@ -220,49 +180,48 @@ HTML_VENDAS_RAPIDAS = """
     <title>COPAR - Vendas Rápidas</title>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { font-family: 'DM Sans', sans-serif; background: #f2f5f0; color: #1a2e19; padding: 16px; padding-bottom: 32px; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'DM Sans', sans-serif; background: #f2f5f0; color: #1a2e19; padding: 16px; }
         .container { max-width: 800px; margin: 0 auto; }
-        .header { background: linear-gradient(135deg, #2a5c28 0%, #1e4520 100%); color: white; padding: 20px; border-radius: 16px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        .header h1 { font-size: 1.5rem; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+        .header { background: linear-gradient(135deg, #2a5c28 0%, #1e4520 100%); color: white; padding: 20px; border-radius: 16px; margin-bottom: 20px; }
+        .header h1 { font-size: 1.5rem; margin-bottom: 4px; }
         .header p { font-size: 0.85rem; opacity: 0.9; }
         .card { background: white; border-radius: 16px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        .card h2 { color: #2a5c28; font-size: 1.1rem; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #e8f2e7; display: flex; align-items: center; gap: 8px; }
+        .card h2 { color: #2a5c28; font-size: 1.1rem; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #e8f2e7; }
         .form-group { margin-bottom: 16px; }
         label { display: block; font-size: 0.8rem; font-weight: 600; color: #6b7c6a; margin-bottom: 6px; }
-        select, input { width: 100%; padding: 12px; border: 1.5px solid #dde8db; border-radius: 12px; font-family: 'DM Sans', sans-serif; font-size: 1rem; background: white; transition: all 0.2s; }
-        select:focus, input:focus { outline: none; border-color: #2a5c28; box-shadow: 0 0 0 3px rgba(42,92,40,0.1); }
-        button { background: #2a5c28; color: white; border: none; padding: 12px 20px; border-radius: 12px; font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: all 0.2s; width: 100%; }
-        button:hover { background: #3d7a3a; transform: scale(1.02); }
-        button:active { transform: scale(0.98); }
-        .btn-secondary { background: #6b7c6a; }
+        select, input { width: 100%; padding: 12px; border: 1.5px solid #dde8db; border-radius: 12px; font-family: 'DM Sans', sans-serif; font-size: 1rem; }
+        select:focus, input:focus { outline: none; border-color: #2a5c28; }
+        button { background: #2a5c28; color: white; border: none; padding: 12px 20px; border-radius: 12px; font-weight: 600; font-size: 0.9rem; cursor: pointer; width: 100%; }
+        button:hover { background: #3d7a3a; }
         .btn-danger { background: #c0392b; }
         .btn-success { background: #1e8449; }
-        .btn-sm { padding: 8px 12px; font-size: 0.8rem; width: auto; }
-        .carrinho-item { background: #fef9e7; border: 1px solid #fdebd0; border-radius: 12px; padding: 12px; margin-bottom: 8px; }
-        .carrinho-info { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
-        .carrinho-produtor { font-weight: 600; color: #2a5c28; }
-        .total-area { background: linear-gradient(135deg, #e8f2e7 0%, #d4e4d1 100%); padding: 20px; border-radius: 16px; margin-top: 20px; }
+        .btn-sm { padding: 6px 12px; font-size: 0.75rem; width: auto; }
+        .btn-secondary { background: #6b7c6a; }
+        .carrinho-item { background: #fef9e7; border: 1px solid #fdebd0; border-radius: 12px; padding: 12px; margin-bottom: 12px; }
+        .carrinho-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .total-area { background: #e8f2e7; padding: 16px; border-radius: 12px; margin-top: 16px; }
         .total-row { display: flex; justify-content: space-between; margin-bottom: 8px; }
-        .alert { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); padding: 12px 20px; border-radius: 50px; font-size: 0.85rem; font-weight: 500; z-index: 1000; animation: slideDown 0.3s ease-out; box-shadow: 0 4px 12px rgba(0,0,0,0.15); white-space: nowrap; }
+        .alert { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); padding: 12px 20px; border-radius: 50px; font-size: 0.85rem; z-index: 1000; animation: slideDown 0.3s; white-space: nowrap; }
         @keyframes slideDown { from { opacity: 0; transform: translateX(-50%) translateY(-100%); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
         .alert-success { background: #1e8449; color: white; }
         .alert-error { background: #c0392b; color: white; }
         .vazio { text-align: center; padding: 40px; color: #6b7c6a; }
-        .acoes { display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap; }
+        .acoes { display: flex; gap: 12px; margin-top: 16px; }
         .acoes button { flex: 1; }
-        @media (max-width: 600px) { body { padding: 12px; } .card { padding: 16px; } .carrinho-info { flex-direction: column; align-items: flex-start; } .alert { white-space: normal; text-align: center; max-width: 90%; } }
+        @media (max-width: 600px) { body { padding: 12px; } .card { padding: 16px; } .alert { white-space: normal; text-align: center; max-width: 90%; } }
     </style>
 </head>
 <body>
 <div class="container">
     <div class="header">
         <h1>⚡ Vendas Rápidas</h1>
-        <p>Selecione o produto e adicione produtores rapidamente</p>
+        <p>Selecione o produto e adicione produtores</p>
     </div>
     
     <div id="alert"></div>
     
+    <!-- Seleção do Produto -->
     <div class="card">
         <h2>📦 1. Selecione o Produto</h2>
         <div class="form-group">
@@ -298,14 +257,16 @@ HTML_VENDAS_RAPIDAS = """
         </div>
     </div>
     
+    <!-- Lista de Produtores -->
     <div class="card" id="card_produtores" style="display: none;">
         <h2>👥 2. Adicione os Produtores</h2>
         <div id="produtores_lista"></div>
         <button id="btn_adicionar" style="margin-top: 16px;">➕ Adicionar Produtor</button>
     </div>
     
+    <!-- Carrinho -->
     <div class="card" id="card_carrinho" style="display: none;">
-        <h2>🛒 3. Carrinho de Venda</h2>
+        <h2>🛒 3. Resumo da Venda</h2>
         <div id="carrinho_items"></div>
         <div class="total-area">
             <div class="total-row"><span>Total da Venda:</span><strong id="total_venda">R$ 0,00</strong></div>
@@ -318,14 +279,11 @@ HTML_VENDAS_RAPIDAS = """
         </div>
     </div>
     
-    <div class="acoes">
-        <button class="btn-secondary" onclick="window.location.href='/gerente'">← Voltar ao Painel</button>
-    </div>
+    <button class="btn-secondary" onclick="window.location.href='/gerente'">← Voltar ao Painel</button>
 </div>
 
 <script>
 let carrinho = [];
-let produtoresDisponiveis = [];
 let currentId = 0;
 
 const tipoAlho = document.getElementById('tipo_alho');
@@ -350,8 +308,6 @@ async function carregarProdutores() {
         return;
     }
     
-    mostrarAlerta('🔍 Buscando produtores...', 'success');
-    
     try {
         const response = await fetch('/api/vendas-rapido/produtores', {
             method: 'POST',
@@ -362,13 +318,11 @@ async function carregarProdutores() {
         const data = await response.json();
         
         if (data.sucesso) {
-            produtoresDisponiveis = data.produtores;
+            window.produtoresDisponiveis = data.produtores;
             document.getElementById('card_produtores').style.display = 'block';
-            if (produtoresDisponiveis.length === 0) {
+            if (data.produtores.length === 0) {
                 mostrarAlerta('⚠️ Nenhum produtor com estoque disponível!', 'error');
             }
-        } else {
-            mostrarAlerta(data.mensagem, 'error');
         }
     } catch (error) {
         mostrarAlerta('Erro ao buscar produtores', 'error');
@@ -376,17 +330,22 @@ async function carregarProdutores() {
 }
 
 function adicionarLinhaProdutor() {
-    if (produtoresDisponiveis.length === 0) {
-        mostrarAlerta('⚠️ Nenhum produtor disponível para este produto!', 'error');
+    if (!window.produtoresDisponiveis || window.produtoresDisponiveis.length === 0) {
+        mostrarAlerta('⚠️ Nenhum produtor disponível!', 'error');
         return;
     }
     
     const linhaId = currentId++;
     carrinho.push({
-        id: linhaId, produtor_id: null, produtor_nome: '', matricula: '',
-        peso: 0, peso_disponivel: 0, preco: parseFloat(precoKg.value)
+        id: linhaId,
+        produtor_id: null,
+        produtor_nome: '',
+        matricula: '',
+        peso: 0,
+        peso_disponivel: 0,
+        preco: parseFloat(precoKg.value)
     });
-    renderizarProdutoresLista();
+    renderizarLista();
 }
 
 function atualizarProdutor(linhaId, produtorId, nome, matricula, pesoDisponivel) {
@@ -396,7 +355,7 @@ function atualizarProdutor(linhaId, produtorId, nome, matricula, pesoDisponivel)
         item.produtor_nome = nome;
         item.matricula = matricula;
         item.peso_disponivel = pesoDisponivel;
-        renderizarProdutoresLista();
+        renderizarLista();
     }
 }
 
@@ -408,18 +367,18 @@ function atualizarPeso(linhaId, peso) {
             mostrarAlerta(`⚠️ Peso excede o disponível (${item.peso_disponivel} kg)`, 'error');
             item.peso = item.peso_disponivel;
         }
-        renderizarProdutoresLista();
+        renderizarLista();
         atualizarResumo();
     }
 }
 
 function removerLinha(linhaId) {
     carrinho = carrinho.filter(i => i.id !== linhaId);
-    renderizarProdutoresLista();
+    renderizarLista();
     atualizarResumo();
 }
 
-function renderizarProdutoresLista() {
+function renderizarLista() {
     const container = document.getElementById('produtores_lista');
     
     if (carrinho.length === 0) {
@@ -430,27 +389,29 @@ function renderizarProdutoresLista() {
     let html = '';
     carrinho.forEach((item, idx) => {
         html += `
-            <div class="carrinho-item" style="margin-bottom: 16px;">
+            <div class="carrinho-item">
                 <div class="carrinho-info">
-                    <span class="carrinho-produtor">👤 Produtor ${idx + 1}</span>
+                    <strong>👤 Produtor ${idx + 1}</strong>
                     <button class="btn-sm btn-danger" onclick="removerLinha(${item.id})">✖ Remover</button>
                 </div>
                 <div class="form-group">
-                    <label>🔍 Buscar Produtor</label>
-                    <input type="text" id="busca_${item.id}" placeholder="Digite nome ou matrícula..." oninput="buscarProdutor(${item.id}, this.value)">
-                    <div id="resultados_${item.id}" style="display: none; background: white; border: 1px solid #dde8db; border-radius: 8px; max-height: 150px; overflow-y: auto; margin-top: 4px;"></div>
+                    <label>🔍 Buscar (nome ou matrícula)</label>
+                    <input type="text" id="busca_${item.id}" placeholder="Digite para buscar..." 
+                           oninput="buscarProdutor(${item.id}, this.value)">
+                    <div id="resultados_${item.id}" style="display:none; background:white; border:1px solid #ddd; border-radius:8px; max-height:150px; overflow-y:auto; margin-top:4px;"></div>
                 </div>
                 <div class="form-group">
                     <label>👤 Produtor Selecionado</label>
-                    <input type="text" id="produtor_${item.id}" value="${item.produtor_nome}" readonly placeholder="Nenhum selecionado" style="background: #f4f9f3;">
+                    <input type="text" id="produtor_${item.id}" value="${item.produtor_nome}" readonly placeholder="Nenhum" style="background:#f4f9f3;">
                 </div>
                 <div class="form-group">
                     <label>⚖️ Peso (KG) - Disponível: ${item.peso_disponivel} kg</label>
-                    <input type="number" id="peso_${item.id}" step="0.001" value="${item.peso || ''}" placeholder="Ex: 10.5" onchange="atualizarPeso(${item.id}, this.value)">
+                    <input type="number" id="peso_${item.id}" step="0.001" value="${item.peso || ''}" 
+                           placeholder="Ex: 10.5" onchange="atualizarPeso(${item.id}, this.value)">
                 </div>
                 <div class="form-group">
                     <label>💰 Subtotal</label>
-                    <input type="text" value="R$ ${(item.peso * item.preco).toFixed(2)}" readonly style="background: #f4f9f3; font-weight: 600;">
+                    <input type="text" value="R$ ${(item.peso * item.preco).toFixed(2)}" readonly style="background:#f4f9f3; font-weight:600;">
                 </div>
             </div>
         `;
@@ -482,22 +443,21 @@ function buscarProdutor(linhaId, termo) {
             const data = await response.json();
             
             if (data.sucesso && data.produtores.length > 0) {
-                const resultadosDiv = document.getElementById(`resultados_${linhaId}`);
+                const div = document.getElementById(`resultados_${linhaId}`);
                 let html = '<div style="padding: 8px;">';
                 data.produtores.forEach(p => {
-                    html += `<div style="padding: 10px; cursor: pointer; border-bottom: 1px solid #eee;" onclick="selecionarProdutor(${linhaId}, ${p.id}, '${p.nome}', '${p.matricula}', ${p.peso_disponivel})">
+                    html += `<div style="padding: 10px; cursor: pointer; border-bottom: 1px solid #eee;" 
+                                   onclick="selecionarProdutor(${linhaId}, ${p.id}, '${p.nome}', '${p.matricula}', ${p.peso_disponivel})">
                                 <strong>${p.nome}</strong><br>
                                 <small>Matrícula: ${p.matricula} | Disponível: ${p.peso_disponivel} kg</small>
                             </div>`;
                 });
                 html += '</div>';
-                resultadosDiv.innerHTML = html;
-                resultadosDiv.style.display = 'block';
-            } else {
-                document.getElementById(`resultados_${linhaId}`).style.display = 'none';
+                div.innerHTML = html;
+                div.style.display = 'block';
             }
         } catch (error) {
-            console.error('Erro:', error);
+            console.error(error);
         }
     }, 500);
 }
@@ -519,7 +479,25 @@ function atualizarResumo() {
     document.getElementById('comissao').innerHTML = `R$ ${comissao.toFixed(2)}`;
     document.getElementById('valor_produtor').innerHTML = `R$ ${valorProdutor.toFixed(2)}`;
     
-    document.getElementById('card_carrinho').style.display = itensValidos.length > 0 ? 'block' : 'none';
+    // Mostrar resumo do carrinho
+    const container = document.getElementById('carrinho_items');
+    if (itensValidos.length > 0) {
+        let resumoHtml = '<div style="margin-bottom: 16px;">';
+        itensValidos.forEach((item, idx) => {
+            resumoHtml += `
+                <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e8f2e7;">
+                    <span><strong>${item.produtor_nome}</strong> (${item.peso.toFixed(2)} kg)</span>
+                    <span>R$ ${(item.peso * item.preco).toFixed(2)}</span>
+                </div>
+            `;
+        });
+        resumoHtml += '</div>';
+        container.innerHTML = resumoHtml;
+        document.getElementById('card_carrinho').style.display = 'block';
+    } else {
+        container.innerHTML = '<div class="vazio">Nenhum item no carrinho</div>';
+        document.getElementById('card_carrinho').style.display = 'none';
+    }
 }
 
 async function finalizarVenda() {
@@ -550,8 +528,7 @@ async function finalizarVenda() {
                     local_origem: localOrigem.value,
                     peso: i.peso,
                     valor_kg: i.preco
-                })),
-                total_venda: total
+                }))
             })
         });
         
@@ -569,10 +546,10 @@ async function finalizarVenda() {
 }
 
 function limparTudo() {
-    if (confirm('Limpar toda a venda? Todos os dados serão perdidos.')) {
+    if (confirm('Limpar toda a venda?')) {
         carrinho = [];
         currentId = 0;
-        renderizarProdutoresLista();
+        renderizarLista();
         atualizarResumo();
         tipoAlho.value = '';
         classe.value = '';
@@ -583,17 +560,10 @@ function limparTudo() {
     }
 }
 
+// Eventos
 tipoAlho.addEventListener('change', carregarProdutores);
 classe.addEventListener('change', carregarProdutores);
 localOrigem.addEventListener('change', carregarProdutores);
-precoKg.addEventListener('change', () => {
-    if (carrinho.length > 0) {
-        carrinho.forEach(item => item.preco = parseFloat(precoKg.value));
-        renderizarProdutoresLista();
-        atualizarResumo();
-    }
-});
-
 document.getElementById('btn_adicionar').addEventListener('click', adicionarLinhaProdutor);
 document.getElementById('btn_finalizar').addEventListener('click', finalizarVenda);
 document.getElementById('btn_limpar').addEventListener('click', limparTudo);
@@ -688,7 +658,7 @@ def registrar_rotas_vendas_rapido(app):
             else:
                 return jsonify({'sucesso': False, 'mensagem': resultado['mensagem']})
         
-        return jsonify({'sucesso': True, 'mensagem': f'✅ {len(resultados)} venda(s) registrada(s) com sucesso!', 'vendas': resultados})
+        return jsonify({'sucesso': True, 'mensagem': f'✅ {len(resultados)} venda(s) registrada(s) com sucesso!'})
     
     print("✅ Módulo de Vendas Rápidas carregado!")
     print("   📍 Acesse: /vendas/rapido")
