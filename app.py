@@ -1332,6 +1332,13 @@ try:
     print("✅ Vendas Rápidas ativado!")
 except Exception as e:
     print(f"❌ Erro ao carregar Vendas Rápidas: {e}")
+# CARREGAR MÓDULO DE PAGAMENTOS
+try:
+    from modulo_pagamentos import registrar_rotas_pagamentos
+    registrar_rotas_pagamentos(app)
+    print("✅ Módulo de Pagamentos carregado!")
+except Exception as e:
+    print(f"❌ Erro ao carregar Pagamentos: {e}")
 # ________
 
 if __name__ == '__main__':
