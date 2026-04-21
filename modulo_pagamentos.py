@@ -137,9 +137,9 @@ def registrar_pagamento(produtor_id, vendas_ids, valor_pago, forma_pagamento, ob
         
         # Registrar pagamento principal
         cur.execute("""
-            INSERT INTO pagamentos (produtor_id, valor_total, forma_pagamento, observacoes)
-            VALUES (%s, %s, %s, %s) RETURNING id
-        """, (produtor_id, valor_pago, forma_pagamento, observacao))
+    INSERT INTO pagamentos (produtor_id, valor_total, forma_pagamento, observacoes, data_pagamento)
+    VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP) RETURNING id
+""", (produtor_id, valor_pago, forma_pagamento, observacao))
         pagamento_id = cur.fetchone()[0]
         
         # Distribuir pagamento entre as vendas (FIFO)
