@@ -1325,13 +1325,14 @@ def api_gerente_estoque_hierarquico():
         return jsonify([]), 403
     return jsonify(obter_estoque_hierarquico())
 
+# CARREGAR VENDAS RÁPIDAS
 try:
     from modulo_vendas_rapido import registrar_rotas_vendas_rapido
     registrar_rotas_vendas_rapido(app)
-    print("✅ Módulo carregado!")
-except ImportError as e:
-    print(f"Erro: {e}")
-# ── Entrypoint ───────────────────────────────────────────────────────────────
+    print("✅ Vendas Rápidas ativado!")
+except Exception as e:
+    print(f"❌ Erro ao carregar Vendas Rápidas: {e}")
+────────────────────────────────────────────────────
 
 if __name__ == '__main__':
     criar_tabelas()
