@@ -1,8 +1,4 @@
-# -*- coding: utf-8 -*-
-"""
-MÓDULO DE VENDAS RÁPIDAS - Versão Web (compatível com app.py existente)
-Mantém os mesmos nomes de classes e variedades do sistema original
-"""
+
 
 from flask import render_template_string, jsonify, request, session
 import psycopg
