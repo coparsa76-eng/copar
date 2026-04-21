@@ -332,19 +332,23 @@ def obter_estatisticas_completas():
         """)
         estoque_por_local = {row[0]: float(row[1]) for row in cur.fetchall()}
         
-        # Vendas do mês atual
+        # Vendas do mês atual (compatível com PostgreSQL)
         cur.execute("""
-            SELECT COALESCE(SUM(valor_total),0) FROM vendas 
+            SELECT COALESCE(SUM(valor_total), 0) FROM vendas 
             WHERE DATE_TRUNC('month', data_venda) = DATE_TRUNC('month', CURRENT_DATE)
         """)
         vendas_mes = float(cur.fetchone()[0])
         
-        # Pagamentos do mês atual
+        # Pagamentos do mês atual - VERSÃO MELHORADA
         cur.execute("""
-            SELECT COALESCE(SUM(valor_total),0) FROM pagamentos 
+            SELECT COALESCE(SUM(valor_total), 0) FROM pagamentos 
             WHERE DATE_TRUNC('month', data_pagamento) = DATE_TRUNC('month', CURRENT_DATE)
         """)
         pagamentos_mes = float(cur.fetchone()[0])
+        
+        # DEBUG: Mostrar no console para verificar
+        print(f"[DEBUG] Vendas mês: R$ {vendas_mes:.2f}")
+        print(f"[DEBUG] Pagamentos mês: R$ {pagamentos_mes:.2f}")
         
         cur.close()
         conn.close()
