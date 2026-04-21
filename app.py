@@ -1325,13 +1325,13 @@ def api_gerente_estoque_hierarquico():
         return jsonify([]), 403
     return jsonify(obter_estoque_hierarquico())
 
-
 try:
-    from modulo_vendas import registrar_rotas_vendas
-    registrar_rotas_vendas(app)
-    print("✅ Módulo de Vendas carregado com sucesso!")
+    from modulo_vendas_rapido import registrar_rotas_vendas_rapido
+    registrar_rotas_vendas_rapido(app)
+    print("✅ Módulo de Vendas Rápidas carregado!")
 except ImportError as e:
-    print(f"⚠️ Módulo de Vendas não encontrado: {e}")
+    print(f"⚠️ Erro: {e}")
+
 # ── Entrypoint ───────────────────────────────────────────────────────────────
 
 if __name__ == '__main__':
