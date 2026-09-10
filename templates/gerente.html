@@ -397,7 +397,7 @@
 <nav>
     <div class="nav-brand">🌾 COPAR - Gerencial</div>
     <div class="nav-right">
-        <span class="nav-name">👤 Luis Henrique</span>
+        <span class="nav-name">👤 {{ session.get('produtor_nome', 'Gerente') }}</span>
         <a href="/logout" class="btn-sair">Sair</a>
     </div>
 </nav>
