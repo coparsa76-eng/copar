@@ -56,8 +56,8 @@ USUARIOS_ESPECIAIS = {
     'copar10entrada':   {'id': 9991, 'nome': 'Setor Classificação', 'tipo': 'classificacao'},
     'copar22banca':     {'id': 9992, 'nome': 'Setor Banca', 'tipo': 'banca'},
     'copar33toletagem': {'id': 9993, 'nome': 'Setor Toletagem', 'tipo': 'toletagem'},
-    'glh':              {'id': 8888, 'nome': 'Luis Henrique – Gerente', 'tipo': 'gerente'},
-    'copar10':          {'id': 9999, 'nome': 'Super Administrador', 'tipo': 'superadmin'},
+    'vitorgisele':              {'id': 8888, 'nome': 'Vitor Gisele – Gerente', 'tipo': 'gerente'},
+    'copar10':          {'id': 9999, 'nome': 'diretoria', 'tipo': 'superadmin'},
 }
 
 # ── Banco ────────────────────────────────────────────────────────────────────
