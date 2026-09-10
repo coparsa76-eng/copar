@@ -1323,23 +1323,46 @@ def api_gerente_estoque_hierarquico():
         return jsonify([]), 403
     return jsonify(obter_estoque_hierarquico())
 
-# CARREGAR VENDAS RÁPIDAS
+# ══════════════════════════════════════════════════════════════════
+# CARREGAR MÓDULOS ADICIONAIS
+# ══════════════════════════════════════════════════════════════════
+
+# 1. CONFIGURAÇÕES (descontos, hora banca, limpar banco)
+try:
+    from modulo_configuracoes import registrar_rotas_configuracoes
+    registrar_rotas_configuracoes(app)
+    print("✅ Módulo de Configurações ativado!")
+except Exception as e:
+    print(f"❌ Erro ao carregar Configurações: {e}")
+
+# 2. VENDAS RÁPIDAS
 try:
     from modulo_vendas_rapido import registrar_rotas_vendas_rapido
     registrar_rotas_vendas_rapido(app)
     print("✅ Vendas Rápidas ativado!")
 except Exception as e:
     print(f"❌ Erro ao carregar Vendas Rápidas: {e}")
-# CARREGAR MÓDULO DE PAGAMENTOS
+
+# 3. PAGAMENTOS v2 (com descontos configuráveis + hora banca proporcional)
 try:
-    from modulo_pagamentos import registrar_rotas_pagamentos
+    from modulo_pagamentos_v2 import registrar_rotas_pagamentos
     registrar_rotas_pagamentos(app)
-    print("✅ Módulo de Pagamentos carregado!")
+    print("✅ Pagamentos v2 ativado!")
 except Exception as e:
-    print(f"❌ Erro ao carregar Pagamentos: {e}")
-# ________
+    print(f"❌ Erro ao carregar Pagamentos v2: {e}")
+
+# 4. RELATÓRIOS EMPRESARIAIS (layout profissional, sem emojis)
+try:
+    from modulo_relatorios_empresariais import registrar_rotas_relatorios
+    registrar_rotas_relatorios(app)
+    print("✅ Relatórios Empresariais ativados!")
+except Exception as e:
+    print(f"❌ Erro ao carregar Relatórios: {e}")
+
+# ══════════════════════════════════════════════════════════════════
 
 if __name__ == '__main__':
     criar_tabelas()
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=True)
+   
