@@ -217,25 +217,42 @@ def buscar_estoque(produtor_id):
 
 def buscar_vendas(produtor_id):
     conn = conectar_banco()
-    if not conn: return []
+    if not conn:
+        return []
     try:
         cur = conn.cursor()
         cur.execute("""
             SELECT v.id, v.data_venda, v.tipo_alho, v.classe, v.peso,
                    v.valor_total, v.valor_produtor, v.status_pagamento,
-                   COALESCE(cp.saldo, 0)
+                   COALESCE(cp.saldo, 0) AS saldo,
+                   COALESCE(v.valor_kg, 0) AS valor_kg,
+                   COALESCE(v.desconto_comissao, 0) AS comissao,
+                   COALESCE(v.desconto_extra, 0) AS extra,
+                   COALESCE(v.valor_liquido_produtor, v.valor_produtor) AS liquido
             FROM vendas v
             LEFT JOIN creditos_produtor cp ON v.id = cp.venda_id
-            WHERE v.produtor_id = %s ORDER BY v.data_venda DESC
+            WHERE v.produtor_id = %s
+            ORDER BY v.data_venda DESC
         """, (produtor_id,))
         vendas = []
         for r in cur.fetchall():
-            vendas.append({'id': r[0],
-                           'data': r[1].strftime("%d/%m/%Y") if r[1] else "",
-                           'tipo': r[2], 'classe': r[3],
-                           'peso': float(r[4]), 'valor_total': float(r[5]),
-                           'valor_produtor': float(r[6]), 'status': r[7],
-                           'saldo': float(r[8])})
+            classe = r[3] or ''
+            vendas.append({
+                'id': r[0],
+                'data': r[1].strftime("%d/%m/%Y") if r[1] else "",
+                'tipo': r[2] or '',
+                'classe': classe,
+                'peso': float(r[4] or 0),
+                'valor_total': float(r[5] or 0),
+                'valor_produtor': float(r[6] or 0),
+                'status': r[7],
+                'saldo': float(r[8]),
+                'valor_kg': float(r[9]),
+                'comissao': float(r[10]),
+                'extra': float(r[11]),
+                'liquido': float(r[12]),
+                'is_industria': classe.startswith('Indústria'),
+            })
         cur.close()
         conn.close()
         return vendas
@@ -587,15 +604,73 @@ def login():
 
 @app.route('/produtor')
 def produtor():
-    if 'produtor_id' not in session or session.get('tipo') not in (None,'produtor'):
+    if 'produtor_id' not in session or session.get('tipo') not in (None, 'produtor'):
         return redirect(url_for('login'))
+
     pid = session['produtor_id']
     estoque = buscar_estoque(pid)
     vendas = buscar_vendas(pid)
     tr, ta = calcular_saldos(vendas)
-    return render_template('produtor.html', nome=session['produtor_nome'],
-                           estoque=estoque, vendas=vendas,
-                           total_recebido=tr, total_a_receber=ta)
+
+    # ── Totais para os cards ────────────────────────────────────────────
+    total_estoque_class = sum(e['peso'] for e in estoque
+                              if not e.get('em_progresso') and not e.get('is_industria'))
+    total_estoque_ind = sum(e['peso'] for e in estoque if e.get('is_industria'))
+
+    # Comissão COPAR total (soma da coluna desconto_comissao das vendas)
+    total_comissao = sum(v.get('comissao', 0) for v in vendas)
+
+    # Horas de banca registradas
+    total_horas = 0
+    registros_hb = []
+    conn = conectar_banco()
+    if conn:
+        try:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT COALESCE(SUM(horas), 0) FROM registros_horas_banca
+                WHERE produtor_id = %s
+            """, (pid,))
+            total_horas = float(cur.fetchone()[0])
+
+            cur.execute("""
+                SELECT id, tipo_alho, local_origem, local_destino, horas,
+                       registrado_em, operador_nome
+                FROM registros_horas_banca
+                WHERE produtor_id = %s
+                ORDER BY registrado_em DESC
+                LIMIT 20
+            """, (pid,))
+            for r in cur.fetchall():
+                registros_hb.append({
+                    'id': r[0],
+                    'tipo': r[1] or '',
+                    'origem': r[2] or '',
+                    'destino': r[3] or '',
+                    'horas': float(r[4]),
+                    'data': r[5].strftime("%d/%m/%Y %H:%M") if r[5] else '',
+                    'operador': r[6] or '',
+                })
+            cur.close()
+            conn.close()
+        except Exception as e:
+            logger.error(f"Erro ao buscar horas banca produtor: {e}")
+            if conn:
+                conn.close()
+
+    return render_template(
+        'produtor.html',
+        nome=session['produtor_nome'],
+        estoque=estoque,
+        vendas=vendas,
+        total_recebido=tr,
+        total_a_receber=ta,
+        total_comissao=total_comissao,
+        total_horas_banca=total_horas,
+        registros_horas_banca=registros_hb,
+        estoque_classificacao_total=total_estoque_class,
+        estoque_industria_total=total_estoque_ind,
+    )
 
 @app.route('/registro-entrada')
 def registro_entrada():
