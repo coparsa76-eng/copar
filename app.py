@@ -1050,90 +1050,7 @@ def obter_relatorio_produtor(produtor_id):
         logger.error(f"Erro ao gerar relatório: {e}")
         return None
 
-def obter_relatorio_geral():
-    """Gera relatório geral para diretoria"""
-    conn = conectar_banco()
-    if not conn: return None
-    try:
-        cur = conn.cursor()
-        
-        # Total de produtores
-        cur.execute("SELECT COUNT(*) FROM produtores")
-        total_produtores = cur.fetchone()[0]
-        
-        # Estoque total por local
-        cur.execute("""
-            SELECT local_estoque, SUM(peso)
-            FROM estoque WHERE peso > 0
-            GROUP BY local_estoque
-        """)
-        estoque_por_local = {r[0]: float(r[1]) for r in cur.fetchall()}
-        
-        # Estoque por tipo
-        cur.execute("""
-            SELECT tipo_alho, SUM(peso)
-            FROM estoque WHERE peso > 0
-            GROUP BY tipo_alho
-        """)
-        estoque_por_tipo = {r[0] or 'Não definido': float(r[1]) for r in cur.fetchall()}
-        
-        # Vendas por mês (últimos 12 meses)
-        cur.execute("""
-            SELECT DATE_TRUNC('month', data_venda) as mes,
-                   COUNT(*) as qtd_vendas,
-                   SUM(peso) as total_peso,
-                   SUM(valor_total) as total_valor,
-                   SUM(valor_produtor) as total_produtor
-            FROM vendas
-            WHERE data_venda >= CURRENT_DATE - INTERVAL '12 months'
-            GROUP BY DATE_TRUNC('month', data_venda)
-            ORDER BY mes DESC
-        """)
-        vendas_mensais = [{
-            'mes': r[0].strftime("%B/%Y") if r[0] else "",
-            'qtd': r[1], 'peso': float(r[2]), 'valor': float(r[3]), 'produtor': float(r[4])
-        } for r in cur.fetchall()]
-        
-        # Top 10 produtores por volume
-        cur.execute("""
-            SELECT p.nome, SUM(v.peso) as total_peso, SUM(v.valor_total) as total_valor
-            FROM vendas v
-            JOIN produtores p ON v.produtor_id = p.id
-            GROUP BY p.id, p.nome
-            ORDER BY total_peso DESC
-            LIMIT 10
-        """)
-        top_produtores = [{
-            'nome': r[0], 'peso': float(r[1]), 'valor': float(r[2])
-        } for r in cur.fetchall()]
-        
-        # Pagamentos totais
-        cur.execute("""
-            SELECT SUM(valor_total) FROM pagamentos
-            WHERE data_pagamento >= DATE_TRUNC('month', CURRENT_DATE)
-        """)
-        pagamentos_mes = float(cur.fetchone()[0] or 0)
-        
-        cur.execute("SELECT SUM(valor_total) FROM pagamentos")
-        pagamentos_total = float(cur.fetchone()[0] or 0)
-        
-        cur.close()
-        conn.close()
-        
-        return {
-            'data_geracao': datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
-            'total_produtores': total_produtores,
-            'estoque_total': sum(estoque_por_local.values()),
-            'estoque_por_local': estoque_por_local,
-            'estoque_por_tipo': estoque_por_tipo,
-            'vendas_mensais': vendas_mensais,
-            'top_produtores': top_produtores,
-            'pagamentos_mes': pagamentos_mes,
-            'pagamentos_total': pagamentos_total
-        }
-    except Exception as e:
-        logger.error(f"Erro ao gerar relatório geral: {e}")
-        return None
+
 
 # Adicione após as outras funções no app.py
 
@@ -1405,11 +1322,7 @@ def api_gerente_relatorio_produtor(produtor_id):
         return jsonify({'erro': 'Produtor não encontrado'}), 404
     return jsonify(relatorio)
 
-@app.route('/api/gerente/relatorio-geral')
-def api_gerente_relatorio_geral():
-    if _check_gerente():
-        return jsonify({'erro': 'Não autorizado'}), 403
-    return jsonify(obter_relatorio_geral())
+
 
 @app.route('/gerente/relatorio/<int:produtor_id>')
 def gerente_relatorio_produtor_html(produtor_id):
@@ -1417,11 +1330,7 @@ def gerente_relatorio_produtor_html(produtor_id):
         return redirect(url_for('login'))
     return render_template('relatorio_produtor.html', produtor_id=produtor_id)
 
-@app.route('/gerente/relatorio-geral')
-def gerente_relatorio_geral_html():
-    if _check_gerente():
-        return redirect(url_for('login'))
-    return render_template('relatorio_geral.html')
+
 
 # ── APIs do Gerente (COMPLETAS) ──────────────────────────────────────────────
 
@@ -1573,6 +1482,13 @@ try:
     print("✅ Relatórios Empresariais ativados!")
 except Exception as e:
     print(f"❌ Erro ao carregar Relatórios: {e}")
+try:
+    from modulo_relatorio_geral import registrar_rotas_relatorio_geral
+    registrar_rotas_relatorio_geral(app)
+    print("✅ Relatório Geral ativado!")
+except Exception as e:
+    print(f"❌ Erro ao carregar Relatório Geral: {e}")
+
 
 # ══════════════════════════════════════════════════════════════════
 
