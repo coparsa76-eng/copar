@@ -209,3 +209,629 @@
         .modal { background:var(--white); border-radius:16px; width:100%; max-width:440px; padding:1.5rem; }
         .modal-title { font-family:'DM Serif Display',serif; font-size:1.15rem; color:var(--verde); margin-bottom:1rem; }
         .modal-field { display:flex; flex-direction:column; gap:.3rem; margin-bottom:.75rem; }
+        .modal-field label { font-size:.72rem; font-weight:700; color:var(--verde); text-transform:uppercase; }
+        .modal-field input { padding:.7rem .9rem; border:2px solid var(--border); border-radius:10px; font-family:'DM Sans',sans-serif; font-size:.95rem; background:var(--verde-pale); }
+        .modal-actions { display:flex; gap:.6rem; margin-top:1.1rem; }
+        .modal-btn { flex:1; padding:.75rem; border:none; border-radius:10px; font-family:'DM Sans',sans-serif; font-weight:700; cursor:pointer; }
+        .modal-btn-primary { background:var(--verde); color:var(--white); }
+        .modal-btn-secondary { background:var(--verde-light); color:var(--verde); border:1.5px solid #b8d9b5; }
+
+        .btn-cad-prod { display:inline-flex; align-items:center; gap:.4rem; margin-top:.6rem; padding:.45rem .9rem; background:var(--verde-light); border:1.5px solid #b8d9b5; border-radius:8px; font-family:'DM Sans',sans-serif; font-size:.8rem; font-weight:700; color:var(--verde); cursor:pointer; }
+    </style>
+</head>
+<body>
+
+<nav>
+    <div>
+        <div class="nav-brand">COPAR</div>
+        <div class="nav-title">
+            {% if role == 'classificacao' %}Entrada – Classificação
+            {% elif role == 'banca' %}Transferência – Banca
+            {% else %}Transferência – Toletagem{% endif %}
+        </div>
+    </div>
+    <a href="/logout" class="btn-sair">Sair</a>
+</nav>
+
+<div class="status-wrap"><div id="statusMsg" class="status-bar"></div></div>
+
+<main>
+
+    <!-- PRODUTOR -->
+    <div class="card">
+        <div class="card-header">Produtor</div>
+        <div class="card-body">
+            <div class="grid2">
+                <div class="field ac-wrap">
+                    <label>Matrícula / Nome</label>
+                    <input id="matInput" type="text" placeholder="Buscar..." autocomplete="off">
+                    <div id="acList" class="ac-list"></div>
+                </div>
+                <div class="field">
+                    <label>Nome</label>
+                    <input id="nomInput" type="text" readonly placeholder="—">
+                </div>
+            </div>
+            <div id="prodBanner" class="prod-banner"></div>
+            <input type="hidden" id="pidInput">
+
+            {% if role == 'classificacao' or role == 'superadmin' %}
+            <button class="btn-cad-prod" id="btnAbrirCadProd" type="button">
+                Cadastrar novo produtor
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- VARIEDADE -->
+    <div class="card">
+        <div class="card-header">Variedade</div>
+        <div class="card-body">
+            <div class="pills" id="pillsVar">
+                <button class="pill active" data-v="São Valentim">São Valentim</button>
+                <button class="pill" data-v="Ito">Ito</button>
+                <button class="pill" data-v="Chonan">Chonan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MOVIMENTAÇÃO -->
+    {% if role != 'classificacao' %}
+    <div class="card">
+        <div class="card-header">Movimentação</div>
+        <div class="card-body">
+            <div class="field">
+                <label>Origem</label>
+                <select id="origemSel">
+                    {% if role == 'banca' %}
+                    <option value="Classificação">Classificação</option>
+                    <option value="Toletagem">Toletagem</option>
+                    {% else %}
+                    <option value="Classificação">Classificação</option>
+                    <option value="Banca">Banca</option>
+                    {% endif %}
+                </select>
+                <div id="saldoTag" class="saldo-tag">—</div>
+            </div>
+            <div id="saldoLoading" class="saldo-loading">
+                <div class="mini-spin"></div>
+                <span>Buscando saldos...</span>
+            </div>
+
+            <!-- HORA DE BANCA ÚNICA -->
+            <div class="horas-box">
+                <div class="horas-label">
+                    Horas de Banca neste registro
+                    <small>Valor único — vinculado ao produtor (não replicado por classe)</small>
+                </div>
+                <input id="horasInput" type="number" step="0.5" value="0" min="0" inputmode="decimal">
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- PESAGEM -->
+    <div class="card">
+        <div class="card-header">
+            Pesagem
+            {% if role != 'classificacao' %}
+            <span style="font-size:.72rem;font-weight:500;color:var(--muted);margin-left:auto;">
+                Cada classe tem: destino, indústria (do N) e perda
+            </span>
+            {% endif %}
+        </div>
+        <div class="card-body">
+            <div id="pesoList" class="peso-list"></div>
+        </div>
+    </div>
+
+</main>
+
+<div class="botoes">
+    <button class="btn btn-danger"    id="btnLimpar">Limpar</button>
+    <button class="btn btn-secondary" id="btnExemplo">Exemplo</button>
+    <button class="btn btn-primary"   id="btnSalvar">Registrar</button>
+</div>
+
+<div id="sucOverlay" class="suc-overlay">
+    <div class="suc-icon">✓</div>
+    <div class="suc-title">Registrado!</div>
+    <div class="suc-msg" id="sucMsg"></div>
+    <button class="suc-btn" id="btnNovo">+ Novo Registro</button>
+</div>
+
+<!-- MODAL CADASTRO PRODUTOR -->
+<div class="modal-bg" id="modalCadProd">
+    <div class="modal">
+        <div class="modal-title">Cadastrar Produtor</div>
+        <div class="modal-field">
+            <label>Nome completo</label>
+            <input id="cadNome" type="text" autocomplete="off">
+        </div>
+        <div class="modal-field">
+            <label>Matrícula</label>
+            <input id="cadMat" type="text" autocomplete="off">
+        </div>
+        <div class="modal-field">
+            <label>CPF</label>
+            <input id="cadCpf" type="text" inputmode="numeric" maxlength="14">
+        </div>
+        <div id="cadStatus" style="font-size:.82rem;min-height:1.2rem;margin-top:.2rem;"></div>
+        <div class="modal-actions">
+            <button class="modal-btn modal-btn-secondary" id="btnFecharModal">Cancelar</button>
+            <button class="modal-btn modal-btn-primary"   id="btnSalvarProd">Salvar</button>
+        </div>
+    </div>
+</div>
+
+<input type="hidden" id="localDest"
+    value="{{ 'Classificação' if role == 'classificacao' else 'banca' if role == 'banca' else 'toletagem' }}">
+
+<script>
+// ── CONSTANTES ────────────────────────────────────────────────────────────
+const ROLE    = "{{ role }}";
+const IS_CLAS = ROLE === 'classificacao';
+
+// Classes comuns (2 a 7)
+const CLASSES_NUM = ['TIPO 2', 'TIPO 3', 'TIPO 4', 'TIPO 5', 'TIPO 6', 'TIPO 7'];
+
+// ── ESTADO ────────────────────────────────────────────────────────────────
+const st = {
+    // por classe: { "TIPO 2": {destino: 0, industria: 0, perda: 0}, ... }
+    valores: {},
+    saldos: {},
+    comSaldo: [],
+    variedade: 'São Valentim',
+    busy: false,
+};
+
+const $      = id => document.getElementById(id);
+const matInp = $('matInput');
+const nomInp = $('nomInput');
+const pidInp = $('pidInput');
+const banner = $('prodBanner');
+const acList = $('acList');
+const pesoEl = $('pesoList');
+const stMsg  = $('statusMsg');
+const ldest  = $('localDest');
+
+const origemSel   = $('origemSel');
+const horasInp    = $('horasInput');
+const saldoTagEl  = $('saldoTag');
+const saldoLoadEl = $('saldoLoading');
+
+// ── UTILITÁRIOS ───────────────────────────────────────────────────────────
+function status(msg, tipo, ms=5000) {
+    stMsg.textContent = msg;
+    stMsg.className   = `status-bar show ${tipo}`;
+    clearTimeout(stMsg._t);
+    if (ms>0) stMsg._t = setTimeout(()=>stMsg.classList.remove('show'), ms);
+}
+
+async function apiPost(url, body) {
+    try {
+        const r = await fetch(url, {method:'POST',
+            headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+        return await r.json().catch(()=>({sucesso:false, mensagem:`HTTP ${r.status}`}));
+    } catch(e) { return {sucesso:false, mensagem:'Falha de rede.'}; }
+}
+async function apiGet(url) {
+    try { const r=await fetch(url); return await r.json(); }
+    catch(e) { return null; }
+}
+
+// ── VARIEDADE ─────────────────────────────────────────────────────────────
+document.querySelectorAll('#pillsVar .pill').forEach(p => {
+    p.addEventListener('click', () => {
+        document.querySelectorAll('#pillsVar .pill').forEach(x=>x.classList.remove('active'));
+        p.classList.add('active');
+        st.variedade = p.dataset.v;
+        if (!IS_CLAS && pidInp.value) buscarSaldos();
+    });
+});
+
+// ── AUTOCOMPLETE ──────────────────────────────────────────────────────────
+let busca_t;
+matInp.addEventListener('input', e => {
+    const t = e.target.value.trim();
+    if (!t) { acList.style.display='none'; limparProd(); return; }
+    clearTimeout(busca_t);
+    busca_t = setTimeout(async () => {
+        const r = await apiGet(`/api/buscar-produtores?termo=${encodeURIComponent(t)}`);
+        renderAC(Array.isArray(r) ? r : []);
+    }, 300);
+});
+
+document.addEventListener('pointerdown', e => {
+    if (!matInp.contains(e.target) && !acList.contains(e.target))
+        acList.style.display='none';
+});
+
+function renderAC(lista) {
+    if (!lista.length) { acList.style.display='none'; return; }
+    acList.innerHTML = lista.map(p =>
+        `<div class="ac-item" data-id="${p.id}" data-mat="${p.matricula}" data-nome="${p.nome}">
+            <strong>${p.matricula}</strong> – ${p.nome}
+         </div>`).join('');
+    acList.style.display = 'block';
+    acList.querySelectorAll('.ac-item').forEach(el => {
+        el.addEventListener('pointerdown', e => {
+            e.preventDefault();
+            selProd({id:el.dataset.id, matricula:el.dataset.mat, nome:el.dataset.nome});
+        });
+    });
+}
+
+function selProd(p) {
+    matInp.value = p.matricula;
+    nomInp.value = p.nome;
+    pidInp.value = p.id;
+    acList.style.display = 'none';
+    banner.innerHTML = `<strong>${p.nome}</strong> (Mat.: ${p.matricula})`;
+    banner.classList.add('show');
+    setTimeout(()=>banner.classList.remove('show'), 3500);
+    status(`Produtor: ${p.nome}`, 'success', 3000);
+    if (!IS_CLAS) buscarSaldos();
+}
+
+function limparProd() {
+    nomInp.value = pidInp.value = '';
+    banner.classList.remove('show');
+    st.saldos = {}; st.comSaldo = [];
+    if (saldoTagEl) saldoTagEl.textContent = '—';
+    renderPesos();
+}
+
+// ── SALDOS ────────────────────────────────────────────────────────────────
+async function buscarSaldos() {
+    if (!pidInp.value || !origemSel) return;
+    if (st.busy) return;
+    st.busy = true;
+
+    if (saldoLoadEl) saldoLoadEl.classList.add('show');
+    if (saldoTagEl)  saldoTagEl.textContent = 'Buscando...';
+
+    const res = await apiPost('/api/obter-saldos-todos', {
+        produtor_id: parseInt(pidInp.value),
+        tipo_alho:   st.variedade,
+        local:       origemSel.value,
+    });
+
+    st.busy = false;
+    if (saldoLoadEl) saldoLoadEl.classList.remove('show');
+
+    if (res?.sucesso) {
+        st.saldos = res.saldos || {};
+        const total = Object.values(st.saldos).reduce((a,b)=>a+b, 0);
+        if (saldoTagEl) saldoTagEl.textContent =
+            total > 0
+                ? `Disponível em ${origemSel.value}: ${total.toLocaleString('pt-BR')} kg`
+                : `Sem estoque em ${origemSel.value} para ${st.variedade}`;
+    } else {
+        st.saldos = {};
+        if (saldoTagEl) saldoTagEl.textContent = '⚠ ' + (res?.mensagem || 'Erro');
+    }
+
+    // Classes com saldo > 0 na origem
+    st.comSaldo = CLASSES_NUM.filter(c => (st.saldos[c]||0) > 0);
+    for (const c of CLASSES_NUM) {
+        if (!st.comSaldo.includes(c)) delete st.valores[c];
+    }
+    renderPesos();
+}
+
+if (origemSel) {
+    origemSel.addEventListener('change', () => {
+        st.saldos = {}; st.comSaldo = [];
+        renderPesos();
+        if (pidInp.value) buscarSaldos();
+    });
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────
+function renderPesos() {
+    pesoEl.innerHTML = '';
+
+    // CLASSIFICAÇÃO: cada classe só tem 1 caixa (entrada)
+    if (IS_CLAS) {
+        CLASSES_NUM.forEach(c => {
+            const v = st.valores[c] || {};
+            const card = document.createElement('div');
+            card.className = 'classe-card';
+            card.dataset.classe = c;
+            card.innerHTML = `
+                <div class="classe-header">
+                    <span class="classe-nome">${c}</span>
+                </div>
+                <div class="classe-inputs" style="grid-template-columns:1fr">
+                    <div class="input-group">
+                        <label>Peso (kg)</label>
+                        <input class="inp-destino" type="number" inputmode="decimal"
+                               step="1" min="0" placeholder="0"
+                               value="${v.destino || ''}" data-c="${c}" data-t="destino">
+                    </div>
+                </div>
+            `;
+            card.querySelector('.inp-destino').addEventListener('input', e => {
+                st.valores[c] = st.valores[c] || {};
+                st.valores[c].destino = parseFloat(e.target.value) || 0;
+                atualizarTotal();
+            });
+            pesoEl.appendChild(card);
+        });
+    }
+
+    // BANCA/TOLEtagem: cada classe tem 3 caixas
+    else {
+        if (st.comSaldo.length === 0) {
+            pesoEl.innerHTML = `<div class="sem-estoque">
+                Nenhuma classe disponível.<br>
+                Selecione um produtor com estoque na origem.
+            </div>`;
+        }
+
+        st.comSaldo.forEach(c => {
+            const saldo = st.saldos[c] || 0;
+            const v = st.valores[c] || {};
+            const card = document.createElement('div');
+            card.className = 'classe-card';
+            card.dataset.classe = c;
+            card.innerHTML = `
+                <div class="classe-header">
+                    <span class="classe-nome">${c}</span>
+                    <span class="classe-saldo">Disponível: <strong>${saldo.toLocaleString('pt-BR')} kg</strong></span>
+                </div>
+                <div class="classe-inputs">
+                    <div class="input-group">
+                        <label>Destino (${c})</label>
+                        <input class="inp-destino" type="number" inputmode="decimal"
+                               step="1" min="0" placeholder="0"
+                               value="${v.destino || ''}" data-c="${c}" data-t="destino">
+                    </div>
+                    <div class="input-group ind">
+                        <label>Indústria ${c.replace('TIPO ', '')}</label>
+                        <input class="inp-industria" type="number" inputmode="decimal"
+                               step="0.1" min="0" placeholder="0"
+                               value="${v.industria || ''}" data-c="${c}" data-t="industria">
+                    </div>
+                    <div class="input-group perda">
+                        <label>Perda</label>
+                        <input class="inp-perda" type="number" inputmode="decimal"
+                               step="0.1" min="0" placeholder="0"
+                               value="${v.perda || ''}" data-c="${c}" data-t="perda">
+                    </div>
+                </div>
+            `;
+            card.querySelectorAll('input').forEach(inp => {
+                inp.addEventListener('input', e => {
+                    const c2 = e.target.dataset.c;
+                    const t2 = e.target.dataset.t;
+                    st.valores[c2] = st.valores[c2] || {};
+                    st.valores[c2][t2] = parseFloat(e.target.value) || 0;
+                    atualizarTotal();
+                    atualizarEstado(c2, card);
+                });
+            });
+            pesoEl.appendChild(card);
+        });
+    }
+
+    // Total geral
+    const totDiv = document.createElement('div');
+    totDiv.className = 'total-geral';
+    totDiv.innerHTML = `<span>Total geral</span><span id="totalVal">0 kg</span>`;
+    pesoEl.appendChild(totDiv);
+
+    atualizarTotal();
+}
+
+function atualizarEstado(c, card) {
+    const saldo = st.saldos[c] || 0;
+    const v = st.valores[c] || {};
+    const usado = (v.destino || 0) + (v.industria || 0) + (v.perda || 0);
+    if (usado > saldo + 0.001) {
+        card.classList.add('excede');
+    } else {
+        card.classList.remove('excede');
+    }
+}
+
+function atualizarTotal() {
+    let t = 0;
+    Object.keys(st.valores).forEach(c => {
+        const v = st.valores[c];
+        if (IS_CLAS) {
+            t += (v.destino || 0);
+        } else {
+            t += (v.destino || 0) + (v.industria || 0) + (v.perda || 0);
+        }
+    });
+    const tv = $('totalVal');
+    if (tv) tv.textContent = t.toLocaleString('pt-BR') + ' kg';
+}
+
+// ── LIMPAR ────────────────────────────────────────────────────────────────
+function limparPesos() {
+    st.valores = {};
+    if (horasInp) horasInp.value = 0;
+    renderPesos();
+}
+function limparTudo() {
+    matInp.value = nomInp.value = pidInp.value = '';
+    banner.classList.remove('show');
+    st.saldos = {}; st.comSaldo = [];
+    if (saldoTagEl) saldoTagEl.textContent = '—';
+    limparPesos();
+    status('Formulário limpo.', 'success', 2000);
+}
+
+// ── EXEMPLO ───────────────────────────────────────────────────────────────
+function carregarExemplo() {
+    const ex = {
+        'São Valentim': {TIPO2:512,TIPO3:870,TIPO4:1269,TIPO5:579,TIPO6:199,TIPO7:45},
+        'Ito':          {TIPO2:780,TIPO3:1250,TIPO4:890,TIPO5:445,TIPO6:267,TIPO7:89},
+        'Chonan':       {TIPO2:650,TIPO3:980,TIPO4:1540,TIPO5:720,TIPO6:310,TIPO7:125}
+    }[st.variedade] || {};
+
+    if (IS_CLAS) {
+        Object.keys(ex).forEach(k => {
+            const c = k.replace('TIPO', 'TIPO ').toUpperCase();
+            st.valores[c] = {destino: ex[k], industria: 0, perda: 0};
+        });
+    } else {
+        st.comSaldo.forEach(c => {
+            const saldo = st.saldos[c] || 0;
+            const val = Math.min(ex[c.replace(' ', '')] || 0, saldo);
+            st.valores[c] = {
+                destino: Math.round(val * 0.8),
+                industria: Math.round(val * 0.1),
+                perda: Math.round(val * 0.1)
+            };
+        });
+    }
+    renderPesos();
+    status(`Exemplo ${st.variedade} carregado.`, 'info', 2000);
+}
+
+// ── SALVAR ────────────────────────────────────────────────────────────────
+async function salvar() {
+    if (st.busy) { status('Aguarde os saldos carregarem.', 'warning'); return; }
+
+    const prodId   = pidInp.value;
+    const prodNome = nomInp.value.trim();
+    const local    = ldest.value;
+    const origem   = origemSel?.value ?? null;
+    const horas    = parseFloat(horasInp?.value) || 0;
+
+    if (!prodId || !prodNome) { status('Selecione um produtor.', 'error'); return; }
+    if (!IS_CLAS && !origem)  { status('Selecione a origem.', 'error'); return; }
+
+    const detalhes = [];
+    let totalDest = 0, totalInd = 0, totalPerd = 0;
+
+    if (IS_CLAS) {
+        CLASSES_NUM.forEach(c => {
+            const v = st.valores[c] || {};
+            const p = v.destino || 0;
+            if (p > 0) {
+                detalhes.push({classe: c, peso: p, tipo: 'entrada'});
+                totalDest += p;
+            }
+        });
+        if (!detalhes.length) { status('Preencha pelo menos um peso.', 'warning'); return; }
+    } else {
+        for (const c of st.comSaldo) {
+            const v = st.valores[c] || {};
+            const destino = v.destino || 0;
+            const industria = v.industria || 0;
+            const perda = v.perda || 0;
+            const usado = destino + industria + perda;
+            const saldo = st.saldos[c] || 0;
+
+            if (usado > saldo + 0.001) {
+                status(`${c}: usado (${usado.toFixed(2)}) excede disponível (${saldo.toFixed(2)}).`, 'error');
+                return;
+            }
+            if (destino > 0) {
+                detalhes.push({classe: c, peso: destino, tipo: 'transferencia'});
+                totalDest += destino;
+            }
+            if (industria > 0) {
+                detalhes.push({classe: c, peso: industria, tipo: 'industria'});
+                totalInd += industria;
+            }
+            if (perda > 0) {
+                detalhes.push({classe: c, peso: perda, tipo: 'perda'});
+                totalPerd += perda;
+            }
+        }
+        if (!detalhes.length) { status('Preencha pelo menos um peso.', 'warning'); return; }
+    }
+
+    const destLabel = local==='Classificação' ? 'Classificação' : local==='banca' ? 'Banca' : 'Toletagem';
+    let conf = `Confirmar registro?\n\nProdutor: ${prodNome}\nVariedade: ${st.variedade}\nDestino: ${destLabel}`;
+    if (!IS_CLAS) conf += `\nOrigem: ${origem}`;
+    conf += `\nDestino: ${totalDest.toFixed(2)} kg`;
+    if (totalInd > 0) conf += `\nIndústria: ${totalInd.toFixed(2)} kg`;
+    if (totalPerd > 0) conf += `\nPerda: ${totalPerd.toFixed(2)} kg`;
+    if (horas > 0) conf += `\nHoras de banca: ${horas}h`;
+
+    if (!confirm(conf)) return;
+
+    const btn = $('btnSalvar');
+    btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Salvando...';
+
+    const res = await apiPost('/api/salvar-entrada', {
+        produtor_id: parseInt(prodId),
+        tipo_alho:   st.variedade,
+        local,
+        local_origem: origem,
+        detalhes,
+        horas_banca:  horas,
+    });
+
+    btn.disabled = false; btn.innerHTML = 'Registrar';
+
+    if (res?.sucesso) {
+        $('sucMsg').textContent = res.mensagem;
+        $('sucOverlay').classList.add('show');
+    } else {
+        status(`${res?.mensagem || 'Erro desconhecido.'}`, 'error', 0);
+    }
+}
+
+// ── OVERLAY ───────────────────────────────────────────────────────────────
+$('btnNovo').addEventListener('click', () => {
+    $('sucOverlay').classList.remove('show');
+    limparPesos();
+    if (!IS_CLAS && pidInp.value) buscarSaldos();
+    matInp.focus();
+});
+
+// ── MODAL CADASTRO ────────────────────────────────────────────────────────
+const modalBg = $('modalCadProd');
+const btnAbrirModal = $('btnAbrirCadProd');
+
+if (btnAbrirModal) btnAbrirModal.addEventListener('click', () => {
+    if (!modalBg) return;
+    $('cadNome').value = $('cadMat').value = $('cadCpf').value = '';
+    $('cadStatus').textContent = '';
+    modalBg.classList.add('open');
+});
+if ($('btnFecharModal')) $('btnFecharModal').addEventListener('click', () => modalBg.classList.remove('open'));
+
+if ($('btnSalvarProd')) {
+    $('btnSalvarProd').addEventListener('click', async () => {
+        const nome = $('cadNome').value.trim();
+        const mat  = $('cadMat').value.trim();
+        const cpf  = $('cadCpf').value.trim().replace(/\D/g,'');
+        if (!nome || !mat || cpf.length !== 11) {
+            $('cadStatus').textContent = 'Preencha todos os campos corretamente.';
+            $('cadStatus').style.color = 'var(--danger)';
+            return;
+        }
+        const res = await apiPost('/api/produtores/cadastrar', {nome, matricula: mat, cpf});
+        if (res?.sucesso) {
+            $('cadStatus').textContent = 'Cadastrado com sucesso!';
+            $('cadStatus').style.color = '#1a6b35';
+            setTimeout(() => {
+                modalBg.classList.remove('open');
+                selProd({id: String(res.produtor_id), matricula: mat, nome});
+            }, 900);
+        } else {
+            $('cadStatus').textContent = res?.mensagem || 'Erro';
+            $('cadStatus').style.color = 'var(--danger)';
+        }
+    });
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+$('btnLimpar').onclick  = limparTudo;
+$('btnExemplo').onclick = carregarExemplo;
+$('btnSalvar').onclick  = salvar;
+
+renderPesos();
+status('Digite a matrícula e selecione o produtor.', 'info', 4000);
+</script>
+</body>
+</html>
