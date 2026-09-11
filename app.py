@@ -9,6 +9,17 @@ import psycopg
 import os
 import logging
 from datetime import timedelta, datetime
+try:
+    from modulo_configuracoes import (
+        obter_comissao_por_kg,
+        obter_valor_hora_banca,
+        registrar_comissao_copar,
+    )
+except ImportError:
+    def obter_comissao_por_kg(): return 0.30
+    def obter_valor_hora_banca(): return 16.00
+    def registrar_comissao_copar(*a, **k): return False
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -171,46 +182,38 @@ def buscar_produtor_por_matricula(matricula: str):
         return None
 
 # ── Consultas produtor ───────────────────────────────────────────────────────
-
 def buscar_estoque(produtor_id):
     conn = conectar_banco()
     if not conn: return []
     try:
         cur = conn.cursor()
         cur.execute("""
-            SELECT tipo_alho, classe, local_estoque, SUM(peso) FROM estoque
+            SELECT tipo_alho, classe, local_estoque, SUM(peso) 
+            FROM estoque
             WHERE produtor_id = %s AND peso > 0
-            GROUP BY tipo_alho, classe, local_estoque ORDER BY tipo_alho, classe
+            GROUP BY tipo_alho, classe, local_estoque
+            ORDER BY local_estoque, tipo_alho, classe
         """, (produtor_id,))
-        
+
         result = []
         for r in cur.fetchall():
-            local = r[2]  # Classificação, Banca ou Toletagem
-            
-            # Se for Banca ou Toletagem, marcamos como "em_progresso"
-            if local in ('Banca', 'Toletagem'):
-                result.append({
-                    'tipo': r[0], 
-                    'classe': r[1], 
-                    'local': local,
-                    'peso': float(r[3]),
-                    'em_progresso': True
-                })
-            else:
-                result.append({
-                    'tipo': r[0], 
-                    'classe': r[1], 
-                    'local': local,
-                    'peso': float(r[3]),
-                    'em_progresso': False
-                })
-        
+            local = r[2]
+            result.append({
+                'tipo': r[0],
+                'classe': r[1],
+                'local': local,
+                'peso': float(r[3]),
+                'em_progresso': local in ('Banca', 'Toletagem'),
+                'is_industria': (r[1] or '').startswith('Indústria'),
+            })
+
         cur.close()
         conn.close()
         return result
     except Exception as e:
         logger.error(f"Erro ao buscar estoque: {e}")
         return []
+
 
 def buscar_vendas(produtor_id):
     conn = conectar_banco()
@@ -296,6 +299,24 @@ def _retirar_fifo(cur, produtor_id, tipo_alho, classe_banco, local_banco, quanti
             cur.execute("UPDATE estoque SET peso = %s WHERE id = %s",
                         (round(epeso - restante, 4), eid))
             restante = 0
+def salvar_registro_horas_banca(cur, produtor_id, tipo_alho, local_origem,
+                                 local_destino, horas, operador_id=None,
+                                 operador_nome=None, observacao=None):
+    """
+    Salva 1 registro de horas de banca (não replicado por classe).
+    """
+    if not horas or horas <= 0:
+        return None
+    cur.execute("""
+        INSERT INTO registros_horas_banca
+            (produtor_id, tipo_alho, local_origem, local_destino, horas,
+             registrado_por, operador_nome, observacao)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        RETURNING id
+    """, (produtor_id, tipo_alho, local_origem, local_destino, horas,
+          operador_id, operador_nome, observacao))
+    return cur.fetchone()[0]
+                                     
 
 def _inserir_estoque(cur, produtor_id, tipo_alho, classe_banco, peso, local_banco, horas=0):
     """Insere uma linha de estoque"""
@@ -610,28 +631,42 @@ def api_obter_saldos_todos():
     pid = d.get('produtor_id')
     tipo_alho = d.get('tipo_alho')
     local = d.get('local')
-    
+
     if not all([pid, tipo_alho, local]):
         return jsonify({'sucesso': False, 'mensagem': 'Parâmetros incompletos', 'saldos': {}})
-    
+
     local_banco = MAPEAMENTO_LOCAL.get(local, local)
     conn = conectar_banco()
     if not conn:
         return jsonify({'sucesso': False, 'mensagem': 'Erro de conexão', 'saldos': {}})
-    
+
     try:
         cur = conn.cursor()
         cur.execute("""
-            SELECT classe, COALESCE(SUM(peso),0)
+            SELECT classe, COALESCE(SUM(peso), 0)
             FROM estoque
-            WHERE produtor_id=%s AND tipo_alho=%s AND local_estoque=%s AND peso>0
+            WHERE produtor_id = %s AND tipo_alho = %s 
+              AND local_estoque = %s AND peso > 0
             GROUP BY classe
         """, (pid, tipo_alho, local_banco))
+
         saldos = {}
         for row in cur.fetchall():
-            ui = CLASSES_MAP_INV.get(row[0])
-            if ui:
-                saldos[ui] = float(row[1])
+            classe_banco = row[0]  # pode ser "Classe 7" ou "Indústria 7"
+            peso = float(row[1])
+
+            # Mapeia classe de volta para UI
+            if classe_banco.startswith('Indústria'):
+                # "Indústria 7" → "INDÚSTRIA 7"
+                num = classe_banco.replace('Indústria ', '').strip()
+                chave = f"INDÚSTRIA {num}"
+            else:
+                # "Classe 7" → "TIPO 7"
+                chave = CLASSES_MAP_INV.get(classe_banco)
+
+            if chave:
+                saldos[chave] = peso
+
         cur.close()
         conn.close()
         return jsonify({'sucesso': True, 'saldos': saldos})
@@ -642,13 +677,13 @@ def api_obter_saldos_todos():
 
 @app.route('/api/salvar-entrada', methods=['POST'])
 def api_salvar_entrada():
-    """API principal de movimentação de estoque"""
+    """API principal de movimentação de estoque (com indústria por classe)"""
     data = request.get_json(silent=True)
     if not data:
         return jsonify({'sucesso': False, 'mensagem': 'Dados inválidos'}), 400
 
     role = session.get('tipo')
-    if role not in ('classificacao','banca','toletagem','superadmin'):
+    if role not in ('classificacao', 'banca', 'toletagem', 'superadmin'):
         return jsonify({'sucesso': False, 'mensagem': 'Acesso não autorizado'}), 403
 
     pid = data.get('produtor_id')
@@ -657,26 +692,25 @@ def api_salvar_entrada():
     local_origem = data.get('local_origem')
     detalhes = data.get('detalhes', [])
     horas_banca = float(data.get('horas_banca', 0) or 0)
+    operador_nome = session.get('produtor_nome', 'Sistema')
+    operador_id = session.get('produtor_id')
 
     if not pid or not tipo_alho or not detalhes:
         return jsonify({'sucesso': False, 'mensagem': 'Dados incompletos'}), 400
 
-    # Mapeia os locais
     local_destino_banco = MAPEAMENTO_LOCAL.get(local_destino, local_destino)
     local_origem_banco = MAPEAMENTO_LOCAL.get(local_origem, local_origem) if local_origem else None
 
-    # Validações de acordo com o papel
+    # Validações por papel
     if role == 'classificacao':
         if local_destino_banco != 'Classificação':
             return jsonify({'sucesso': False, 'mensagem': 'Classificação só registra entrada inicial.'})
         local_origem_banco = None
-        
     elif role == 'banca':
         if local_destino_banco != 'Banca':
             return jsonify({'sucesso': False, 'mensagem': 'Banca só transfere para Banca.'})
         if not local_origem_banco or local_origem_banco not in ('Classificação', 'Toletagem'):
             return jsonify({'sucesso': False, 'mensagem': 'Origem deve ser Classificação ou Toletagem.'})
-            
     elif role == 'toletagem':
         if local_destino_banco != 'Toletagem':
             return jsonify({'sucesso': False, 'mensagem': 'Toletagem só transfere para Toletagem.'})
@@ -688,12 +722,15 @@ def api_salvar_entrada():
         return jsonify({'sucesso': False, 'mensagem': 'Erro de conexão'}), 500
 
     conn.autocommit = False
-    
+
     try:
         cur = conn.cursor()
         total_destino = 0
+        total_industria = 0
         total_perdas = 0
+        industria_por_classe = {}  # {classe_ui: peso}
 
+        # ── FASE 1: PROCESSAR CADA ITEM ──────────────────────────────────
         for item in detalhes:
             classe_ui = item.get('classe', '')
             peso = float(item.get('peso', 0) or 0)
@@ -708,7 +745,7 @@ def api_salvar_entrada():
 
             if tipo_item == 'entrada':
                 _inserir_estoque(cur, pid, tipo_alho, classe_banco,
-                                 peso, local_destino_banco, horas_banca)
+                                 peso, local_destino_banco, 0)
                 total_destino += peso
 
             elif tipo_item == 'transferencia':
@@ -717,8 +754,23 @@ def api_salvar_entrada():
                 _retirar_fifo(cur, pid, tipo_alho, classe_banco,
                               local_origem_banco, peso)
                 _inserir_estoque(cur, pid, tipo_alho, classe_banco,
-                                 peso, local_destino_banco, horas_banca)
+                                 peso, local_destino_banco, 0)
                 total_destino += peso
+
+            elif tipo_item == 'industria':
+                # Indústria por classe: classe_ui = "TIPO 2" → "Indústria 2"
+                # Retira da origem
+                if local_origem_banco:
+                    _retirar_fifo(cur, pid, tipo_alho, classe_banco,
+                                  local_origem_banco, peso)
+                # Insere como "Indústria N"
+                classe_ind = f"Indústria {classe_ui.replace('TIPO ', '').strip()}"
+                if classe_ui == 'INDÚSTRIA':
+                    classe_ind = 'Indústria 2'  # fallback
+                _inserir_estoque(cur, pid, tipo_alho, classe_ind,
+                                 peso, local_destino_banco, 0)
+                total_industria += peso
+                industria_por_classe[classe_ui] = industria_por_classe.get(classe_ui, 0) + peso
 
             elif tipo_item == 'perda':
                 if not local_origem_banco:
@@ -727,20 +779,32 @@ def api_salvar_entrada():
                               local_origem_banco, peso)
                 total_perdas += peso
 
-            elif tipo_item == 'industria':
-                _inserir_estoque(cur, pid, tipo_alho, classe_banco,
-                                 peso, local_destino_banco, horas_banca)
-                total_destino += peso
+        # ── FASE 2: SALVAR HORAS DE BANCA (1 registro) ───────────────────
+        registro_horas_id = None
+        if horas_banca > 0 and local_origem_banco:
+            try:
+                registro_horas_id = salvar_registro_horas_banca(
+                    cur, pid, tipo_alho, local_origem_banco,
+                    local_destino_banco, horas_banca,
+                    operador_id=operador_id, operador_nome=operador_nome,
+                    observacao=f'Registro automático via {role}'
+                )
+            except Exception as e:
+                logger.warning(f"Erro ao salvar hora banca: {e}")
 
         conn.commit()
         cur.close()
         conn.close()
 
+        # Monta mensagem
         msg = f'Registrado! Destino: {total_destino:.2f} kg'
+        if total_industria > 0:
+            detalhes_ind = ', '.join(f'{k}: {v:.2f}kg' for k, v in industria_por_classe.items())
+            msg += f' | Indústria: {total_industria:.2f} kg ({detalhes_ind})'
         if total_perdas > 0:
-            msg += f' | Perdas: {total_perdas:.2f} kg (excluídas do estoque)'
+            msg += f' | Perdas: {total_perdas:.2f} kg'
         if horas_banca > 0:
-            msg += f' | Horas banca: {horas_banca}'
+            msg += f' | Hora de banca: {horas_banca}h (registro #{registro_horas_id})'
         if local_origem:
             msg += f' | Origem: {local_origem}'
 
@@ -754,8 +818,9 @@ def api_salvar_entrada():
         conn.rollback()
         conn.close()
         logger.error(f"Erro interno: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'sucesso': False, 'mensagem': f'Erro interno: {e}'}), 500
-# Adicione estas funções ao seu app.py
 
 def obter_estoque_por_produtor():
     """Retorna estoque agrupado por produtor, com hierarquia de tipos e classes"""
@@ -1322,7 +1387,82 @@ def api_gerente_estoque_hierarquico():
     if _check_gerente():
         return jsonify([]), 403
     return jsonify(obter_estoque_hierarquico())
+# ── APIs de Hora de Banca ────────────────────────────────────────────────
+@app.route('/api/horas-banca/produtor/<int:produtor_id>')
+def api_horas_banca_produtor(produtor_id):
+    if 'produtor_id' not in session:
+        return jsonify({'sucesso': False}), 403
+    conn = conectar_banco()
+    if not conn:
+        return jsonify({'total': 0, 'registros': []})
+    try:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT COALESCE(SUM(horas), 0) FROM registros_horas_banca
+            WHERE produtor_id = %s
+        """, (produtor_id,))
+        total = float(cur.fetchone()[0])
 
+        cur.execute("""
+            SELECT id, tipo_alho, local_origem, local_destino, horas,
+                   registrado_em, operador_nome, observacao
+            FROM registros_horas_banca
+            WHERE produtor_id = %s
+            ORDER BY registrado_em DESC
+            LIMIT 50
+        """, (produtor_id,))
+        registros = [{
+            'id': r[0],
+            'tipo_alho': r[1],
+            'origem': r[2],
+            'destino': r[3],
+            'horas': float(r[4]),
+            'data': r[5].strftime("%d/%m/%Y %H:%M") if r[5] else "",
+            'operador': r[6] or "",
+            'obs': r[7] or "",
+        } for r in cur.fetchall()]
+
+        cur.close()
+        conn.close()
+        return jsonify({'total': total, 'registros': registros})
+    except Exception as e:
+        logger.error(f"Erro api_horas_banca: {e}")
+        return jsonify({'total': 0, 'registros': []})
+
+
+@app.route('/api/horas-banca/todas')
+def api_horas_banca_todas():
+    if _check_gerente():
+        return jsonify({'total': 0, 'por_produtor': []}), 403
+    conn = conectar_banco()
+    if not conn:
+        return jsonify({'total': 0, 'por_produtor': []})
+    try:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT p.id, p.nome, p.matricula,
+                   COALESCE(SUM(h.horas), 0) AS total_horas,
+                   COUNT(h.id) AS qtd_registros
+            FROM produtores p
+            LEFT JOIN registros_horas_banca h ON p.id = h.produtor_id
+            GROUP BY p.id, p.nome, p.matricula
+            HAVING COALESCE(SUM(h.horas), 0) > 0
+            ORDER BY total_horas DESC
+        """)
+        por_produtor = [{
+            'id': r[0], 'nome': r[1], 'matricula': r[2],
+            'horas': float(r[3]), 'registros': r[4],
+        } for r in cur.fetchall()]
+
+        cur.execute("SELECT COALESCE(SUM(horas), 0) FROM registros_horas_banca")
+        total = float(cur.fetchone()[0])
+
+        cur.close()
+        conn.close()
+        return jsonify({'total': total, 'por_produtor': por_produtor})
+    except Exception as e:
+        logger.error(f"Erro api_horas_banca_todas: {e}")
+        return jsonify({'total': 0, 'por_produtor': []})
 # ══════════════════════════════════════════════════════════════════
 # CARREGAR MÓDULOS ADICIONAIS
 # ══════════════════════════════════════════════════════════════════
