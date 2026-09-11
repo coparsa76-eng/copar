@@ -16,6 +16,10 @@
             --verde-pale:  #f4f9f3;
             --dourado:     #c8a94a;
             --azul:        #2471a3;
+            --laranja:     #e67e22;
+            --ind:         #8e44ad;
+            --ind-light:   #f4ecf7;
+            --ind-bord:    #d7bde2;
             --bg:          #f2f5f0;
             --text:        #1a2e19;
             --muted:       #6b7c6a;
@@ -25,7 +29,6 @@
             --pendente:    #c0392b;
             --radius:      14px;
             --shadow:      0 4px 20px rgba(42,92,40,.1);
-            --laranja:     #e67e22;
         }
 
         body {
@@ -36,7 +39,6 @@
             padding-bottom: 2rem;
         }
 
-        /* NAV */
         nav {
             background: var(--verde);
             padding: .9rem 1.25rem;
@@ -51,19 +53,12 @@
             font-family: 'DM Serif Display', serif;
             color: var(--white);
             font-size: 1.35rem;
-            display: flex;
-            align-items: center;
-            gap: .5rem;
         }
-        .nav-right {
-            display: flex;
-            align-items: center;
-            gap: .75rem;
-        }
+        .nav-right { display: flex; align-items: center; gap: .75rem; }
         .nav-name {
-            color: rgba(255,255,255,.8);
+            color: rgba(255,255,255,.85);
             font-size: .82rem;
-            max-width: 120px;
+            max-width: 140px;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -76,11 +71,9 @@
             border-radius: 8px;
             font-size: .82rem;
             text-decoration: none;
-            font-family: 'DM Sans', sans-serif;
-            white-space: nowrap;
         }
 
-        main { max-width: 700px; margin: 0 auto; padding: 1.25rem; }
+        main { max-width: 760px; margin: 0 auto; padding: 1.25rem; }
 
         /* CARDS FINANCEIROS */
         .cards-grid {
@@ -89,6 +82,8 @@
             gap: .85rem;
             margin-bottom: 1.5rem;
         }
+        @media(min-width: 600px) { .cards-grid { grid-template-columns: 1fr 1fr 1fr; } }
+
         .fin-card {
             background: var(--white);
             border-radius: var(--radius);
@@ -98,8 +93,11 @@
         }
         .fin-card.receber { border-top-color: var(--pago); }
         .fin-card.recebido { border-top-color: var(--azul); }
+        .fin-card.comissao { border-top-color: var(--laranja); }
+        .fin-card.horas { border-top-color: var(--ind); }
+
         .fin-label {
-            font-size: .72rem;
+            font-size: .7rem;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: .06em;
@@ -107,7 +105,7 @@
             margin-bottom: .35rem;
         }
         .fin-valor {
-            font-size: 1.4rem;
+            font-size: 1.35rem;
             font-weight: 700;
             color: var(--text);
             white-space: nowrap;
@@ -116,6 +114,8 @@
         }
         .fin-card.receber .fin-valor { color: var(--pago); }
         .fin-card.recebido .fin-valor { color: var(--azul); }
+        .fin-card.comissao .fin-valor { color: var(--laranja); }
+        .fin-card.horas .fin-valor { color: var(--ind); }
 
         /* SEÇÕES */
         .secao {
@@ -133,8 +133,11 @@
             font-size: .95rem;
             display: flex;
             align-items: center;
+            justify-content: space-between;
             gap: .5rem;
         }
+        .secao-header.ind { background: var(--ind); }
+        .secao-header .total { font-size: .78rem; font-weight: 500; opacity: .9; }
         .secao-body { padding: .5rem 0; }
 
         /* ITENS */
@@ -147,7 +150,6 @@
             gap: .75rem;
         }
         .item:last-child { border-bottom: none; }
-
         .item-left { flex: 1; min-width: 0; }
         .item-titulo {
             font-weight: 600;
@@ -157,16 +159,27 @@
             text-overflow: ellipsis;
         }
         .item-sub {
-            font-size: .78rem;
+            font-size: .76rem;
             color: var(--muted);
             margin-top: .15rem;
         }
-
         .item-right { text-align: right; flex-shrink: 0; }
         .item-peso {
             font-weight: 700;
             font-size: 1.05rem;
             color: var(--verde);
+        }
+        .item-peso.ind { color: var(--ind); }
+
+        .badge-ind {
+            display: inline-block;
+            background: var(--ind-light);
+            color: var(--ind);
+            padding: .15rem .5rem;
+            border-radius: 4px;
+            font-size: .68rem;
+            font-weight: 700;
+            margin-left: .35rem;
         }
 
         .progresso-badge {
@@ -180,11 +193,6 @@
             font-size: .78rem;
             font-weight: 600;
         }
-        
-        .progresso-badge::before {
-            content: "⚙️";
-            font-size: .85rem;
-        }
 
         .badge {
             display: inline-block;
@@ -195,6 +203,8 @@
         }
         .badge.pago   { background: #d5f0de; color: var(--pago); }
         .badge.pend   { background: #fde8e6; color: var(--pendente); }
+        .badge.parc   { background: #dbeafe; color: var(--azul); }
+        .badge.comissao { background: #fef3c7; color: #92400e; font-size: .7rem; }
 
         .vazio {
             padding: 2rem;
@@ -202,17 +212,38 @@
             color: var(--muted);
             font-size: .88rem;
         }
-        .vazio span { font-size: 2rem; display: block; margin-bottom: .5rem; }
-        
-        .separador {
-            margin: .5rem 0;
-            border-top: 1px dashed var(--border);
+
+        /* VENDAS */
+        .venda-item {
+            padding: .85rem 1.1rem;
+            border-bottom: 1px solid var(--border);
         }
+        .venda-item:last-child { border-bottom: none; }
+        .venda-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: .75rem;
+            margin-bottom: .4rem;
+        }
+        .venda-titulo { font-weight: 600; font-size: .92rem; }
+        .venda-data { font-size: .74rem; color: var(--muted); margin-top: .1rem; }
+        .venda-peso { font-weight: 700; font-size: 1rem; color: var(--verde); white-space: nowrap; }
+        .venda-linha {
+            display: flex;
+            justify-content: space-between;
+            font-size: .76rem;
+            color: var(--muted);
+            padding: .15rem 0;
+        }
+        .venda-linha .val { font-weight: 600; color: var(--text); }
+        .venda-linha.desconto .val { color: var(--laranja); }
+        .venda-linha.liquido .val { color: var(--verde); font-size: .85rem; }
     </style>
 </head>
 <body>
 <nav>
-    <div class="nav-brand">🌾 COPAR</div>
+    <div class="nav-brand">COPAR</div>
     <div class="nav-right">
         <span class="nav-name">{{ nome }}</span>
         <a href="/logout" class="btn-sair">Sair</a>
@@ -220,54 +251,74 @@
 </nav>
 
 <main>
+
     <!-- Cards Financeiros -->
     <div class="cards-grid">
         <div class="fin-card receber">
-            <div class="fin-label">💰 A Receber</div>
+            <div class="fin-label">A Receber</div>
             <div class="fin-valor">R$&nbsp;{{ "%.2f"|format(total_a_receber) }}</div>
         </div>
         <div class="fin-card recebido">
-            <div class="fin-label">✅ Recebido</div>
+            <div class="fin-label">Recebido</div>
             <div class="fin-valor">R$&nbsp;{{ "%.2f"|format(total_recebido) }}</div>
         </div>
+        {% if total_comissao is defined %}
+        <div class="fin-card comissao">
+            <div class="fin-label">Comissão COPAR</div>
+            <div class="fin-valor">R$&nbsp;{{ "%.2f"|format(total_comissao) }}</div>
+        </div>
+        {% endif %}
+        {% if total_horas_banca is defined %}
+        <div class="fin-card horas">
+            <div class="fin-label">Horas de Banca</div>
+            <div class="fin-valor">{{ "%.1f"|format(total_horas_banca) }}h</div>
+        </div>
+        {% endif %}
     </div>
 
-    <!-- Estoque Classificação (mostra peso) -->
+    <!-- Estoque Classificação -->
     <div class="secao">
-        <div class="secao-header">📦 Estoque - Classificação</div>
+        <div class="secao-header">
+            <span>Estoque - Classificação</span>
+            {% if estoque_classificacao_total %}
+            <span class="total">{{ "%.2f"|format(estoque_classificacao_total) }} kg</span>
+            {% endif %}
+        </div>
         <div class="secao-body">
-            {% set tem_classificacao = false %}
+            {% set tem_class = false %}
             {% for item in estoque %}
-                {% if not item.em_progresso %}
-                    {% set tem_classificacao = true %}
+                {% if not item.em_progresso and not item.is_industria %}
+                    {% set tem_class = true %}
                     <div class="item">
                         <div class="item-left">
                             <div class="item-titulo">{{ item.tipo }}</div>
                             <div class="item-sub">{{ item.classe }}</div>
                         </div>
                         <div class="item-right">
-                            <div class="item-peso">{{ "%.1f"|format(item.peso) }} kg</div>
+                            <div class="item-peso">{{ "%.2f"|format(item.peso) }} kg</div>
                         </div>
                     </div>
                 {% endif %}
             {% endfor %}
-            {% if not tem_classificacao %}
-                <div class="vazio"><span>📭</span>Sem estoque na classificação</div>
+            {% if not tem_class %}
+                <div class="vazio">Sem estoque na classificação</div>
             {% endif %}
         </div>
     </div>
 
     <!-- Estoque em Progresso (Banca + Toletagem) -->
     <div class="secao">
-        <div class="secao-header">⚙️ Em Progresso</div>
+        <div class="secao-header">
+            <span>Em Progresso (Banca / Toletagem)</span>
+        </div>
         <div class="secao-body">
-            {% set tem_progresso = false %}
+            {% set tem_prog = false %}
             {% for item in estoque %}
-                {% if item.em_progresso %}
-                    {% set tem_progresso = true %}
+                {% if item.em_progresso and not item.is_industria %}
+                    {% set tem_prog = true %}
                     <div class="item">
                         <div class="item-left">
-                            <div class="item-titulo">{{ item.tipo }} - {{ item.classe }}</div>
+                            <div class="item-titulo">{{ item.tipo }} – {{ item.classe }}</div>
                             <div class="item-sub">{{ item.local }}</div>
                         </div>
                         <div class="item-right">
@@ -276,38 +327,138 @@
                     </div>
                 {% endif %}
             {% endfor %}
-            {% if not tem_progresso %}
-                <div class="vazio"><span>🔄</span>Nenhum produto em processamento</div>
+            {% if not tem_prog %}
+                <div class="vazio">Nenhum produto em processamento</div>
             {% endif %}
         </div>
     </div>
 
+    <!-- Estoque de Indústria -->
+    <div class="secao">
+        <div class="secao-header ind">
+            <span>Estoque de Indústria (por Classe de Origem)</span>
+            {% if estoque_industria_total %}
+            <span class="total">{{ "%.2f"|format(estoque_industria_total) }} kg</span>
+            {% endif %}
+        </div>
+        <div class="secao-body">
+            {% set tem_ind = false %}
+            {% for item in estoque %}
+                {% if item.is_industria %}
+                    {% set tem_ind = true %}
+                    <div class="item">
+                        <div class="item-left">
+                            <div class="item-titulo">
+                                {{ item.tipo }}
+                                <span class="badge-ind">{{ item.classe }}</span>
+                            </div>
+                            <div class="item-sub">{{ item.local }}</div>
+                        </div>
+                        <div class="item-right">
+                            <div class="item-peso ind">{{ "%.2f"|format(item.peso) }} kg</div>
+                        </div>
+                    </div>
+                {% endif %}
+            {% endfor %}
+            {% if not tem_ind %}
+                <div class="vazio">Nenhum estoque de indústria</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Horas de Banca (detalhado) -->
+    {% if registros_horas_banca %}
+    <div class="secao">
+        <div class="secao-header" style="background:var(--ind)">
+            <span>Registros de Horas de Banca</span>
+            <span class="total">{{ "%.2f"|format(total_horas_banca) }} h totais</span>
+        </div>
+        <div class="secao-body">
+            {% for h in registros_horas_banca[:10] %}
+            <div class="item">
+                <div class="item-left">
+                    <div class="item-titulo">{{ h.tipo }}</div>
+                    <div class="item-sub">{{ h.data }} · {{ h.origem }} → {{ h.destino }}</div>
+                </div>
+                <div class="item-right">
+                    <div class="item-peso" style="color:var(--ind)">{{ "%.2f"|format(h.horas) }} h</div>
+                </div>
+            </div>
+            {% endfor %}
+            {% if registros_horas_banca|length > 10 %}
+            <div class="vazio" style="padding:.75rem;font-size:.78rem">
+                + {{ registros_horas_banca|length - 10 }} registro(s) anteriores
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Vendas -->
     <div class="secao">
-        <div class="secao-header">📋 Vendas Realizadas</div>
+        <div class="secao-header">
+            <span>Vendas Realizadas</span>
+            {% if vendas %}<span class="total">{{ vendas|length }} venda(s)</span>{% endif %}
+        </div>
         <div class="secao-body">
             {% if vendas %}
                 {% for v in vendas %}
-                <div class="item">
-                    <div class="item-left">
-                        <div class="item-titulo">{{ v.tipo }} – {{ v.classe }}</div>
-                        <div class="item-sub">{{ v.data }}</div>
+                <div class="venda-item">
+                    <div class="venda-header">
+                        <div>
+                            <div class="venda-titulo">
+                                {{ v.tipo }} – {{ v.classe }}
+                                {% if v.is_industria %}<span class="badge-ind">indústria</span>{% endif %}
+                            </div>
+                            <div class="venda-data">{{ v.data }}</div>
+                        </div>
+                        <div class="venda-peso">{{ "%.2f"|format(v.peso) }} kg</div>
                     </div>
-                    <div class="item-right">
-                        <div class="item-peso">{{ "%.1f"|format(v.peso) }} kg</div>
-                        {% if v.status == 'Pago' %}
-                            <span class="badge pago">Pago</span>
-                        {% else %}
-                            <span class="badge pend">R$ {{ "%.2f"|format(v.saldo) }}</span>
-                        {% endif %}
+
+                    <div class="venda-linha">
+                        <span>Valor bruto ({{ "%.2f"|format(v.valor_kg) }}/kg)</span>
+                        <span class="val">R$ {{ "%.2f"|format(v.valor_total) }}</span>
+                    </div>
+
+                    {% if v.comissao and v.comissao > 0 %}
+                    <div class="venda-linha desconto">
+                        <span>Comissão COPAR</span>
+                        <span class="val">- R$ {{ "%.2f"|format(v.comissao) }}</span>
+                    </div>
+                    {% endif %}
+
+                    {% if v.extra and v.extra > 0 %}
+                    <div class="venda-linha desconto">
+                        <span>Descontos extras</span>
+                        <span class="val">- R$ {{ "%.2f"|format(v.extra) }}</span>
+                    </div>
+                    {% endif %}
+
+                    <div class="venda-linha liquido">
+                        <span>Líquido ao produtor</span>
+                        <span class="val">R$ {{ "%.2f"|format(v.liquido or v.valor_produtor) }}</span>
+                    </div>
+
+                    <div class="venda-linha" style="margin-top:.35rem">
+                        <span></span>
+                        <span>
+                            {% if v.status == 'Pago' %}
+                                <span class="badge pago">Pago</span>
+                            {% elif v.status == 'Parcial' %}
+                                <span class="badge parc">Parcial — saldo R$ {{ "%.2f"|format(v.saldo) }}</span>
+                            {% else %}
+                                <span class="badge pend">Pendente — R$ {{ "%.2f"|format(v.saldo) }}</span>
+                            {% endif %}
+                        </span>
                     </div>
                 </div>
                 {% endfor %}
             {% else %}
-                <div class="vazio"><span>🛒</span>Nenhuma venda registrada</div>
+                <div class="vazio">Nenhuma venda registrada</div>
             {% endif %}
         </div>
     </div>
+
 </main>
 </body>
 </html>
